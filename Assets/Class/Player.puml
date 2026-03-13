@@ -1,0 +1,33 @@
+﻿@startuml
+skinparam classAttributeIconSize 0
+
+class GameManager
+class PlayerController
+class EnemyController
+class CameraController
+class PlayerHUD
+class GameHUD
+class PlayerStats
+class EnemyStats
+class UnityInputAdapter
+
+interface IDamageable
+
+PlayerController --> PlayerStats
+EnemyController --> EnemyStats
+
+PlayerController --> UnityInputAdapter
+
+CameraController --> PlayerController
+
+PlayerHUD --> PlayerStats
+GameHUD --> GameManager
+
+PlayerController ..> IDamageable
+EnemyController ..> IDamageable
+
+GameManager --> PlayerController
+GameManager --> EnemyController
+GameManager --> CameraController
+
+@enduml
