@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34e9947792d07474b860abe313673f5b, type: 3}
+  m_Name: TrainingRoom
+  m_EditorClassIdentifier: Qubic::QubicNS.PrefabDatabase
+  CellSize: 2
+  CellHeight: 2
+  Features:
+    DefaultContentPadding: 0.1
+    ColumnCoeff: 0.1
+    FullDepthCoeff: 0.25
+    FloorOffsetY: 0
+  _CollapseAllFoldouts: 0
+  Prefabs:
+  - Type: 1
+    _inspector_name: 
+    PrefabInfo:
+      Prefab: {fileID: 162146, guid: 5bceb99c9fa1f2a4bb9692e518bec46c, type: 3}
+      Anchor: {x: -0, y: -0.000000011175871, z: -0}
+      Bounds:
+        m_Center: {x: 0, y: 0.049999986, z: 0}
+        m_Extent: {x: 2, y: 0.049999997, z: 2}
+      RotationY: 0
+      Alternates: []
+    WallFeatures:
+      ContentPadding: 0.1
+      RequiresColumn: 0
+      Side: 0
+    ContentFeatures:
+      IsMolding: 0
+      CollisionLayer: Default
+      AvoidNarrow: 0
+      SpawnInsideRoom: 0
+      AvoidConvexCorners: 0
+      AvoidConcaveCorners: 0
+      NeedCeiling: 0
+      NeedFloor: 1
+      NeedColumn: 0
+      IgnoreWallPadding: 0
+      IgnoreFloorPadding: 0
+      IgnoreCollisions: 0
+      CheckWallsAround: 0
+      Decimation: 1
+      AvoidTags: 
+      AvoidCellsWithSetTags: 1
+      IsRoof: 0
+      RoofType: 0
+      RoofRoomStyle: Room
+    ColumnFeatures:
+      CornerType: 0
+    SetTags: 
+    SetTagsRadius: 1
+    Levels:
+      Min: -20
+      Max: 20
+      Type: 0
+    Rules:
+    - From: Any
+      Wall: Floor,Ceiling
+      To: Any
+      Steep: 0
+      BetweenSamePrefabs: 0
+      Priority: 0
+      Chance: 5
+      PrefabType: 1
+    Seed: 0
