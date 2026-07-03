@@ -26,7 +26,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private DialogueView dialogueViewPrefab;
         [SerializeField] private DialogueBacklogView dialogueBacklogViewPrefab;
         [SerializeField] private bool enableDebugSaveHotkeys = true;
-        [SerializeField] private bool enableDebugBacklogHotkey = true;
+        [SerializeField] private bool enableDialogueKeyboardInput = true;
         [SerializeField] private int defaultManualSaveSlot = DialogueSaveSlotConventions.FirstManualSlot;
         [SerializeField] private bool saveThumbnails;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
@@ -36,6 +36,9 @@ namespace WhiteRoom.Novel
         private DialogueView _view;
         private DialogueBacklogView _backlogView;
         private DialogueSaveSystem _saveSystem;
+        private DialoguePlaybackController _playbackController;
+        private DialogueInputRouter _inputRouter;
+        private DialogueKeyboardInput _keyboardInput;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -73,9 +76,6 @@ namespace WhiteRoom.Novel
                 if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F9))
                     QuickLoad();
             }
-
-            if (enableDebugBacklogHotkey && DialogueKeyboard.GetKeyDown(DialogueKeyCode.B))
-                ToggleBacklog();
         }
 
         public void StartDialogue(int id)
@@ -228,6 +228,8 @@ namespace WhiteRoom.Novel
             _backlogView = EnsureDialogueBacklogView();
             _manager = EnsureDialogueManager();
             _saveSystem = EnsureDialogueSaveSystem(_manager);
+            _playbackController = EnsureDialoguePlaybackController(_manager);
+            EnsureDialogueInputRouting(_view, _backlogView, _playbackController);
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(this);
@@ -289,6 +291,59 @@ namespace WhiteRoom.Novel
             _manager = _manager != null ? _manager : DialogueManager.Instance;
             _saveSystem = EnsureDialogueSaveSystem(_manager);
             return _saveSystem != null;
+        }
+
+        private DialoguePlaybackController EnsureDialoguePlaybackController(DialogueManager manager)
+        {
+            if (manager == null)
+                return null;
+
+            var playbackController = manager.GetComponent<DialoguePlaybackController>();
+            if (playbackController == null)
+                playbackController = manager.gameObject.AddComponent<DialoguePlaybackController>();
+
+            return playbackController;
+        }
+
+        private void EnsureDialogueInputRouting(DialogueView view, DialogueBacklogView backlog, DialoguePlaybackController playbackController)
+        {
+            if (!enableDialogueKeyboardInput || view == null)
+                return;
+
+            _keyboardInput = view.GetComponent<DialogueKeyboardInput>();
+            if (_keyboardInput == null)
+                _keyboardInput = view.gameObject.AddComponent<DialogueKeyboardInput>();
+
+            _inputRouter = view.GetComponent<DialogueInputRouter>();
+            if (_inputRouter == null)
+                _inputRouter = view.gameObject.AddComponent<DialogueInputRouter>();
+
+            SetPrivateField(_inputRouter, "inputSourceComponent", _keyboardInput);
+            SetPrivateField(_inputRouter, "backlog", backlog);
+            SetPrivateField(_inputRouter, "playbackController", playbackController);
+
+            if (view.gameObject.activeInHierarchy)
+                ConnectInputRouter(_inputRouter, view, _keyboardInput);
+        }
+
+        private static void ConnectInputRouter(DialogueInputRouter router, DialogueView view, DialogueKeyboardInput input)
+        {
+            if (router == null || input == null)
+                return;
+
+            SetPrivateField(router, "_view", view);
+            SetPrivateField(router, "_inputSource", input);
+
+            var method = typeof(DialogueInputRouter).GetMethod("HandleInput", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (method == null)
+            {
+                Debug.LogWarning("NovelGameBootstrap: DialogueInputRouter.HandleInput was not found.");
+                return;
+            }
+
+            var handler = (Action<DialogueInputAction>)Delegate.CreateDelegate(typeof(Action<DialogueInputAction>), router, method);
+            input.InputReceived -= handler;
+            input.InputReceived += handler;
         }
 
         private bool EnsureBacklogViewReady()
