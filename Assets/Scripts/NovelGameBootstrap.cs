@@ -24,9 +24,15 @@ namespace WhiteRoom.Novel
         [SerializeField] private string playerName = "Player";
         [SerializeField] private float typewriterInterval = 0.025f;
         [SerializeField] private DialogueView dialogueViewPrefab;
+        [SerializeField] private bool enableDebugSaveHotkeys = true;
+        [SerializeField] private int defaultManualSaveSlot = DialogueSaveSlotConventions.FirstManualSlot;
+        [SerializeField] private bool saveThumbnails;
+        [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
+        [SerializeField] private string saveProductChannel = string.Empty;
 
         private DialogueManager _manager;
         private DialogueView _view;
+        private DialogueSaveSystem _saveSystem;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -53,6 +59,17 @@ namespace WhiteRoom.Novel
         private void Start()
         {
             BuildRuntime();
+        }
+
+        private void Update()
+        {
+            if (!enableDebugSaveHotkeys)
+                return;
+
+            if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F5))
+                QuickSave();
+            if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F9))
+                QuickLoad();
         }
 
         public void StartDialogue(int id)
@@ -83,6 +100,68 @@ namespace WhiteRoom.Novel
                 _manager.Rollback();
         }
 
+        public bool SaveDialogue()
+        {
+            return SaveDialogue(defaultManualSaveSlot);
+        }
+
+        public bool SaveDialogue(int slot)
+        {
+            if (!EnsureSaveSystemReady())
+                return false;
+
+            var title = BuildSaveTitle(slot);
+            var saved = saveThumbnails
+                ? SaveWithThumbnail(slot, false, title)
+                : _saveSystem.Save(slot, false, title);
+
+            return saved != null;
+        }
+
+        public bool LoadDialogue()
+        {
+            return LoadDialogue(defaultManualSaveSlot);
+        }
+
+        public bool LoadDialogue(int slot)
+        {
+            return EnsureSaveSystemReady() && _saveSystem.Load(slot);
+        }
+
+        public bool QuickSave()
+        {
+            if (!EnsureSaveSystemReady())
+                return false;
+
+            var title = BuildSaveTitle(DialogueSaveSystem.QuickSaveSlot);
+            if (saveThumbnails)
+            {
+                _saveSystem.QuickSaveWithThumbnail(title);
+                return _saveSystem.LastOperationResult == null || _saveSystem.LastOperationResult.Succeeded;
+            }
+
+            return _saveSystem.QuickSave(title) != null;
+        }
+
+        public bool QuickLoad()
+        {
+            return EnsureSaveSystemReady() && _saveSystem.QuickLoad();
+        }
+
+        public bool ContinueLatest()
+        {
+            if (!EnsureSaveSystemReady())
+                return false;
+
+            var candidate = _saveSystem.GetLatestContinueCandidate(true, true, false);
+            return candidate != null && candidate.CanLoad && _saveSystem.Load(candidate.SlotIndex);
+        }
+
+        public bool HasSave(int slot)
+        {
+            return EnsureSaveSystemReady() && _saveSystem.Exists(slot);
+        }
+
         bool IDialogueVariableResolver.TryResolve(string variableName, DialogueData data, out string value)
         {
             if (string.Equals(variableName, "playerName", StringComparison.OrdinalIgnoreCase))
@@ -108,6 +187,7 @@ namespace WhiteRoom.Novel
             EnsureEventSystem();
             _view = EnsureDialogueView();
             _manager = EnsureDialogueManager();
+            _saveSystem = EnsureDialogueSaveSystem(_manager);
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(this);
@@ -143,6 +223,32 @@ namespace WhiteRoom.Novel
             var managerObject = new GameObject("DialogueManager");
             DontDestroyOnLoad(managerObject);
             return managerObject.AddComponent<DialogueManager>();
+        }
+
+        private DialogueSaveSystem EnsureDialogueSaveSystem(DialogueManager manager)
+        {
+            if (manager == null)
+                return null;
+
+            var saveSystem = manager.GetComponent<DialogueSaveSystem>();
+            if (saveSystem == null)
+                saveSystem = manager.gameObject.AddComponent<DialogueSaveSystem>();
+
+            saveSystem.SetSaveMetadata(saveContentVersion, saveProductChannel);
+            saveSystem.OperationFailed -= HandleSaveOperationFailed;
+            saveSystem.OperationFailed += HandleSaveOperationFailed;
+
+            return saveSystem;
+        }
+
+        private bool EnsureSaveSystemReady()
+        {
+            if (_saveSystem != null)
+                return true;
+
+            _manager = _manager != null ? _manager : DialogueManager.Instance;
+            _saveSystem = EnsureDialogueSaveSystem(_manager);
+            return _saveSystem != null;
         }
 
         private DialogueView EnsureDialogueView()
@@ -311,6 +417,35 @@ namespace WhiteRoom.Novel
             }
 
             field.SetValue(view, value);
+        }
+
+        private DialogueSaveSlot SaveWithThumbnail(int slot, bool isAutosave, string title)
+        {
+            _saveSystem.SaveWithThumbnail(slot, isAutosave, title);
+            var result = _saveSystem.LastOperationResult;
+            return result != null && result.Failed ? null : _saveSystem.Peek(slot);
+        }
+
+        private string BuildSaveTitle(int slot)
+        {
+            if (_manager != null && _manager.CurrentData != null)
+            {
+                var speaker = _manager.CurrentData.Speaker ?? string.Empty;
+                var text = _manager.CurrentData.Text ?? string.Empty;
+                var prefix = string.IsNullOrEmpty(speaker) ? string.Empty : speaker + ": ";
+                var title = prefix + text;
+                return title.Length > 40 ? title.Substring(0, 40) + "..." : title;
+            }
+
+            return slot == DialogueSaveSystem.QuickSaveSlot ? "Quick Save" : $"Save {slot}";
+        }
+
+        private void HandleSaveOperationFailed(DialogueSaveOperationResult result)
+        {
+            if (result == null)
+                return;
+
+            Debug.LogWarning($"NovelGameBootstrap: dialogue save {result.Operation} failed for slot {result.SlotIndex}: {result.Message}");
         }
 
         private void HandleDialogueEvent(DialogueEventContext context)
