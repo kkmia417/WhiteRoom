@@ -1,24 +1,25 @@
-﻿using System;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using kkmia.TalkSystem;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace WhiteRoom.Novel
 {
+    /// <summary>
+    /// Composition root of the novel game. Builds the dialogue runtime, services and
+    /// UI controllers once at startup, wires them together, and exposes the public
+    /// game API (start/save/load/backlog) they implement.
+    /// </summary>
     [DefaultExecutionOrder(-500)]
-    public sealed partial class NovelGameBootstrap : MonoBehaviour, IDialogueVariableResolver, IDialogueConditionEvaluator
+    public sealed class NovelGameBootstrap : MonoBehaviour
     {
         private const string DefaultDialogueResourcePath = "Dialogue/r00_escape_talksystem";
         private const string DefaultStartTriggerKey = "R00EscapeStart";
 
         private static NovelGameBootstrap _instance;
-        private static TMP_FontAsset _runtimeUiFontAsset;
 
         [SerializeField] private string dialogueResourcePath = DefaultDialogueResourcePath;
         [SerializeField] private string startTriggerKey = DefaultStartTriggerKey;
@@ -47,28 +48,12 @@ namespace WhiteRoom.Novel
 
         private DialogueManager _manager;
         private DialogueView _view;
-        private DialogueBacklogView _backlogView;
-        private DialogueSaveSystem _saveSystem;
-        private DialoguePlaybackController _playbackController;
-        private DialogueInputRouter _inputRouter;
-        private DialogueKeyboardInput _keyboardInput;
-        private DialogueStageView _stageView;
-        private DialogueStageBinder _stageBinder;
-        private DialogueAudioPlayer _audioPlayer;
-        private DialogueAudioBinder _audioBinder;
-        private GameObject _titleMenuRoot;
-        private Button _continueButton;
-        private Button _quickLoadButton;
-        private GameObject _saveLoadRoot;
-        private GameObject _saveLoadLauncherRoot;
-        private TMP_Text _saveLoadHeading;
-        private Button _saveLoadSaveTabButton;
-        private Button _saveLoadLoadTabButton;
-        private bool _saveLoadModeIsSave = true;
-        private DialogueUnlockRegistry _unlockRegistry;
-        private DialogueUnlockSaveService _unlockSaveService;
-        private readonly HashSet<string> _reachedEventKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly List<SaveLoadSlotRow> _saveLoadRows = new List<SaveLoadSlotRow>();
+        private NovelSaveService _saveService;
+        private DialogueProgressService _progress;
+        private DialoguePresentationIssueLogger _presentationIssueLogger;
+        private BacklogController _backlog;
+        private TitleMenuController _titleMenu;
+        private SaveLoadScreenController _saveLoadScreen;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -97,13 +82,9 @@ namespace WhiteRoom.Novel
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
 
-            if (_manager != null)
-                _manager.ProgressMarkerReached -= HandleProgressMarkerReached;
-
-            if (_unlockRegistry != null)
-                _unlockRegistry.Unlocked -= HandleDialogueUnlocked;
-
-            DisconnectPresentationIssues();
+            _saveService?.Dispose();
+            _progress?.Dispose();
+            _presentationIssueLogger?.Dispose();
 
             if (_instance == this)
                 _instance = null;
@@ -140,8 +121,8 @@ namespace WhiteRoom.Novel
             if (_manager == null)
                 return;
 
-            HideTitleMenu();
-            HideSaveLoadScreen();
+            _titleMenu?.Hide();
+            _saveLoadScreen?.Close();
             _manager.StartDialogueForState(triggerKey);
         }
 
@@ -164,226 +145,132 @@ namespace WhiteRoom.Novel
 
         public bool SaveDialogue()
         {
-            return SaveDialogue(defaultManualSaveSlot);
+            return _saveService != null && _saveService.Save();
         }
 
         public bool SaveDialogue(int slot)
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var title = BuildSaveTitle(slot);
-            var saved = saveThumbnails
-                ? SaveWithThumbnail(slot, false, title)
-                : _saveSystem.Save(slot, false, title);
-
-            var succeeded = saved != null;
-            if (succeeded)
-            {
-                RefreshTitleMenuButtons();
-                RefreshSaveLoadScreen();
-            }
-
-            return succeeded;
+            return _saveService != null && _saveService.Save(slot);
         }
 
         public bool LoadDialogue()
         {
-            return LoadDialogue(defaultManualSaveSlot);
+            return _saveService != null && _saveService.Load();
         }
 
         public bool LoadDialogue(int slot)
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var loaded = _saveSystem.Load(slot);
-            if (loaded)
-            {
-                HideTitleMenu();
-                HideSaveLoadScreen();
-            }
-
-            return loaded;
+            return _saveService != null && _saveService.Load(slot);
         }
 
         public bool QuickSave()
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var title = BuildSaveTitle(DialogueSaveSystem.QuickSaveSlot);
-            if (saveThumbnails)
-            {
-                _saveSystem.QuickSaveWithThumbnail(title);
-                var succeeded = _saveSystem.LastOperationResult == null || _saveSystem.LastOperationResult.Succeeded;
-                if (succeeded)
-                {
-                    RefreshTitleMenuButtons();
-                    RefreshSaveLoadScreen();
-                }
-
-                return succeeded;
-            }
-
-            var saved = _saveSystem.QuickSave(title) != null;
-            if (saved)
-            {
-                RefreshTitleMenuButtons();
-                RefreshSaveLoadScreen();
-            }
-
-            return saved;
+            return _saveService != null && _saveService.QuickSave();
         }
 
         public bool QuickLoad()
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var loaded = _saveSystem.QuickLoad();
-            if (loaded)
-            {
-                HideTitleMenu();
-                HideSaveLoadScreen();
-            }
-
-            return loaded;
+            return _saveService != null && _saveService.QuickLoad();
         }
 
         public bool ContinueLatest()
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var candidate = _saveSystem.GetLatestContinueCandidate(true, true, false);
-            var loaded = candidate != null && candidate.CanLoad && _saveSystem.Load(candidate.SlotIndex);
-            if (loaded)
-            {
-                HideTitleMenu();
-                HideSaveLoadScreen();
-            }
-
-            return loaded;
+            return _saveService != null && _saveService.ContinueLatest();
         }
 
         public void OpenSaveScreen()
         {
-            ShowSaveLoadScreen(true);
+            _saveLoadScreen?.OpenSave();
         }
 
         public void OpenLoadScreen()
         {
-            ShowSaveLoadScreen(false);
+            _saveLoadScreen?.OpenLoad();
         }
 
         public void CloseSaveLoadScreen()
         {
-            HideSaveLoadScreen();
+            _saveLoadScreen?.Close();
         }
 
         public bool HasSave(int slot)
         {
-            return EnsureSaveSystemReady() && _saveSystem.Exists(slot);
+            return _saveService != null && _saveService.HasSave(slot);
         }
 
         public bool HasContinueSave()
         {
-            if (!EnsureSaveSystemReady())
-                return false;
-
-            var candidate = _saveSystem.GetLatestContinueCandidate(true, true, false);
-            return candidate != null && candidate.CanLoad;
+            return _saveService != null && _saveService.HasContinueSave();
         }
 
         public bool HasReachedEvent(string eventKey)
         {
-            return !string.IsNullOrWhiteSpace(eventKey) && _reachedEventKeys.Contains(eventKey.Trim());
+            return _progress != null && _progress.HasReachedEvent(eventKey);
         }
 
         public bool IsUnlocked(string unlockId)
         {
-            return _unlockRegistry != null && _unlockRegistry.IsUnlocked(unlockId);
+            return _progress != null && _progress.IsUnlocked(unlockId);
         }
 
         public List<string> ListUnlockedIds(string category)
         {
-            return _unlockRegistry != null
-                ? _unlockRegistry.ListUnlockedIds(category)
-                : new List<string>();
+            return _progress != null ? _progress.ListUnlockedIds(category) : new List<string>();
         }
 
         public void ToggleBacklog()
         {
-            if (!EnsureBacklogViewReady())
-                return;
-
-            if (_backlogView.IsOpen)
-                CloseBacklog();
-            else
-                OpenBacklog();
+            _backlog?.Toggle();
         }
 
         public void OpenBacklog()
         {
-            if (!EnsureBacklogViewReady())
-                return;
-
-            if (_view != null)
-                _view.SetAutoAdvanceSuspended(true);
-
-            _backlogView.Open();
+            _backlog?.Open();
         }
 
         public void CloseBacklog()
         {
-            if (_backlogView == null)
-                return;
-
-            _backlogView.Close();
-
-            if (_view != null)
-                _view.SetAutoAdvanceSuspended(false);
-        }
-
-        bool IDialogueVariableResolver.TryResolve(string variableName, DialogueData data, out string value)
-        {
-            if (string.Equals(variableName, "playerName", StringComparison.OrdinalIgnoreCase))
-            {
-                value = playerName;
-                return true;
-            }
-
-            value = null;
-            return false;
-        }
-
-        bool IDialogueConditionEvaluator.Evaluate(string conditionKey, DialogueData data)
-        {
-            if (string.IsNullOrEmpty(conditionKey))
-                return true;
-
-            return EvaluateCondition(conditionKey);
+            _backlog?.Close();
         }
 
         private void BuildRuntime()
         {
-            EnsureUiFontAsset();
-            EnsureEventSystem();
-            _view = EnsureDialogueView();
-            _backlogView = EnsureDialogueBacklogView();
-            _manager = EnsureDialogueManager();
-            _saveSystem = EnsureDialogueSaveSystem(_manager);
-            _playbackController = EnsureDialoguePlaybackController(_manager);
-            EnsureDialoguePresentation(_saveSystem);
-            EnsureDialogueUnlocks();
-            ConnectProgressMarkers(_manager);
-            EnsureDialogueInputRouting(_view, _backlogView, _playbackController);
-            EnsureSaveLoadLauncher();
+            NovelUiFactory.EnsureFont(uiFontAsset, uiFontResourcePath);
+            NovelUiFactory.EnsureEventSystem();
+
+            _view = DialogueViewFactory.EnsureDialogueView(dialogueViewPrefab);
+            var backlogView = DialogueViewFactory.EnsureBacklogView(dialogueBacklogViewPrefab);
+
+            _manager = DialogueRuntimeFactory.EnsureManager();
+            var saveSystem = DialogueRuntimeFactory.EnsureSaveSystem(_manager, saveContentVersion, saveProductChannel);
+            var playbackController = DialogueRuntimeFactory.EnsurePlaybackController(_manager);
+
+            var presentation = DialoguePresentationFactory.Ensure(backgroundDatabase, characterDatabase, audioDatabase);
+            presentation.RegisterSaveContributors(saveSystem);
+            _presentationIssueLogger = new DialoguePresentationIssueLogger();
+            _presentationIssueLogger.Watch(presentation.StageView);
+            _presentationIssueLogger.Watch(presentation.AudioPlayer);
+
+            _progress = new DialogueProgressService(unlockProgressMarkers);
+            _progress.AttachTo(_manager);
+
+            if (enableDialogueKeyboardInput)
+                DialogueRuntimeFactory.EnsureKeyboardInputRouting(_view, backlogView, playbackController);
+
+            var autoAdvanceGate = new DialogueAutoAdvanceGate(_view);
+            _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
+            _backlog = new BacklogController(backlogView, autoAdvanceGate);
+            _titleMenu = new TitleMenuController(_saveService, StartNewGame, OpenLoadScreen);
+            _saveLoadScreen = new SaveLoadScreenController(_saveService, autoAdvanceGate, manualSaveSlotCount, showSaveLoadLauncher);
+            _saveLoadScreen.EnsureLauncher();
+
+            _saveService.Saved += HandleSaveCompleted;
+            _saveService.Loaded += HandleLoadCompleted;
+            _titleMenu.VisibilityChanged += _saveLoadScreen.SetTitleMenuVisible;
 
             _manager.SetView(_view);
-            _manager.SetVariableResolver(this);
-            _manager.SetConditionEvaluator(this);
+            _manager.SetVariableResolver(new PlayerNameVariableResolver(() => playerName));
+            _manager.SetConditionEvaluator(_progress);
             _manager.SetTypewriterSpeed(typewriterInterval);
             _manager.SetEventDispatcher(new DelegateDialogueEventDispatcher(HandleDialogueEvent));
 
@@ -397,7 +284,7 @@ namespace WhiteRoom.Novel
             StartCoroutine(LoadDialogueAndStart(csv));
         }
 
-        private System.Collections.IEnumerator LoadDialogueAndStart(TextAsset csv)
+        private IEnumerator LoadDialogueAndStart(TextAsset csv)
         {
             _manager.LoadRepository(new TextAssetDialogueRepositoryLoader(csv));
             yield return null;
@@ -405,7 +292,7 @@ namespace WhiteRoom.Novel
 
             if (ShouldShowTitleMenu())
             {
-                ShowTitleMenu();
+                _titleMenu.Show();
                 yield break;
             }
 
@@ -413,12 +300,61 @@ namespace WhiteRoom.Novel
                 _manager.StartDialogueForState(startTriggerKey);
         }
 
+        private void HandleSaveCompleted()
+        {
+            _titleMenu.RefreshButtons();
+            _saveLoadScreen.Refresh();
+        }
+
+        private void HandleLoadCompleted()
+        {
+            _titleMenu.Hide();
+            _saveLoadScreen.Close();
+        }
+
+        private void HandleDialogueEvent(DialogueEventContext context)
+        {
+            if (context == null || string.IsNullOrEmpty(context.EventKey))
+                return;
+
+            var eventKey = context.EventKey.Trim();
+            if (eventKey.Length == 0)
+                return;
+
+            _progress.RecordEvent(eventKey);
+
+            switch (eventKey)
+            {
+                case "scene_start":
+                case "load_main":
+                    LoadMainScene();
+                    break;
+                default:
+                    Debug.Log($"NovelGameBootstrap: dialogue event '{context.EventKey}' was raised.");
+                    break;
+            }
+        }
+
+        private void LoadMainScene()
+        {
+            _titleMenu?.Hide();
+
+            if (string.IsNullOrEmpty(mainSceneName)
+                || string.Equals(SceneManager.GetActiveScene().name, mainSceneName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            SceneManager.LoadScene(mainSceneName);
+        }
+
         private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            if (_titleMenu == null)
+                return;
+
             if (ShouldShowTitleMenu(scene.name))
-                ShowTitleMenu();
+                _titleMenu.Show();
             else
-                HideTitleMenu();
+                _titleMenu.Hide();
         }
 
         private bool ShouldShowTitleMenu()
