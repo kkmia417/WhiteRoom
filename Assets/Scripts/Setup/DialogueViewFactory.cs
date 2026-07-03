@@ -29,7 +29,7 @@ namespace WhiteRoom.Novel
                 return prefabView;
             }
 
-            return CreateFallbackDialogueView(canvas.transform);
+            return CreateDefaultDialogueView(canvas.transform, true);
         }
 
         public static DialogueBacklogView EnsureBacklogView(DialogueBacklogView prefab)
@@ -47,13 +47,13 @@ namespace WhiteRoom.Novel
                 return prefabBacklog;
             }
 
-            return CreateFallbackBacklogView(canvas.transform);
+            return CreateDefaultBacklogView(canvas.transform);
         }
 
-        private static DialogueView CreateFallbackDialogueView(Transform parent)
+        public static DialogueView CreateDefaultDialogueView(Transform parent, bool startInactive = false)
         {
             var root = CreateDialogueRoot(parent);
-            root.SetActive(false);
+            root.SetActive(!startInactive);
 
             var speaker = NovelUiFactory.CreateText("SpeakerText", root.transform, new Vector2(28f, -18f), new Vector2(-28f, -56f), 24f, FontStyles.Bold);
             var body = NovelUiFactory.CreateText("BodyText", root.transform, new Vector2(28f, -70f), new Vector2(-148f, 26f), 26f, FontStyles.Normal);
@@ -75,7 +75,7 @@ namespace WhiteRoom.Novel
             return view;
         }
 
-        private static DialogueBacklogView CreateFallbackBacklogView(Transform parent)
+        public static DialogueBacklogView CreateDefaultBacklogView(Transform parent)
         {
             var backlogObject = new GameObject("DialogueBacklog", typeof(RectTransform), typeof(DialogueBacklogView));
             backlogObject.transform.SetParent(parent, false);
