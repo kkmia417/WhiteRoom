@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using kkmia.TalkSystem;
 using TMPro;
@@ -29,6 +30,8 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool enableDialogueKeyboardInput = true;
         [SerializeField] private bool showTitleMenu = true;
         [SerializeField] private string titleSceneName = "Title";
+        [SerializeField] private string mainSceneName = "Main";
+        [SerializeField] private bool unlockProgressMarkers = true;
         [SerializeField] private int defaultManualSaveSlot = DialogueSaveSlotConventions.FirstManualSlot;
         [SerializeField] private bool saveThumbnails;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
@@ -44,6 +47,9 @@ namespace WhiteRoom.Novel
         private GameObject _titleMenuRoot;
         private Button _continueButton;
         private Button _quickLoadButton;
+        private DialogueUnlockRegistry _unlockRegistry;
+        private DialogueUnlockSaveService _unlockSaveService;
+        private readonly HashSet<string> _reachedEventKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -71,6 +77,12 @@ namespace WhiteRoom.Novel
         private void OnDestroy()
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+
+            if (_manager != null)
+                _manager.ProgressMarkerReached -= HandleProgressMarkerReached;
+
+            if (_unlockRegistry != null)
+                _unlockRegistry.Unlocked -= HandleDialogueUnlocked;
 
             if (_instance == this)
                 _instance = null;
@@ -223,6 +235,23 @@ namespace WhiteRoom.Novel
             return candidate != null && candidate.CanLoad;
         }
 
+        public bool HasReachedEvent(string eventKey)
+        {
+            return !string.IsNullOrWhiteSpace(eventKey) && _reachedEventKeys.Contains(eventKey.Trim());
+        }
+
+        public bool IsUnlocked(string unlockId)
+        {
+            return _unlockRegistry != null && _unlockRegistry.IsUnlocked(unlockId);
+        }
+
+        public List<string> ListUnlockedIds(string category)
+        {
+            return _unlockRegistry != null
+                ? _unlockRegistry.ListUnlockedIds(category)
+                : new List<string>();
+        }
+
         public void ToggleBacklog()
         {
             if (!EnsureBacklogViewReady())
@@ -273,7 +302,7 @@ namespace WhiteRoom.Novel
             if (string.IsNullOrEmpty(conditionKey))
                 return true;
 
-            return true;
+            return EvaluateCondition(conditionKey);
         }
 
         private void BuildRuntime()
@@ -284,6 +313,8 @@ namespace WhiteRoom.Novel
             _manager = EnsureDialogueManager();
             _saveSystem = EnsureDialogueSaveSystem(_manager);
             _playbackController = EnsureDialoguePlaybackController(_manager);
+            EnsureDialogueUnlocks();
+            ConnectProgressMarkers(_manager);
             EnsureDialogueInputRouting(_view, _backlogView, _playbackController);
 
             _manager.SetView(_view);
@@ -336,6 +367,114 @@ namespace WhiteRoom.Novel
             return showTitleMenu
                 && !string.IsNullOrEmpty(titleSceneName)
                 && string.Equals(sceneName, titleSceneName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool EvaluateCondition(string conditionKey)
+        {
+            var normalized = conditionKey.Trim();
+            var invert = normalized.StartsWith("!", StringComparison.Ordinal);
+            if (invert)
+                normalized = normalized.Substring(1).Trim();
+
+            var result = EvaluatePositiveCondition(normalized);
+            return invert ? !result : result;
+        }
+
+        private bool EvaluatePositiveCondition(string conditionKey)
+        {
+            if (conditionKey.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+                return HasReachedEvent(conditionKey.Substring("event:".Length));
+
+            if (conditionKey.StartsWith("unlock:", StringComparison.OrdinalIgnoreCase))
+                return IsUnlocked(conditionKey.Substring("unlock:".Length));
+
+            if (conditionKey.StartsWith("chapter:", StringComparison.OrdinalIgnoreCase)
+                || conditionKey.StartsWith("route:", StringComparison.OrdinalIgnoreCase)
+                || conditionKey.StartsWith("ending:", StringComparison.OrdinalIgnoreCase))
+            {
+                return IsUnlocked(conditionKey);
+            }
+
+            return HasReachedEvent(conditionKey) || IsUnlocked(conditionKey);
+        }
+
+        private void EnsureDialogueUnlocks()
+        {
+            if (_unlockRegistry == null)
+                _unlockRegistry = new DialogueUnlockRegistry();
+
+            if (_unlockSaveService == null)
+                _unlockSaveService = new DialogueUnlockSaveService(new FileDialogueUnlockStorage());
+
+            _unlockRegistry.Unlocked -= HandleDialogueUnlocked;
+            _unlockRegistry.Unlocked += HandleDialogueUnlocked;
+
+            if (!_unlockSaveService.LoadInto(_unlockRegistry)
+                && !string.IsNullOrEmpty(_unlockSaveService.LastError))
+            {
+                Debug.LogWarning($"NovelGameBootstrap: {_unlockSaveService.LastError}");
+            }
+        }
+
+        private void ConnectProgressMarkers(DialogueManager manager)
+        {
+            if (manager == null)
+                return;
+
+            manager.ProgressMarkerReached -= HandleProgressMarkerReached;
+            manager.ProgressMarkerReached += HandleProgressMarkerReached;
+        }
+
+        private void HandleProgressMarkerReached(DialogueProgressEventContext context)
+        {
+            if (!unlockProgressMarkers || context == null || context.Marker == null)
+                return;
+
+            var marker = context.Marker;
+            if (!marker.IsFirstReach || string.IsNullOrEmpty(marker.Key))
+                return;
+
+            var category = GetProgressUnlockCategory(marker.Type);
+            if (string.IsNullOrEmpty(category))
+                return;
+
+            var unlockId = category + ":" + marker.Key;
+            if (_unlockRegistry == null || !_unlockRegistry.MarkUnlocked(unlockId, category))
+                return;
+
+            SaveDialogueUnlocks();
+        }
+
+        private static string GetProgressUnlockCategory(DialogueProgressMarkerType markerType)
+        {
+            switch (markerType)
+            {
+                case DialogueProgressMarkerType.Chapter:
+                    return "chapter";
+                case DialogueProgressMarkerType.Route:
+                    return "route";
+                case DialogueProgressMarkerType.Ending:
+                    return "ending";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private void HandleDialogueUnlocked(DialogueUnlockEventContext context)
+        {
+            if (context == null || context.Entry == null)
+                return;
+
+            Debug.Log($"NovelGameBootstrap: unlocked '{context.Entry.Id}'.");
+        }
+
+        private void SaveDialogueUnlocks()
+        {
+            if (_unlockSaveService == null || _unlockRegistry == null)
+                return;
+
+            if (!_unlockSaveService.Save(_unlockRegistry))
+                Debug.LogWarning($"NovelGameBootstrap: {_unlockSaveService.LastError}");
         }
 
         private void ShowTitleMenu()
@@ -918,15 +1057,33 @@ namespace WhiteRoom.Novel
             if (context == null || string.IsNullOrEmpty(context.EventKey))
                 return;
 
-            switch (context.EventKey)
+            var eventKey = context.EventKey.Trim();
+            if (eventKey.Length == 0)
+                return;
+
+            _reachedEventKeys.Add(eventKey);
+
+            switch (eventKey)
             {
+                case "scene_start":
                 case "load_main":
-                    SceneManager.LoadScene("Main");
+                    LoadMainScene();
                     break;
                 default:
                     Debug.Log($"NovelGameBootstrap: dialogue event '{context.EventKey}' was raised.");
                     break;
             }
+        }
+
+        private void LoadMainScene()
+        {
+            HideTitleMenu();
+
+            if (string.IsNullOrEmpty(mainSceneName)
+                || string.Equals(SceneManager.GetActiveScene().name, mainSceneName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            SceneManager.LoadScene(mainSceneName);
         }
     }
 }
