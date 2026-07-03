@@ -7,6 +7,7 @@ Use these prompts when working with Codex in this project:
 
 - `Use $codex-harness to design or evolve reusable Codex workflows for this repository.`
 - `Use $feature-delivery to implement a bounded feature end to end.`
+- `Use $whiteroom-novel-dev to implement WhiteRoom dialogue features with Talk System.`
 - `Use $repo-review to review the current diff.`
 - `Use $integration-qa to check cross-boundary risks after changes.`
 - `Use $docs-maintenance to update or verify repository documentation.`
