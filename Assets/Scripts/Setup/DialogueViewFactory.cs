@@ -58,6 +58,8 @@ namespace WhiteRoom.Novel
             var speaker = NovelUiFactory.CreateText("SpeakerText", root.transform, new Vector2(28f, -18f), new Vector2(-28f, -56f), 24f, FontStyles.Bold);
             var body = NovelUiFactory.CreateText("BodyText", root.transform, new Vector2(28f, -70f), new Vector2(-148f, 26f), 26f, FontStyles.Normal);
             var nextButton = CreateNextButton(root.transform);
+            var choicesContainer = CreateChoicesContainer(root.transform);
+            var choiceButtonPrefab = CreateChoiceButtonPrefab(choicesContainer);
             var typewriter = body.gameObject.AddComponent<TypewriterEffect>();
             var view = root.AddComponent<DialogueView>();
 
@@ -66,6 +68,8 @@ namespace WhiteRoom.Novel
             RuntimeFieldBinder.SetPrivateField(view, "nextButton", nextButton);
             RuntimeFieldBinder.SetPrivateField(view, "dialogWindow", root.GetComponent<Image>());
             RuntimeFieldBinder.SetPrivateField(view, "typewriter", typewriter);
+            RuntimeFieldBinder.SetPrivateField(view, "choicesContainer", choicesContainer);
+            RuntimeFieldBinder.SetPrivateField(view, "choiceButtonPrefab", choiceButtonPrefab);
             EnsureViewBinder(view);
 
             return view;
@@ -132,6 +136,55 @@ namespace WhiteRoom.Novel
             label.alignment = TextAlignmentOptions.Center;
 
             return buttonObject.GetComponent<Button>();
+        }
+
+        private static Transform CreateChoicesContainer(Transform parent)
+        {
+            var containerObject = new GameObject("Choices", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            containerObject.transform.SetParent(parent, false);
+
+            var rect = (RectTransform)containerObject.transform;
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 190f);
+            rect.sizeDelta = new Vector2(520f, 150f);
+
+            var layout = containerObject.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = 8f;
+            layout.childAlignment = TextAnchor.LowerCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            return containerObject.transform;
+        }
+
+        private static Button CreateChoiceButtonPrefab(Transform parent)
+        {
+            var button = NovelUiFactory.CreateButton(
+                "ChoiceButtonPrefab",
+                parent,
+                string.Empty,
+                18f,
+                new UiButtonStyle(
+                    new Color(0.12f, 0.14f, 0.18f, 0.92f),
+                    new Color(0.18f, 0.21f, 0.27f, 1f),
+                    new Color(0.09f, 0.11f, 0.15f, 1f),
+                    new Color(0.07f, 0.08f, 0.10f, 0.55f)),
+                TextAlignmentOptions.MidlineLeft,
+                new Vector2(14f, 4f));
+
+            var rect = (RectTransform)button.transform;
+            rect.sizeDelta = new Vector2(480f, 42f);
+
+            var layout = button.gameObject.AddComponent<LayoutElement>();
+            layout.preferredHeight = 42f;
+            layout.minHeight = 42f;
+
+            button.gameObject.SetActive(false);
+            return button;
         }
 
         private static GameObject CreateBacklogPanel(Transform parent)
