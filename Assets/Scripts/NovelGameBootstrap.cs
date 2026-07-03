@@ -604,9 +604,9 @@ namespace WhiteRoom.Novel
             CreateTitleLabel(menuObject.transform, "WhiteRoom", 64f, 96f, FontStyles.Bold);
             CreateTitleSpacer(menuObject.transform, 18f);
             CreateTitleButton(menuObject.transform, "New Game", StartNewGame);
-            _continueButton = CreateTitleButton(menuObject.transform, "Continue", ContinueLatest);
+            _continueButton = CreateTitleButton(menuObject.transform, "Continue", () => ContinueLatest());
             CreateTitleButton(menuObject.transform, "Load Game", OpenLoadScreen);
-            _quickLoadButton = CreateTitleButton(menuObject.transform, "Quick Load", QuickLoad);
+            _quickLoadButton = CreateTitleButton(menuObject.transform, "Quick Load", () => QuickLoad());
 
             root.SetActive(false);
             return root;
