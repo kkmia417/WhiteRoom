@@ -1,0 +1,18 @@
+{
+    "name": "kkmia.TalkSystem.Editor",
+    "rootNamespace": "kkmia.TalkSystem.Editor",
+    "references": [
+        "kkmia.TalkSystem.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

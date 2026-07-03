@@ -1,0 +1,35 @@
+{
+  "name": "com.kkmia.talksystem",
+  "displayName": "Talk System",
+  "version": "0.2.0",
+  "unity": "6000.0",
+  "description": "CSV-driven, editor-friendly dialogue system for Unity with validation, preview, branching choices, event hooks, and extensible runtime APIs.",
+  "keywords": [
+    "dialogue",
+    "conversation",
+    "csv",
+    "branching",
+    "visual novel",
+    "rpg",
+    "editor tooling"
+  ],
+  "author": {
+    "name": "kkmia",
+    "url": "https://github.com/kkmia417"
+  },
+  "license": "MIT",
+  "type": "tool",
+  "dependencies": {
+    "com.unity.ugui": "2.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Feature Tour",
+      "description": "A compact sample that demonstrates branching dialogue, variables, events, validation, and save data integration.",
+      "path": "Samples~/FeatureTour"
+    }
+  ],
+  "documentationUrl": "https://github.com/kkmia417/TalkSystem#readme",
+  "changelogUrl": "https://github.com/kkmia417/TalkSystem/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/kkmia417/TalkSystem/blob/main/LICENSE"
+}

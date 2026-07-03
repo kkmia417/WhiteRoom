@@ -1,0 +1,6 @@
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds
+1,Guide,"Welcome, {playerName}. This sample shows [color=#ffcc00]Talk System[/color] features.",2,happy,SampleStart,,sample_started,,
+2,Guide,"Choose a route.[w=0.3] The [ruby=ひだり]left[/ruby] route requires a condition.",-1,neutral,,,choice_prompt,"Left route->10?can_take_left|Right route->20",
+10,Guide,"The condition passed, so the [color=#88ccff]left[/color] route opened.",30,happy,,,left_route,,
+20,Guide,"The right route always stays available.",30,neutral,,,right_route,,
+30,Guide,"This line can be saved, restored, rolled back, and shown in the backlog.[w=0.2] Press [color=#ffcc00]L[/color] to switch language.",-1,happy,,,sample_finished,,

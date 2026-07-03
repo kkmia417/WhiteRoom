@@ -1,0 +1,13 @@
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,Background,Bgm,Se,Voice,Characters
+1,Guide,Welcome to Talk System. This scene is a quick feature tour.,2,,Intro,,,,,,,,
+2,Guide,Press Space or Enter to advance. You can also click the Next button.,3,,,,,,,,,,
+3,Guide,The next row shows CSV-driven choices. Pick a route to continue.,-1,,,,,"Friendly route->100|Serious route->110|Auto advance sample->200",,,,,,
+100,Friend,This is the friendly branch.,120,,,,branch_friendly,,,,,,
+110,Rival,This is the serious branch.,120,,,,branch_serious,,,,,,
+120,Guide,Branches can rejoin the same dialogue chain with NextId.,130,,,,,,,,,,
+130,Guide,Use the overlay buttons or number keys to jump to trigger-based entries.,-1,,,,,,,,,,
+200,Guide,This row auto-advances after 1.5 seconds.,201,,,,,,1.5,,,,,
+201,Guide,Auto advance is stored per row in the AutoNextSeconds column.,-1,,,,,,,,,,
+300,System,GameOver trigger reached. This came from StartDialogueForState GameOver.,-1,,GameOver,,game_over,,,,,,
+400,System,End trigger reached. This came from StartDialogueForState End.,401,,End,,demo_end,,,,,,
+401,Guide,Demo complete. Start Intro again to replay the tour.,-1,,,,,,,,,,
