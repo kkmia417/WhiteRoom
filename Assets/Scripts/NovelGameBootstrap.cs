@@ -23,6 +23,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool startOnLaunch = true;
         [SerializeField] private string playerName = "Player";
         [SerializeField] private float typewriterInterval = 0.025f;
+        [SerializeField] private DialogueView dialogueViewPrefab;
 
         private DialogueManager _manager;
         private DialogueView _view;
@@ -148,10 +149,27 @@ namespace WhiteRoom.Novel
         {
             var existingView = FindFirstObjectByType<DialogueView>(FindObjectsInactive.Include);
             if (existingView != null)
+            {
+                EnsureDialogueViewBinder(existingView);
                 return existingView;
+            }
 
-            var canvas = CreateCanvas();
-            var root = CreateDialogueRoot(canvas.transform);
+            if (dialogueViewPrefab != null)
+            {
+                var canvas = EnsureDialogueCanvas();
+                var prefabView = Instantiate(dialogueViewPrefab, canvas.transform);
+                prefabView.gameObject.SetActive(false);
+                EnsureDialogueViewBinder(prefabView);
+                return prefabView;
+            }
+
+            var canvas = EnsureDialogueCanvas();
+            return CreateFallbackDialogueView(canvas.transform);
+        }
+
+        private static DialogueView CreateFallbackDialogueView(Transform parent)
+        {
+            var root = CreateDialogueRoot(parent);
             root.SetActive(false);
 
             var speaker = CreateText("SpeakerText", root.transform, new Vector2(28f, -18f), new Vector2(-28f, -56f), 24f, FontStyles.Bold);
@@ -160,13 +178,19 @@ namespace WhiteRoom.Novel
             var typewriter = body.gameObject.AddComponent<TypewriterEffect>();
             var view = root.AddComponent<DialogueView>();
 
-            SetPrivateField(view, "speakerText", speaker);
-            SetPrivateField(view, "bodyText", body);
-            SetPrivateField(view, "nextButton", nextButton);
-            SetPrivateField(view, "dialogWindow", root.GetComponent<Image>());
-            SetPrivateField(view, "typewriter", typewriter);
+            ConfigureFallbackDialogueView(view, speaker, body, nextButton, root.GetComponent<Image>(), typewriter);
+            EnsureDialogueViewBinder(view);
 
             return view;
+        }
+
+        private static Canvas EnsureDialogueCanvas()
+        {
+            var existingCanvas = FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
+            if (existingCanvas != null && string.Equals(existingCanvas.name, "NovelDialogueCanvas", StringComparison.Ordinal))
+                return existingCanvas;
+
+            return CreateCanvas();
         }
 
         private static Canvas CreateCanvas()
@@ -247,6 +271,12 @@ namespace WhiteRoom.Novel
             return buttonObject.GetComponent<Button>();
         }
 
+        private static void EnsureDialogueViewBinder(DialogueView view)
+        {
+            if (view != null && view.GetComponent<DialogueViewBinder>() == null)
+                view.gameObject.AddComponent<DialogueViewBinder>();
+        }
+
         private static void EnsureEventSystem()
         {
             if (FindFirstObjectByType<EventSystem>() != null)
@@ -254,6 +284,21 @@ namespace WhiteRoom.Novel
 
             var eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             DontDestroyOnLoad(eventSystem);
+        }
+
+        private static void ConfigureFallbackDialogueView(
+            DialogueView view,
+            TMP_Text speaker,
+            TMP_Text body,
+            Button nextButton,
+            Image dialogWindow,
+            TypewriterEffect typewriter)
+        {
+            SetPrivateField(view, "speakerText", speaker);
+            SetPrivateField(view, "bodyText", body);
+            SetPrivateField(view, "nextButton", nextButton);
+            SetPrivateField(view, "dialogWindow", dialogWindow);
+            SetPrivateField(view, "typewriter", typewriter);
         }
 
         private static void SetPrivateField<T>(DialogueView view, string fieldName, T value)
