@@ -18,6 +18,7 @@ namespace WhiteRoom.Novel
         private const string DefaultStartTriggerKey = "R00EscapeStart";
 
         private static NovelGameBootstrap _instance;
+        private static TMP_FontAsset _runtimeUiFontAsset;
 
         [SerializeField] private string dialogueResourcePath = DefaultDialogueResourcePath;
         [SerializeField] private string startTriggerKey = DefaultStartTriggerKey;
@@ -29,6 +30,8 @@ namespace WhiteRoom.Novel
         [SerializeField] private BackgroundDatabase backgroundDatabase;
         [SerializeField] private CharacterExpressionDatabase characterDatabase;
         [SerializeField] private AudioDatabase audioDatabase;
+        [SerializeField] private TMP_FontAsset uiFontAsset;
+        [SerializeField] private string uiFontResourcePath = "Fonts/LogoTypeGothicCondense/LogoTypeGothicCondense";
         [SerializeField] private bool enableDebugSaveHotkeys = true;
         [SerializeField] private bool enableDialogueKeyboardInput = true;
         [SerializeField] private bool showTitleMenu = true;
@@ -365,6 +368,7 @@ namespace WhiteRoom.Novel
 
         private void BuildRuntime()
         {
+            EnsureUiFontAsset();
             EnsureEventSystem();
             _view = EnsureDialogueView();
             _backlogView = EnsureDialogueBacklogView();
@@ -535,6 +539,28 @@ namespace WhiteRoom.Novel
 
             if (!_unlockSaveService.Save(_unlockRegistry))
                 Debug.LogWarning($"NovelGameBootstrap: {_unlockSaveService.LastError}");
+        }
+
+        private void EnsureUiFontAsset()
+        {
+            if (uiFontAsset != null)
+            {
+                _runtimeUiFontAsset = uiFontAsset;
+                return;
+            }
+
+            if (_runtimeUiFontAsset != null || string.IsNullOrEmpty(uiFontResourcePath))
+                return;
+
+            var font = Resources.Load<Font>(uiFontResourcePath);
+            if (font == null)
+            {
+                Debug.LogWarning($"NovelGameBootstrap: UI font was not found at Resources/{uiFontResourcePath}.");
+                return;
+            }
+
+            _runtimeUiFontAsset = TMP_FontAsset.CreateFontAsset(font);
+            _runtimeUiFontAsset.name = font.name + " TMP Runtime";
         }
 
         private void ShowTitleMenu()
@@ -1541,6 +1567,8 @@ namespace WhiteRoom.Novel
 
             var text = textObject.GetComponent<TextMeshProUGUI>();
             text.color = Color.white;
+            if (_runtimeUiFontAsset != null)
+                text.font = _runtimeUiFontAsset;
             text.fontSize = fontSize;
             text.fontStyle = style;
             text.textWrappingMode = TextWrappingModes.Normal;
