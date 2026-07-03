@@ -156,15 +156,15 @@ namespace WhiteRoom.Novel
 
             if (dialogueViewPrefab != null)
             {
-                var canvas = EnsureDialogueCanvas();
-                var prefabView = Instantiate(dialogueViewPrefab, canvas.transform);
+                var prefabCanvas = EnsureDialogueCanvas();
+                var prefabView = Instantiate(dialogueViewPrefab, prefabCanvas.transform);
                 prefabView.gameObject.SetActive(false);
                 EnsureDialogueViewBinder(prefabView);
                 return prefabView;
             }
 
-            var canvas = EnsureDialogueCanvas();
-            return CreateFallbackDialogueView(canvas.transform);
+            var fallbackCanvas = EnsureDialogueCanvas();
+            return CreateFallbackDialogueView(fallbackCanvas.transform);
         }
 
         private static DialogueView CreateFallbackDialogueView(Transform parent)
