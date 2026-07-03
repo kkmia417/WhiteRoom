@@ -368,6 +368,3 @@ namespace WhiteRoom.Novel
         }
     }
 }
-    }
-}
-

@@ -108,6 +108,7 @@ namespace WhiteRoom.Novel
 
             root.SetActive(false);
             return root;
+        }
 
         private static TextMeshProUGUI CreateTitleLabel(Transform parent, string textValue, float fontSize, float height, FontStyles style)
         {
