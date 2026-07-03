@@ -1,5 +1,0 @@
-Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,Background,Bgm,Se,Voice,Characters,ChapterKey,RouteKey,EndingKey
-1,System,"WhiteRoomへようこそ。{playerName}、これは TalkSystem で動く最初の会話です。",2,,GameStart,,,,,,,,,,prologue,common,
-2,System,"選択肢、条件、イベントを CSV から扱える状態になっています。",-1,,,,,"始める->10|もう一度説明->3",,,,,,,,,
-3,System,"CSV は Assets/Resources/Dialogue/prologue.csv にあります。",2,,,,,,,,,,,,,
-10,System,"Main シーンへ移動します。",-1,,,,load_main,,,,,,,,,,start

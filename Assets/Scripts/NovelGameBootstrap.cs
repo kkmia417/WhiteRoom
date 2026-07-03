@@ -13,8 +13,8 @@ namespace WhiteRoom.Novel
     [DefaultExecutionOrder(-500)]
     public sealed class NovelGameBootstrap : MonoBehaviour, IDialogueVariableResolver, IDialogueConditionEvaluator
     {
-        private const string DefaultDialogueResourcePath = "Dialogue/prologue";
-        private const string DefaultStartTriggerKey = "GameStart";
+        private const string DefaultDialogueResourcePath = "Dialogue/r00_escape_talksystem";
+        private const string DefaultStartTriggerKey = "R00EscapeStart";
 
         private static NovelGameBootstrap _instance;
 
