@@ -1,0 +1,21 @@
+{
+    "name": "kkmia.TalkSystem.PlayModeTests",
+    "rootNamespace": "kkmia.TalkSystem.Tests",
+    "references": [
+        "kkmia.TalkSystem.Runtime",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

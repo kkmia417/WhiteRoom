@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.kkmia.talksystem": {
+      "version": "file:com.kkmia.talksystem",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.ugui": "2.0.0"
+      }
+    },
     "com.unity.ext.nunit": {
       "version": "2.0.5",
       "depth": 2,
