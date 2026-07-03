@@ -24,7 +24,9 @@ namespace WhiteRoom.Novel
         [SerializeField] private string playerName = "Player";
         [SerializeField] private float typewriterInterval = 0.025f;
         [SerializeField] private DialogueView dialogueViewPrefab;
+        [SerializeField] private DialogueBacklogView dialogueBacklogViewPrefab;
         [SerializeField] private bool enableDebugSaveHotkeys = true;
+        [SerializeField] private bool enableDebugBacklogHotkey = true;
         [SerializeField] private int defaultManualSaveSlot = DialogueSaveSlotConventions.FirstManualSlot;
         [SerializeField] private bool saveThumbnails;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
@@ -32,6 +34,7 @@ namespace WhiteRoom.Novel
 
         private DialogueManager _manager;
         private DialogueView _view;
+        private DialogueBacklogView _backlogView;
         private DialogueSaveSystem _saveSystem;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -63,13 +66,16 @@ namespace WhiteRoom.Novel
 
         private void Update()
         {
-            if (!enableDebugSaveHotkeys)
-                return;
+            if (enableDebugSaveHotkeys)
+            {
+                if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F5))
+                    QuickSave();
+                if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F9))
+                    QuickLoad();
+            }
 
-            if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F5))
-                QuickSave();
-            if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F9))
-                QuickLoad();
+            if (enableDebugBacklogHotkey && DialogueKeyboard.GetKeyDown(DialogueKeyCode.B))
+                ToggleBacklog();
         }
 
         public void StartDialogue(int id)
@@ -162,6 +168,39 @@ namespace WhiteRoom.Novel
             return EnsureSaveSystemReady() && _saveSystem.Exists(slot);
         }
 
+        public void ToggleBacklog()
+        {
+            if (!EnsureBacklogViewReady())
+                return;
+
+            if (_backlogView.IsOpen)
+                CloseBacklog();
+            else
+                OpenBacklog();
+        }
+
+        public void OpenBacklog()
+        {
+            if (!EnsureBacklogViewReady())
+                return;
+
+            if (_view != null)
+                _view.SetAutoAdvanceSuspended(true);
+
+            _backlogView.Open();
+        }
+
+        public void CloseBacklog()
+        {
+            if (_backlogView == null)
+                return;
+
+            _backlogView.Close();
+
+            if (_view != null)
+                _view.SetAutoAdvanceSuspended(false);
+        }
+
         bool IDialogueVariableResolver.TryResolve(string variableName, DialogueData data, out string value)
         {
             if (string.Equals(variableName, "playerName", StringComparison.OrdinalIgnoreCase))
@@ -186,6 +225,7 @@ namespace WhiteRoom.Novel
         {
             EnsureEventSystem();
             _view = EnsureDialogueView();
+            _backlogView = EnsureDialogueBacklogView();
             _manager = EnsureDialogueManager();
             _saveSystem = EnsureDialogueSaveSystem(_manager);
 
@@ -251,6 +291,16 @@ namespace WhiteRoom.Novel
             return _saveSystem != null;
         }
 
+        private bool EnsureBacklogViewReady()
+        {
+            if (_backlogView != null)
+                return true;
+
+            _view = _view != null ? _view : FindFirstObjectByType<DialogueView>(FindObjectsInactive.Include);
+            _backlogView = EnsureDialogueBacklogView();
+            return _backlogView != null;
+        }
+
         private DialogueView EnsureDialogueView()
         {
             var existingView = FindFirstObjectByType<DialogueView>(FindObjectsInactive.Include);
@@ -273,6 +323,24 @@ namespace WhiteRoom.Novel
             return CreateFallbackDialogueView(fallbackCanvas.transform);
         }
 
+        private DialogueBacklogView EnsureDialogueBacklogView()
+        {
+            var existingBacklog = FindFirstObjectByType<DialogueBacklogView>(FindObjectsInactive.Include);
+            if (existingBacklog != null)
+                return existingBacklog;
+
+            var canvas = EnsureDialogueCanvas();
+            if (dialogueBacklogViewPrefab != null)
+            {
+                var prefabBacklog = Instantiate(dialogueBacklogViewPrefab, canvas.transform);
+                prefabBacklog.gameObject.SetActive(true);
+                prefabBacklog.Close();
+                return prefabBacklog;
+            }
+
+            return CreateFallbackBacklogView(canvas.transform);
+        }
+
         private static DialogueView CreateFallbackDialogueView(Transform parent)
         {
             var root = CreateDialogueRoot(parent);
@@ -288,6 +356,132 @@ namespace WhiteRoom.Novel
             EnsureDialogueViewBinder(view);
 
             return view;
+        }
+
+        private static DialogueBacklogView CreateFallbackBacklogView(Transform parent)
+        {
+            var backlogObject = new GameObject("DialogueBacklog", typeof(RectTransform), typeof(DialogueBacklogView));
+            backlogObject.transform.SetParent(parent, false);
+
+            var rootRect = (RectTransform)backlogObject.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            var panel = CreateBacklogPanel(backlogObject.transform);
+            var content = CreateBacklogScrollContent(panel.transform);
+            var rowPrefab = CreateBacklogRowPrefab(backlogObject.transform);
+            var backlogView = backlogObject.GetComponent<DialogueBacklogView>();
+
+            SetPrivateField(backlogView, "panel", panel);
+            SetPrivateField(backlogView, "contentContainer", content);
+            SetPrivateField(backlogView, "rowPrefab", rowPrefab);
+
+            panel.SetActive(false);
+            return backlogView;
+        }
+
+        private static GameObject CreateBacklogPanel(Transform parent)
+        {
+            var panel = new GameObject("BacklogPanel", typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(parent, false);
+
+            var rect = (RectTransform)panel.transform;
+            rect.anchorMin = new Vector2(0.12f, 0.12f);
+            rect.anchorMax = new Vector2(0.88f, 0.88f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var image = panel.GetComponent<Image>();
+            image.color = new Color(0.02f, 0.025f, 0.03f, 0.94f);
+
+            var title = CreateText("Title", panel.transform, new Vector2(26f, -50f), new Vector2(-26f, 12f), 24f, FontStyles.Bold);
+            title.text = "Backlog";
+
+            return panel;
+        }
+
+        private static Transform CreateBacklogScrollContent(Transform parent)
+        {
+            var scrollObject = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+            scrollObject.transform.SetParent(parent, false);
+
+            var scrollRectTransform = (RectTransform)scrollObject.transform;
+            scrollRectTransform.anchorMin = Vector2.zero;
+            scrollRectTransform.anchorMax = Vector2.one;
+            scrollRectTransform.offsetMin = new Vector2(24f, 24f);
+            scrollRectTransform.offsetMax = new Vector2(-24f, -72f);
+
+            var viewportObject = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
+            viewportObject.transform.SetParent(scrollObject.transform, false);
+
+            var viewportRect = (RectTransform)viewportObject.transform;
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+
+            var viewportImage = viewportObject.GetComponent<Image>();
+            viewportImage.color = new Color(0f, 0f, 0f, 0.01f);
+
+            var mask = viewportObject.GetComponent<Mask>();
+            mask.showMaskGraphic = false;
+
+            var contentObject = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            contentObject.transform.SetParent(viewportObject.transform, false);
+
+            var contentRect = (RectTransform)contentObject.transform;
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+
+            var layout = contentObject.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = 8f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            var fitter = contentObject.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var scroll = scrollObject.GetComponent<ScrollRect>();
+            scroll.viewport = viewportRect;
+            scroll.content = contentRect;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+
+            return contentObject.transform;
+        }
+
+        private static DialogueBacklogRow CreateBacklogRowPrefab(Transform parent)
+        {
+            var rowObject = new GameObject("BacklogRow", typeof(RectTransform), typeof(Image), typeof(LayoutElement), typeof(DialogueBacklogRow));
+            rowObject.transform.SetParent(parent, false);
+            rowObject.SetActive(false);
+
+            var rect = (RectTransform)rowObject.transform;
+            rect.sizeDelta = new Vector2(900f, 86f);
+
+            var image = rowObject.GetComponent<Image>();
+            image.color = new Color(0.08f, 0.095f, 0.11f, 0.88f);
+
+            var layout = rowObject.GetComponent<LayoutElement>();
+            layout.minHeight = 86f;
+            layout.preferredHeight = 86f;
+
+            var speaker = CreateText("Speaker", rowObject.transform, new Vector2(18f, -30f), new Vector2(-18f, 4f), 18f, FontStyles.Bold);
+            var body = CreateText("Body", rowObject.transform, new Vector2(18f, 8f), new Vector2(-18f, -34f), 18f, FontStyles.Normal);
+            body.overflowMode = TextOverflowModes.Ellipsis;
+
+            var row = rowObject.GetComponent<DialogueBacklogRow>();
+            SetPrivateField(row, "speakerText", speaker);
+            SetPrivateField(row, "bodyText", body);
+
+            return row;
         }
 
         private static Canvas EnsureDialogueCanvas()
@@ -407,16 +601,19 @@ namespace WhiteRoom.Novel
             SetPrivateField(view, "typewriter", typewriter);
         }
 
-        private static void SetPrivateField<T>(DialogueView view, string fieldName, T value)
+        private static void SetPrivateField<TTarget, TValue>(TTarget target, string fieldName, TValue value) where TTarget : class
         {
-            var field = typeof(DialogueView).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            if (target == null)
+                return;
+
+            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null)
             {
-                Debug.LogWarning($"NovelGameBootstrap: DialogueView field '{fieldName}' was not found.");
+                Debug.LogWarning($"NovelGameBootstrap: {target.GetType().Name} field '{fieldName}' was not found.");
                 return;
             }
 
-            field.SetValue(view, value);
+            field.SetValue(target, value);
         }
 
         private DialogueSaveSlot SaveWithThumbnail(int slot, bool isAutosave, string title)
