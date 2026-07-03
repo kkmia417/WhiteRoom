@@ -1,0 +1,5 @@
+interface:
+  display_name: "WhiteRoom Novel Dev"
+  short_description: "Build WhiteRoom dialogue features on Talk System"
+  default_prompt: "Use $whiteroom-novel-dev to implement a WhiteRoom Unity visual-novel feature using Talk System."
+
