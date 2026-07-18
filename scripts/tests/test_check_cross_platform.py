@@ -150,5 +150,127 @@ class UnitySettingsTests(unittest.TestCase):
             self.assertEqual(2, len(errors))
 
 
+class UnityMetadataTests(unittest.TestCase):
+    def test_accepts_files_and_directories_with_metadata(self) -> None:
+        paths = [
+            "Assets/Scenes.meta",
+            "Assets/Scenes/Title.unity",
+            "Assets/Scenes/Title.unity.meta",
+        ]
+        self.assertEqual([], cross_platform.find_unity_meta_issues(paths))
+
+    def test_rejects_missing_file_metadata(self) -> None:
+        errors = cross_platform.find_unity_meta_issues(
+            ["Assets/Scenes.meta", "Assets/Scenes/Title.unity"]
+        )
+        self.assertTrue(any("Title.unity.meta" in error for error in errors))
+
+    def test_rejects_missing_directory_metadata(self) -> None:
+        errors = cross_platform.find_unity_meta_issues(
+            ["Assets/Scenes/Title.unity", "Assets/Scenes/Title.unity.meta"]
+        )
+        self.assertTrue(any("Assets/Scenes.meta" in error for error in errors))
+
+    def test_rejects_orphaned_metadata(self) -> None:
+        errors = cross_platform.find_unity_meta_issues(["Assets/Class.meta"])
+        self.assertEqual(
+            ["Assets/Class.meta: orphaned Unity metadata has no target Assets/Class"],
+            errors,
+        )
+
+    def test_rejects_duplicate_unity_guids(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenes = root / "Assets" / "Scenes"
+            scenes.mkdir(parents=True)
+            duplicate_guid = "0123456789abcdef0123456789abcdef"
+            (scenes / "Title.unity.meta").write_text(
+                f"fileFormatVersion: 2\nguid: {duplicate_guid}\n",
+                encoding="utf-8",
+            )
+            (scenes / "Main.unity.meta").write_text(
+                f"fileFormatVersion: 2\nguid: {duplicate_guid}\n",
+                encoding="utf-8",
+            )
+            errors = cross_platform.find_unity_guid_issues(
+                root,
+                [
+                    "Assets/Scenes/Title.unity.meta",
+                    "Assets/Scenes/Main.unity.meta",
+                ],
+            )
+            self.assertEqual(1, len(errors))
+            self.assertIn("duplicates Unity guid", errors[0])
+
+
+class BuildSettingsTests(unittest.TestCase):
+    def write_build_settings(
+        self,
+        root: Path,
+        *,
+        title_enabled: bool = True,
+        main_enabled: bool = True,
+    ) -> None:
+        settings = root / "ProjectSettings"
+        settings.mkdir()
+        scenes = root / "Assets" / "Scenes"
+        scenes.mkdir(parents=True)
+        title_guid = "11111111111111111111111111111111"
+        main_guid = "22222222222222222222222222222222"
+        (scenes / "Title.unity.meta").write_text(
+            f"fileFormatVersion: 2\nguid: {title_guid}\n",
+            encoding="utf-8",
+        )
+        (scenes / "Main.unity.meta").write_text(
+            f"fileFormatVersion: 2\nguid: {main_guid}\n",
+            encoding="utf-8",
+        )
+        (settings / "EditorBuildSettings.asset").write_text(
+            "EditorBuildSettings:\n"
+            "  m_Scenes:\n"
+            f"  - enabled: {int(title_enabled)}\n"
+            "    path: Assets/Scenes/Title.unity\n"
+            f"    guid: {title_guid}\n"
+            f"  - enabled: {int(main_enabled)}\n"
+            "    path: Assets/Scenes/Main.unity\n"
+            f"    guid: {main_guid}\n",
+            encoding="utf-8",
+        )
+
+    def test_accepts_enabled_title_and_main_scenes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_build_settings(root)
+            self.assertEqual(
+                [],
+                cross_platform.find_build_setting_issues(root),
+            )
+
+    def test_rejects_disabled_required_scene(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_build_settings(root, main_enabled=False)
+            errors = cross_platform.find_build_setting_issues(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("Main.unity", errors[0])
+
+    def test_rejects_scene_guid_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_build_settings(root)
+            settings = root / "ProjectSettings" / "EditorBuildSettings.asset"
+            content = settings.read_text(encoding="utf-8")
+            settings.write_text(
+                content.replace(
+                    "guid: 22222222222222222222222222222222",
+                    "guid: 33333333333333333333333333333333",
+                ),
+                encoding="utf-8",
+            )
+            errors = cross_platform.find_build_setting_issues(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("expected 22222222222222222222222222222222", errors[0])
+
+
 if __name__ == "__main__":
     unittest.main()

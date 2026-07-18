@@ -32,6 +32,26 @@
 *.terrainlayer text eol=lf
 *.unity text eol=lf
 
+# Unity writes meaningful empty YAML values as "key: ". Do not report those
+# generated spaces as whitespace errors.
+*.anim whitespace=-trailing-space
+*.asset whitespace=-trailing-space
+*.controller whitespace=-trailing-space
+*.cubemap whitespace=-trailing-space
+*.guiskin whitespace=-trailing-space
+*.lighting whitespace=-trailing-space
+*.mask whitespace=-trailing-space
+*.mat whitespace=-trailing-space
+*.meta whitespace=-trailing-space
+*.overrideController whitespace=-trailing-space
+*.physicMaterial whitespace=-trailing-space
+*.physicsMaterial2D whitespace=-trailing-space
+*.playable whitespace=-trailing-space
+*.prefab whitespace=-trailing-space
+*.renderTexture whitespace=-trailing-space
+*.terrainlayer whitespace=-trailing-space
+*.unity whitespace=-trailing-space
+
 # Binary assets must never be line-ending converted or text-merged.
 *.7z binary
 *.aif binary

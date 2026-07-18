@@ -91,7 +91,7 @@ def repository_paths(root: Path) -> list[str]:
     return sorted(
         path
         for path in output.decode("utf-8", errors="surrogateescape").split("\0")
-        if path
+        if path and (root / path).exists()
     )
 
 
@@ -206,6 +206,71 @@ def find_attribute_issues(
     return issues
 
 
+def find_unity_meta_issues(paths: Iterable[str]) -> list[str]:
+    asset_paths = {
+        path
+        for path in paths
+        if path.startswith("Assets/") and path != "Assets"
+    }
+    asset_directories: set[str] = set()
+    for path in asset_paths:
+        target = path.removesuffix(".meta")
+        parent = Path(target).parent
+        while parent.as_posix() != "Assets":
+            asset_directories.add(parent.as_posix())
+            parent = parent.parent
+
+    issues: list[str] = []
+    targets = {
+        path
+        for path in asset_paths
+        if not path.endswith(".meta")
+    }
+    targets.update(asset_directories)
+
+    for target in sorted(targets):
+        meta = f"{target}.meta"
+        if meta not in asset_paths:
+            issues.append(f"{target}: missing Unity metadata file {meta}")
+
+    for meta in sorted(path for path in asset_paths if path.endswith(".meta")):
+        target = meta.removesuffix(".meta")
+        if target not in targets:
+            issues.append(f"{meta}: orphaned Unity metadata has no target {target}")
+
+    return issues
+
+
+def read_unity_guid(path: Path) -> str | None:
+    try:
+        content = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return None
+    match = re.search(r"^guid:\s*([0-9a-fA-F]{32})\s*$", content, re.MULTILINE)
+    return match.group(1).lower() if match else None
+
+
+def find_unity_guid_issues(root: Path, paths: Iterable[str]) -> list[str]:
+    issues: list[str] = []
+    owners: dict[str, str] = {}
+    meta_paths = sorted(
+        path
+        for path in paths
+        if path.startswith("Assets/") and path.endswith(".meta")
+    )
+    for meta in meta_paths:
+        guid = read_unity_guid(root / meta)
+        if guid is None:
+            issues.append(f"{meta}: missing or invalid Unity guid")
+            continue
+        previous = owners.get(guid)
+        if previous is not None:
+            issues.append(f"{meta}: duplicates Unity guid {guid} from {previous}")
+        else:
+            owners[guid] = meta
+    return issues
+
+
 def find_unity_setting_issues(root: Path) -> list[str]:
     expected = {
         Path("ProjectSettings/EditorSettings.asset"): "m_SerializationMode: 2",
@@ -229,11 +294,48 @@ def find_unity_setting_issues(root: Path) -> list[str]:
     return issues
 
 
+def find_build_setting_issues(root: Path) -> list[str]:
+    relative = Path("ProjectSettings/EditorBuildSettings.asset")
+    path = root / relative
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError as error:
+        return [f"{relative.as_posix()}: cannot read Unity setting: {error}"]
+
+    issues: list[str] = []
+    for scene in ("Title", "Main"):
+        entry = re.compile(
+            rf"- enabled: 1\s+path: Assets/Scenes/{scene}\.unity\s+"
+            rf"guid: ([0-9a-fA-F]{{32}})(?:\s|$)"
+        )
+        match = entry.search(content)
+        if match is None:
+            issues.append(
+                f"{relative.as_posix()}: Assets/Scenes/{scene}.unity "
+                "must be enabled in Build Settings"
+            )
+            continue
+
+        meta = Path(f"Assets/Scenes/{scene}.unity.meta")
+        scene_guid = read_unity_guid(root / meta)
+        if scene_guid is None:
+            issues.append(f"{meta.as_posix()}: missing or invalid Unity guid")
+        elif match.group(1).lower() != scene_guid:
+            issues.append(
+                f"{relative.as_posix()}: Assets/Scenes/{scene}.unity uses guid "
+                f"{match.group(1).lower()}, expected {scene_guid}"
+            )
+    return issues
+
+
 def validate(root: Path) -> tuple[list[str], int]:
     paths = repository_paths(root)
     issues = find_path_issues(paths)
     issues.extend(find_attribute_issues(paths, repository_attributes(root, paths)))
+    issues.extend(find_unity_meta_issues(paths))
+    issues.extend(find_unity_guid_issues(root, paths))
     issues.extend(find_unity_setting_issues(root))
+    issues.extend(find_build_setting_issues(root))
     return issues, len(paths)
 
 

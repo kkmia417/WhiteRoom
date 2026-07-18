@@ -30,7 +30,8 @@ Prompt, zsh, and bash.
 - `.editorconfig` fixes UTF-8, final newlines, indentation, and line endings in
   editors that support EditorConfig.
 - Unity uses **Force Text** serialization and **Visible Meta Files**. The
-  preflight checks both settings.
+  preflight checks both settings, requires every asset and directory to have
+  matching metadata, and rejects orphaned or duplicate GUIDs.
 
 These repository rules override `core.autocrlf` for tracked paths. Do not require
 contributors to change their global Git configuration for this project.
@@ -66,6 +67,23 @@ appears changed:
 2. inspect the effective rule with `git check-attr text eol -- path/to/file`;
 3. restore or convert only the affected file; do not run a repository-wide
    formatter in a feature branch.
+
+After first pulling `.gitattributes`, `git status` can retain a timestamp-only
+modification even when `git diff -- path/to/file` is empty. For only those
+verified empty-diff paths, refresh the index entry and confirm that nothing was
+staged:
+
+```text
+git add -- path/to/file
+git diff --cached --quiet -- path/to/file
+```
+
+Do not use this procedure when `git diff` shows a real content change.
+
+Unity asset and directory `.meta` files are part of the asset identity and must
+be committed with their targets. Run the preflight after adding, moving, or
+removing anything under `Assets`; it reports missing metadata, orphaned metadata,
+duplicate GUIDs, and required scene entries before Unity regenerates local state.
 
 If a checkout fails because of path length on Windows, clone closer to the drive
 root. If a filename fails the preflight, rename it on the platform where it is
