@@ -49,14 +49,21 @@ A reviewer must be able to verify:
 
 From the repository root:
 
-```powershell
-python .\scripts\validate_governance.py --root .
-python -m unittest discover -s .\scripts\tests -p "test_*.py"
+```text
+python scripts/check_cross_platform.py --root .
+python scripts/validate_governance.py --root .
+python -m unittest discover -s scripts/tests -p "test_*.py"
 ```
 
 Run Unity batch mode for changes to C#, packages, scenes, prefabs, or project
 settings. The expected editor version is recorded in
 `ProjectSettings/ProjectVersion.txt`.
+
+Follow the
+[Windows and macOS development setup](docs/development/cross-platform-setup.md)
+for repository-owned line-ending rules, portable file names, and case-only
+renames. Do not require a contributor to change global Git settings for this
+repository.
 
 ## Definition of done
 

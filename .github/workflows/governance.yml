@@ -12,6 +12,8 @@ on:
       - main
     paths:
       - ".github/**"
+      - ".editorconfig"
+      - ".gitattributes"
       - "docs/**"
       - "scripts/**"
       - "AGENTS.md"
@@ -25,7 +27,14 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -35,5 +44,7 @@ jobs:
           python-version: "3.13"
       - name: Run governance tests
         run: python -m unittest discover -s scripts/tests -p "test_*.py"
+      - name: Validate Windows and macOS repository compatibility
+        run: python scripts/check_cross_platform.py --root .
       - name: Validate repository and PR traceability
-        run: python scripts/validate_governance.py --root . --pr-event "$GITHUB_EVENT_PATH"
+        run: python scripts/validate_governance.py --root . --pr-event "${{ github.event_path }}"
