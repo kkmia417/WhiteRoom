@@ -12,6 +12,7 @@ Treat the primary Issue as the scope boundary. Extract:
 - affected surfaces and constraints
 - validation plan
 - architecture impact
+- English/Japanese ADR pair when architecture is affected
 
 If the user has not supplied an Issue, inspect connected Issue context when
 available. Otherwise write an Issue-ready scope in the work summary and state
@@ -41,7 +42,8 @@ Skip a formal plan for narrow one-file fixes, but still inspect context first.
 
 ## Implementation Order
 
-1. Confirm or propose the ADR when architecture is affected.
+1. Confirm or propose the canonical English ADR and Japanese `.ja.md` pair when
+   architecture is affected.
 2. Update shared contracts or types.
 3. Update producers.
 4. Update consumers.

@@ -15,8 +15,9 @@ architecture, decision history, and validation flow.
    scope before implementation and make the missing traceability explicit.
 2. Audit the current git state, project instructions, and relevant conventions.
 3. Identify affected modules, contracts, tests, documentation, and ADRs.
-4. Check `docs/adr/README.md`; create or update a proposed ADR before code when
-   the change meets its decision criteria.
+4. Check `docs/adr/README.md`; create or update both the canonical English ADR
+   and its Japanese `.ja.md` counterpart before code when the change meets its
+   decision criteria.
 5. Produce a short implementation plan when the change spans multiple files or
    behaviors.
 6. Implement the smallest vertical slice that satisfies the Issue.
@@ -39,6 +40,8 @@ Read `references/delivery-workflow.md` for planning and validation details.
   Issues.
 - Do not claim an Issue is closed or a PR is linked unless external state
   confirms it.
+- Keep English/Japanese ADR number, status, decision meaning, related work,
+  enforcement rules, and reconsideration conditions equivalent.
 
 ## Output
 

@@ -15,7 +15,9 @@ REQUIRED_PATHS = (
     "AGENTS.md",
     "CONTRIBUTING.md",
     "docs/adr/README.md",
+    "docs/adr/README.ja.md",
     "docs/adr/0000-template.md",
+    "docs/adr/0000-template.ja.md",
     "docs/architecture/README.md",
     "docs/development/issue-driven-development.md",
     ".github/ISSUE_TEMPLATE/feature.yml",
@@ -26,13 +28,27 @@ REQUIRED_PATHS = (
     ".github/pull_request_template.md",
     ".github/workflows/governance.yml",
 )
-ADR_HEADINGS = (
-    "## Context",
-    "## Decision",
-    "## Alternatives considered",
-    "## Consequences",
-    "## Validation",
-    "## Follow-up",
+ADR_ENGLISH_HEADINGS = (
+    "## Context and problem statement",
+    "## Decision drivers",
+    "## Decision outcome",
+    "## Benefits",
+    "## Trade-offs",
+    "## Rejected alternatives",
+    "## Related ADRs",
+    "## Development rule integration",
+    "## Notes",
+)
+ADR_JAPANESE_HEADINGS = (
+    "## コンテキストと問題提起",
+    "## 決定要因",
+    "## 決定結果",
+    "## 利点",
+    "## トレードオフ",
+    "## 不採用の選択肢と根拠",
+    "## 関連するADR",
+    "## 開発ルール連携",
+    "## 注記",
 )
 ADR_STATUSES = {"Proposed", "Accepted", "Rejected", "Deprecated", "Superseded"}
 ISSUE_REFERENCE = re.compile(
@@ -62,21 +78,39 @@ def check_adrs(root: Path) -> list[str]:
     if not adr_dir.is_dir():
         return ["ADR directory is missing: docs/adr"]
 
-    records = sorted(
+    english_records = sorted(
         path
         for path in adr_dir.glob("*.md")
-        if path.name not in {"README.md", "0000-template.md"}
+        if path.name not in {
+            "README.md",
+            "README.ja.md",
+            "0000-template.md",
+            "0000-template.ja.md",
+        }
+        and not path.name.endswith(".ja.md")
     )
+    japanese_records = {
+        path.name: path
+        for path in adr_dir.glob("*.ja.md")
+        if path.name not in {"README.ja.md", "0000-template.ja.md"}
+    }
     expected_number = 1
-    index = read_text(adr_dir / "README.md") if (adr_dir / "README.md").is_file() else ""
+    english_index = read_text(adr_dir / "README.md") if (adr_dir / "README.md").is_file() else ""
+    japanese_index = (
+        read_text(adr_dir / "README.ja.md")
+        if (adr_dir / "README.ja.md").is_file()
+        else ""
+    )
 
-    for path in records:
+    for path in english_records:
         match = re.fullmatch(r"(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.md", path.name)
         if not match:
             errors.append(f"invalid ADR filename: {path.relative_to(root)}")
             continue
 
         number = int(match.group(1))
+        japanese_path = path.with_name(path.stem + ".ja.md")
+        japanese_records.pop(japanese_path.name, None)
         if number != expected_number:
             errors.append(
                 f"ADR numbering is not contiguous: expected {expected_number:04d}, "
@@ -84,31 +118,130 @@ def check_adrs(root: Path) -> list[str]:
             )
         expected_number = number + 1
 
-        content = read_text(path)
-        if not re.search(rf"^# ADR {number:04d}: .+", content, re.MULTILINE):
+        english = read_text(path)
+        if not re.search(rf"^# ADR-{number:04d}: .+", english, re.MULTILINE):
             errors.append(f"{path.relative_to(root)} has an invalid title")
 
-        status = re.search(r"^- Status: (.+)$", content, re.MULTILINE)
-        if status is None or status.group(1).strip() not in ADR_STATUSES:
+        english_status = re.search(r"^Status:\s+(\w+)", english, re.MULTILINE)
+        if english_status is None or english_status.group(1) not in ADR_STATUSES:
             errors.append(f"{path.relative_to(root)} has an invalid ADR status")
 
-        for metadata in ("- Date:", "- Owners:", "- Related issues:"):
-            if not re.search(rf"^{re.escape(metadata)}\s+\S+", content, re.MULTILINE):
-                errors.append(f"{path.relative_to(root)} is missing metadata: {metadata}")
+        english_date = re.search(r"^Date:\s+(\d{4}-\d{2}-\d{2})", english, re.MULTILINE)
+        if english_date is None:
+            errors.append(f"{path.relative_to(root)} is missing a valid Date")
 
-        related = re.search(r"^- Related issues:\s+(.+)$", content, re.MULTILINE)
-        if related is not None and not re.search(r"#\d+", related.group(1)):
+        english_related = re.search(r"^Related:\s+(.+)$", english, re.MULTILINE)
+        english_issue_numbers = (
+            set(re.findall(r"#\d+", english_related.group(1)))
+            if english_related is not None
+            else set()
+        )
+        if not english_issue_numbers:
             errors.append(f"{path.relative_to(root)} must link a GitHub Issue")
 
-        for heading in ADR_HEADINGS:
-            if heading not in content:
+        for heading in ADR_ENGLISH_HEADINGS:
+            if heading not in english:
                 errors.append(f"{path.relative_to(root)} is missing section: {heading}")
 
-        if f"({path.name})" not in index:
-            errors.append(f"docs/adr/README.md does not index {path.name}")
+        english_clause_count = len(re.findall(r"^###\s+.+", english, re.MULTILINE))
+        if english_clause_count < 2:
+            errors.append(f"{path.relative_to(root)} needs at least two decision clauses")
+        for marker in ("**Rationale**:", "**Impact**:", "| Alternative | Why rejected |"):
+            if marker not in english:
+                errors.append(f"{path.relative_to(root)} is missing decision detail: {marker}")
 
-    if not records:
+        if not japanese_path.is_file():
+            errors.append(f"{path.relative_to(root)} is missing Japanese pair: {japanese_path.name}")
+        else:
+            japanese = read_text(japanese_path)
+            if not re.search(rf"^# ADR-{number:04d}: .+", japanese, re.MULTILINE):
+                errors.append(f"{japanese_path.relative_to(root)} has an invalid title")
+
+            japanese_status = re.search(r"^ステータス:\s+(\w+)", japanese, re.MULTILINE)
+            if japanese_status is None or japanese_status.group(1) not in ADR_STATUSES:
+                errors.append(f"{japanese_path.relative_to(root)} has an invalid ADR status")
+            elif english_status is not None and japanese_status.group(1) != english_status.group(1):
+                errors.append(f"ADR-{number:04d} English/Japanese statuses differ")
+
+            japanese_date = re.search(r"^日付:\s+(\d{4}-\d{2}-\d{2})", japanese, re.MULTILINE)
+            if japanese_date is None:
+                errors.append(f"{japanese_path.relative_to(root)} is missing a valid date")
+            elif english_date is not None and japanese_date.group(1) != english_date.group(1):
+                errors.append(f"ADR-{number:04d} English/Japanese dates differ")
+
+            japanese_related = re.search(r"^関連:\s+(.+)$", japanese, re.MULTILINE)
+            japanese_issue_numbers = (
+                set(re.findall(r"#\d+", japanese_related.group(1)))
+                if japanese_related is not None
+                else set()
+            )
+            if japanese_issue_numbers != english_issue_numbers:
+                errors.append(f"ADR-{number:04d} English/Japanese related work differs")
+
+            for heading in ADR_JAPANESE_HEADINGS:
+                if heading not in japanese:
+                    errors.append(
+                        f"{japanese_path.relative_to(root)} is missing section: {heading}"
+                    )
+            japanese_clause_count = len(
+                re.findall(r"^###\s+.+", japanese, re.MULTILINE)
+            )
+            if japanese_clause_count < 2:
+                errors.append(
+                    f"{japanese_path.relative_to(root)} needs at least two decision clauses"
+                )
+            if japanese_clause_count != english_clause_count:
+                errors.append(
+                    f"ADR-{number:04d} English/Japanese decision clause counts differ"
+                )
+            for marker in ("**根拠**:", "**影響**:", "| 選択肢 | 不採用理由 |"):
+                if marker not in japanese:
+                    errors.append(
+                        f"{japanese_path.relative_to(root)} is missing decision detail: {marker}"
+                    )
+            if f"({path.name})" not in japanese:
+                errors.append(
+                    f"{japanese_path.relative_to(root)} does not link its English canonical file"
+                )
+
+        if f"({japanese_path.name})" not in english:
+            errors.append(f"{path.relative_to(root)} does not link its Japanese pair")
+        for index_name, index in (
+            ("docs/adr/README.md", english_index),
+            ("docs/adr/README.ja.md", japanese_index),
+        ):
+            for record_name in (path.name, japanese_path.name):
+                if f"({record_name})" not in index:
+                    errors.append(f"{index_name} does not index {record_name}")
+
+    for orphan in sorted(japanese_records.values()):
+        errors.append(f"Japanese ADR has no English canonical pair: {orphan.relative_to(root)}")
+
+    if not english_records:
         errors.append("docs/adr contains no decision records")
+
+    templates = (
+        (adr_dir / "0000-template.md", ADR_ENGLISH_HEADINGS),
+        (adr_dir / "0000-template.ja.md", ADR_JAPANESE_HEADINGS),
+    )
+    for template, headings in templates:
+        if not template.is_file():
+            continue
+        content = read_text(template)
+        for heading in headings:
+            if heading not in content:
+                errors.append(f"{template.relative_to(root)} is missing section: {heading}")
+        markers = (
+            ("Status: Proposed", "Date: YYYY-MM-DD", "**Rationale**:", "**Impact**:")
+            if template.name == "0000-template.md"
+            else ("ステータス: Proposed", "日付: YYYY-MM-DD", "**根拠**:", "**影響**:")
+        )
+        for marker in markers:
+            if marker not in content:
+                errors.append(
+                    f"{template.relative_to(root)} is missing template detail: {marker}"
+                )
+
     return errors
 
 
@@ -117,9 +250,19 @@ def check_artifact_contracts(root: Path) -> list[str]:
     expected_fragments = {
         ".github/ISSUE_TEMPLATE/feature.yml": ("id: acceptance", "id: architecture", "id: validation"),
         ".github/ISSUE_TEMPLATE/bug.yml": ("id: reproduction", "id: expected", "id: actual"),
-        ".github/ISSUE_TEMPLATE/architecture.yml": ("id: options", "id: adr", "id: evidence"),
+        ".github/ISSUE_TEMPLATE/architecture.yml": (
+            "id: options",
+            "id: adr",
+            "id: evidence",
+            "0000-template.ja.md",
+        ),
         ".github/ISSUE_TEMPLATE/task.yml": ("id: scope", "id: done", "id: validation"),
-        ".github/pull_request_template.md": ("Closes #", "## Architecture", "## Validation"),
+        ".github/pull_request_template.md": (
+            "Closes #",
+            "## Architecture",
+            "## Validation",
+            "NNNN-title.ja.md",
+        ),
         ".github/workflows/governance.yml": (
             "pull_request:",
             "python -m unittest discover",

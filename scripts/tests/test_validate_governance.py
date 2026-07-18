@@ -74,40 +74,122 @@ class ArchitectureBoundaryTests(unittest.TestCase):
 
 
 class AdrValidationTests(unittest.TestCase):
-    def write_record(self, root: Path, *, include_follow_up: bool = True) -> None:
+    def write_record(
+        self,
+        root: Path,
+        *,
+        include_japanese: bool = True,
+        japanese_status: str = "Accepted",
+        include_notes: bool = True,
+    ) -> None:
         adr_dir = root / "docs" / "adr"
         adr_dir.mkdir(parents=True)
-        (adr_dir / "README.md").write_text(
-            "[0001](0001-example-decision.md)\n",
-            encoding="utf-8",
+        index = (
+            "[English](0001-example-decision.md) "
+            "[Japanese](0001-example-decision.ja.md)\n"
         )
-        sections = [
-            "# ADR 0001: Example decision",
+        (adr_dir / "README.md").write_text(index, encoding="utf-8")
+        (adr_dir / "README.ja.md").write_text(index, encoding="utf-8")
+
+        english_sections = [
+            "# ADR-0001: Example decision",
             "",
-            "- Status: Accepted",
-            "- Date: 2026-07-18",
-            "- Owners: Maintainers",
-            "- Related issues: #123",
+            "Status: Accepted",
+            "Date: 2026-07-18",
+            "Related: [Issue #123](https://example.com/issues/123)",
+            "Japanese: [日本語版](0001-example-decision.ja.md)",
             "",
-            "## Context",
+            "## Context and problem statement",
             "Context.",
             "",
-            "## Decision",
+            "## Decision drivers",
+            "- Driver.",
+            "",
+            "## Decision outcome",
             "Decision.",
             "",
-            "## Alternatives considered",
-            "Alternative.",
+            "### First clause",
+            "**Rationale**: Reason.",
+            "**Impact**: Impact.",
             "",
-            "## Consequences",
-            "Consequences.",
+            "### Second clause",
+            "**Rationale**: Reason.",
+            "**Impact**: Impact.",
             "",
-            "## Validation",
-            "Evidence.",
+            "## Benefits",
+            "- Benefit.",
+            "",
+            "## Trade-offs",
+            "- Cost. → Mitigation.",
+            "",
+            "## Rejected alternatives",
+            "| Alternative | Why rejected |",
+            "| --- | --- |",
+            "| Other | Driver mismatch. |",
+            "",
+            "## Related ADRs",
+            "- None.",
+            "",
+            "## Development rule integration",
+            "- Test it.",
         ]
-        if include_follow_up:
-            sections.extend(("", "## Follow-up", "None."))
+        if include_notes:
+            english_sections.extend(("", "## Notes", "- None."))
         (adr_dir / "0001-example-decision.md").write_text(
-            "\n".join(sections) + "\n",
+            "\n".join(english_sections) + "\n",
+            encoding="utf-8",
+        )
+
+        if not include_japanese:
+            return
+
+        japanese_sections = [
+            "# ADR-0001: 判断例",
+            "",
+            f"ステータス: {japanese_status}",
+            "日付: 2026-07-18",
+            "関連: [Issue #123](https://example.com/issues/123)",
+            "English: [English canonical version](0001-example-decision.md)",
+            "",
+            "## コンテキストと問題提起",
+            "コンテキスト。",
+            "",
+            "## 決定要因",
+            "- 要因。",
+            "",
+            "## 決定結果",
+            "判断。",
+            "",
+            "### 1つ目の決定事項",
+            "**根拠**: 理由。",
+            "**影響**: 影響。",
+            "",
+            "### 2つ目の決定事項",
+            "**根拠**: 理由。",
+            "**影響**: 影響。",
+            "",
+            "## 利点",
+            "- 利点。",
+            "",
+            "## トレードオフ",
+            "- コスト。→ 緩和策。",
+            "",
+            "## 不採用の選択肢と根拠",
+            "| 選択肢 | 不採用理由 |",
+            "| --- | --- |",
+            "| その他 | 要因に合わない。 |",
+            "",
+            "## 関連するADR",
+            "- なし。",
+            "",
+            "## 開発ルール連携",
+            "- テストする。",
+            "",
+            "## 注記",
+            "- なし。",
+        ]
+        (adr_dir / "0001-example-decision.ja.md").write_text(
+            "\n".join(japanese_sections) + "\n",
             encoding="utf-8",
         )
 
@@ -120,9 +202,38 @@ class AdrValidationTests(unittest.TestCase):
     def test_rejects_missing_required_section(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.write_record(root, include_follow_up=False)
+            self.write_record(root, include_notes=False)
             errors = governance.check_adrs(root)
-            self.assertTrue(any("## Follow-up" in error for error in errors))
+            self.assertTrue(any("## Notes" in error for error in errors))
+
+    def test_rejects_missing_japanese_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_record(root, include_japanese=False)
+            errors = governance.check_adrs(root)
+            self.assertTrue(any("missing Japanese pair" in error for error in errors))
+
+    def test_rejects_status_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_record(root, japanese_status="Proposed")
+            errors = governance.check_adrs(root)
+            self.assertTrue(any("statuses differ" in error for error in errors))
+
+    def test_rejects_decision_clause_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_record(root)
+            japanese_path = (
+                root / "docs" / "adr" / "0001-example-decision.ja.md"
+            )
+            content = japanese_path.read_text(encoding="utf-8")
+            japanese_path.write_text(
+                content.replace("### 2つ目の決定事項", "#### 2つ目の決定事項"),
+                encoding="utf-8",
+            )
+            errors = governance.check_adrs(root)
+            self.assertTrue(any("decision clause counts differ" in error for error in errors))
 
 
 if __name__ == "__main__":
