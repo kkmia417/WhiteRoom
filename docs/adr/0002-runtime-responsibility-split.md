@@ -140,6 +140,10 @@ directory and namespace checks already provide a smaller first guard.
 application asmdefs includes EditMode tests, explicit references, Unity compile
 validation, and migration of affected editor/runtime code.
 
+This clause records the initial migration guard and is superseded by ADR-0004,
+which accepts the module/test contract and starts a vertical-slice asmdef
+migration.
+
 ## Benefits
 
 - Unity lifecycle and the full object graph remain discoverable.
@@ -183,6 +187,8 @@ validation, and migration of affected editor/runtime code.
   ownership boundary that all application areas consume.
 - [ADR-0003](0003-issue-driven-bilingual-adrs.md) defines the Issue and review
   process required to change these responsibilities.
+- [ADR-0004](0004-modular-monolith-boundaries.md) supersedes the temporary asmdef
+  deferral and defines the target application assemblies.
 
 ## Development rule integration
 
@@ -202,5 +208,8 @@ validation, and migration of affected editor/runtime code.
   dialogue schema, or the future DI/asmdef implementation.
 - Current package-private reflection is accepted as constrained debt, not a
   preferred integration technique.
+- ADR-0004 supersedes only the asmdef-deferral clause. The composition,
+  Setup/Services/UI ownership, reflection, and explicit-construction decisions
+  remain accepted.
 - Reconsider explicit construction when measured graph complexity, multiple
   runtime scopes, or test substitution cost outweighs container overhead.

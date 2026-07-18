@@ -16,6 +16,13 @@
 | ADR-0001 | [Talk SystemからWhiteRoom固有の方針を分離する](0001-talk-system-boundary.ja.md) | [Keep WhiteRoom product policy outside Talk System](0001-talk-system-boundary.md) | Accepted | 2026-07-18 |
 | ADR-0002 | [明示的なComposition Rootとランタイム責務分割を採用する](0002-runtime-responsibility-split.ja.md) | [Use an explicit composition root and split runtime responsibilities](0002-runtime-responsibility-split.md) | Accepted | 2026-07-18 |
 | ADR-0003 | [Issue駆動開発と英日ADRペアを採用する](0003-issue-driven-bilingual-adrs.ja.md) | [Use Issue-driven delivery and bilingual ADR pairs](0003-issue-driven-bilingual-adrs.md) | Accepted | 2026-07-18 |
+| ADR-0004 | [強制可能なAssembly境界を持つモジュラーモノリスを採用する](0004-modular-monolith-boundaries.ja.md) | [Structure the game as a modular monolith with enforced assembly boundaries](0004-modular-monolith-boundaries.md) | Accepted | 2026-07-18 |
+| ADR-0005 | [Unity 6.3 LTS、URP、uGUIをclient標準にする](0005-unity-urp-runtime-baseline.ja.md) | [Standardize the client on Unity 6.3 LTS, URP, and uGUI](0005-unity-urp-runtime-baseline.md) | Accepted | 2026-07-18 |
+| ADR-0006 | [Addressablesと不変content identityでproduction contentを配信する](0006-addressable-content-delivery.ja.md) | [Deliver production content through Addressables and immutable content identities](0006-addressable-content-delivery.md) | Accepted | 2026-07-18 |
+| ADR-0007 | [Narrative localizationとproduct UI localizationを分離する](0007-localization-source-contract.ja.md) | [Separate narrative localization from product UI localization](0007-localization-source-contract.md) | Accepted | 2026-07-18 |
+| ADR-0008 | [Versioned save envelopeと明示migrationでplayer progressを守る](0008-versioned-save-compatibility.ja.md) | [Preserve player progress with a versioned save envelope and explicit migrations](0008-versioned-save-compatibility.md) | Accepted | 2026-07-18 |
+| ADR-0009 | [Deterministicかつcancel可能なcue runtimeでpresentationを駆動する](0009-deterministic-presentation-runtime.ja.md) | [Drive presentation through a deterministic, cancellable cue runtime](0009-deterministic-presentation-runtime.md) | Accepted | 2026-07-18 |
+| ADR-0010 | [自動品質evidenceとplatform adapterでreleaseをgateする](0010-release-quality-platform-boundary.ja.md) | [Gate releases with automated quality evidence and platform adapters](0010-release-quality-platform-boundary.md) | Accepted | 2026-07-18 |
 
 `0000-template.md` と `0000-template.ja.md` は複製用テンプレートであり、判断には数えない。
 
