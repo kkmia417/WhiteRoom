@@ -5,7 +5,8 @@ These instructions apply to the entire repository.
 ## Sources of truth
 
 - Product intent and acceptance criteria live in a GitHub Issue.
-- Durable architecture decisions live in `docs/adr/`.
+- Durable architecture decisions live in canonical English files under
+  `docs/adr/`; paired `.ja.md` files are the human-facing Japanese translations.
 - Current component boundaries live in `docs/architecture/README.md`.
 - Executable behavior and tests outrank prose when documentation describes the
   current implementation.
@@ -15,8 +16,8 @@ These instructions apply to the entire repository.
 1. Start non-trivial work from one bounded Issue.
 2. Restate the outcome, non-goals, acceptance criteria, and validation plan
    before editing.
-3. Add a proposed ADR before implementation when the change meets the criteria
-   in `docs/adr/README.md`.
+3. Add a proposed English ADR and its Japanese `.ja.md` counterpart before
+   implementation when the change meets the criteria in `docs/adr/README.md`.
 4. Keep the implementation scoped to the Issue. File follow-up concerns as
    separate Issues instead of expanding the change.
 5. Add or update focused tests for behavior changes.
@@ -39,7 +40,9 @@ required artifact contracts. The detailed lifecycle is documented in
   on `WhiteRoom.Novel`.
 - Keep reflection-based compatibility code inside `Assets/Scripts/Setup`.
 
-See `docs/adr/0001-runtime-architecture-boundaries.md` for the accepted decision.
+See `docs/adr/0001-talk-system-boundary.md` for package ownership,
+`docs/adr/0002-runtime-responsibility-split.md` for application responsibilities,
+and `docs/adr/0003-issue-driven-bilingual-adrs.md` for the ADR/delivery protocol.
 
 ## Validation
 

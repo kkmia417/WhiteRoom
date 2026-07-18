@@ -12,6 +12,7 @@ Issue. Read these documents before making a non-trivial change:
 - [Issue-driven development](docs/development/issue-driven-development.md)
 - [Architecture](docs/architecture/README.md)
 - [Architecture Decision Records](docs/adr/README.md)
+  ([日本語](docs/adr/README.ja.md))
 
 Run the repository governance checks locally with:
 

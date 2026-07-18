@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        This form starts decision work. Create a proposed ADR from docs/adr/0000-template.md before implementation.
+        This form starts decision work. Create the English ADR from docs/adr/0000-template.md and its Japanese pair from docs/adr/0000-template.ja.md before implementation.
   - type: textarea
     id: context
     attributes:
@@ -43,8 +43,8 @@ body:
     id: adr
     attributes:
       label: Proposed ADR path
-      description: Use docs/adr/NNNN-short-title.md or state when it will be created.
-      placeholder: docs/adr/0002-example.md
+      description: Provide both docs/adr/NNNN-short-title.md and docs/adr/NNNN-short-title.ja.md, or state when the pair will be created.
+      placeholder: docs/adr/0004-example.md / docs/adr/0004-example.ja.md
     validations:
       required: true
   - type: textarea

@@ -4,8 +4,14 @@ WhiteRoom is a Unity application layered over the embedded Talk System package.
 The architecture optimizes for a small, explicit runtime graph, reusable
 dialogue infrastructure, and Issue-sized changes.
 
-The normative dependency decision is
-[ADR 0001](../adr/0001-runtime-architecture-boundaries.md).
+The normative decisions are:
+
+- [ADR-0001: Keep WhiteRoom product policy outside Talk System](../adr/0001-talk-system-boundary.md)
+  ([日本語](../adr/0001-talk-system-boundary.ja.md))
+- [ADR-0002: Use an explicit composition root and split runtime responsibilities](../adr/0002-runtime-responsibility-split.md)
+  ([日本語](../adr/0002-runtime-responsibility-split.ja.md))
+- [ADR-0003: Use Issue-driven delivery and bilingual ADR pairs](../adr/0003-issue-driven-bilingual-adrs.md)
+  ([日本語](../adr/0003-issue-driven-bilingual-adrs.ja.md))
 
 ## Runtime map
 

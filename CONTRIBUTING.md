@@ -9,7 +9,9 @@ intent, decision, implementation, and verification can be traced.
 2. Make the Issue independently testable. Split unrelated outcomes.
 3. Confirm the acceptance criteria and validation plan.
 4. Check whether an ADR is required by
-   [the ADR policy](docs/adr/README.md).
+   [the ADR policy](docs/adr/README.md)
+   ([日本語](docs/adr/README.ja.md)). Create the English canonical file and
+   Japanese `.ja.md` counterpart together.
 5. Branch from `main` with a traceable name such as
    `feature/123-ending-list` or `fix/123-save-slot`.
 
@@ -37,7 +39,8 @@ when the PR intentionally does not complete the Issue.
 A reviewer must be able to verify:
 
 - the Issue acceptance criteria map to code or tests;
-- architecture-impacting choices are recorded;
+- architecture-impacting choices are recorded in synchronized English and
+  Japanese ADR files;
 - validation results are reproducible;
 - Unity assets include their `.meta` files;
 - unrelated worktree changes are absent.

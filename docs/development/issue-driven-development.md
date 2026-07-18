@@ -30,9 +30,10 @@ acceptance criteria, or different rollback paths.
 
 ## 2. Decide before building
 
-Use `docs/adr/README.md` to decide whether an ADR is required. A proposed ADR
-must link the Issue and compare credible alternatives. Accept or reject it
-before implementation depends on the choice.
+Use `docs/adr/README.md` to decide whether an ADR is required. Create the
+canonical English record and its Japanese `.ja.md` counterpart together. Both
+must link the Issue, compare credible alternatives, and remain semantically
+equivalent. Accept or reject both before implementation depends on the choice.
 
 Time-box uncertain work as a spike. A spike produces evidence and a follow-up
 decision; it does not silently become production code.
@@ -73,6 +74,7 @@ The PR body must include:
 - outcome and scope;
 - acceptance-criterion evidence;
 - architecture impact and ADR link;
+- English/Japanese ADR pair consistency when architecture changed;
 - exact validation commands and results;
 - risks, rollback notes, and follow-up Issues.
 

@@ -20,7 +20,7 @@ Closes #<!-- Issue number -->
 ## Architecture
 
 - Architecture impact: none / conforms to ADR / new decision
-- ADR: N/A or `docs/adr/NNNN-title.md`
+- ADR: N/A or English `docs/adr/NNNN-title.md` + Japanese `docs/adr/NNNN-title.ja.md`
 - Dependency-boundary notes:
 
 ## Validation
@@ -42,6 +42,7 @@ result
 - [ ] The PR links one primary Issue and does not hide unrelated scope.
 - [ ] Tests cover changed behavior, or the reason they cannot is explicit.
 - [ ] Documentation and ADRs match the delivered behavior.
+- [ ] Changed ADRs include semantically equivalent English and Japanese files.
 - [ ] Unity-facing changes were compiled or tested with the repository editor version.
 - [ ] New or moved Unity assets include matching `.meta` files.
 - [ ] Governance checks pass locally.

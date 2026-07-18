@@ -1,34 +1,57 @@
-# ADR NNNN: Short decision title
+# ADR-NNNN: Active decision title
 
-- Status: Proposed
-- Date: YYYY-MM-DD
-- Owners: GitHub handles or team
-- Related issues: #NNN
+Status: Proposed<br>
+Date: YYYY-MM-DD<br>
+Related: [Issue #NNN](https://github.com/kkmia417/WhiteRoom/issues/NNN)<br>
+Japanese counterpart: `NNNN-short-title.ja.md`
 
-## Context
+## Context and problem statement
 
-Describe the problem, constraints, quality attributes, and forces that make a
-decision necessary. Keep task progress in the linked Issue.
+Describe the current system, user or operational need, constraints, and the
+specific problem that requires a durable decision. Explain the cost of leaving
+the problem undecided. Do not lead with the solution.
 
-## Decision
+## Decision drivers
 
-State the decision in active voice. Define ownership and dependency direction
-when they are relevant.
+- Requirement or constraint that materially changes the choice
+- Quality attribute and its priority
+- Scope that must remain possible later
 
-## Alternatives considered
+## Decision outcome
 
-List credible alternatives and why they were not selected.
+State the selected direction in active voice.
 
-## Consequences
+### Decision clause
 
-Record positive outcomes, negative trade-offs, migration cost, and operational
-impact.
+**Rationale**: Explain how this clause satisfies the decision drivers.
+**Impact**: State concrete constraints on implementation, operations, tests,
+other modules, and future changes.
 
-## Validation
+## Benefits
 
-Describe tests, measurements, review evidence, or a time-boxed experiment that
-can confirm the decision.
+- Concrete outcome created by the decision
 
-## Follow-up
+## Trade-offs
 
-List follow-up Issues or state `None`.
+- Cost or limitation accepted by the decision.
+  → State the mitigation or condition that makes the trade-off acceptable.
+
+## Rejected alternatives
+
+| Alternative | Why rejected |
+| --- | --- |
+| Credible alternative | Specific reason measured against the decision drivers |
+
+## Related ADRs
+
+- None
+
+## Development rule integration
+
+- Explain how code structure, tests, CI, linting, Codex skills, or review
+  preserves this decision.
+
+## Notes
+
+- Record exclusions, unresolved questions, migration notes, and explicit
+  reconsideration triggers.
