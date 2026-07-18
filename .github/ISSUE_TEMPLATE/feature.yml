@@ -1,0 +1,67 @@
+name: Feature
+description: Propose one testable user or developer outcome
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the outcome before the implementation. Split unrelated outcomes into separate Issues.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who needs what, and why does it matter now?
+      placeholder: As a ..., I need ..., so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable behavior without prescribing internal design.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: State what this Issue intentionally will not solve.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use independently verifiable checklist items.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] Failure behavior is ...
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and affected surfaces
+      description: Note scenes, data, APIs, save compatibility, platforms, or dependencies.
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture impact
+      description: See docs/adr/README.md before selecting.
+      options:
+        - "No"
+        - "Uncertain — investigate before implementation"
+        - "Yes — a proposed ADR is required"
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: Map acceptance criteria to automated or explicit manual checks.
+    validations:
+      required: true

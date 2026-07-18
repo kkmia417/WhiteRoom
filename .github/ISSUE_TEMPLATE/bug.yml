@@ -1,0 +1,63 @@
+name: Bug
+description: Report a reproducible gap between expected and actual behavior
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the user-visible failure and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "P0 — release blocker or data loss"
+        - "P1 — main workflow broken"
+        - "P2 — meaningful defect with workaround"
+        - "P3 — minor defect"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include commit, Unity version, platform, scene, and save-data state.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Attach logs, screenshots, video, or a minimal fixture. Remove secrets and personal data.
+  - type: textarea
+    id: regression
+    attributes:
+      label: Suspected regression and validation
+      description: Note the last known good version and the test that should prevent recurrence.
