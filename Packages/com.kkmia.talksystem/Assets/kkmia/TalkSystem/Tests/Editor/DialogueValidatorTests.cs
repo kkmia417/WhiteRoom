@@ -222,12 +222,20 @@ namespace kkmia.TalkSystem.Tests
                     i.ToString(),
                     "Narrator",
                     "Line " + i,
-                    i == rowCount ? "-1" : (i + 1).ToString()
+                    i == rowCount ? "-1" : (i + 1).ToString(),
+                    string.Empty,
+                    string.Empty,
+                    string.Empty
                 });
             }
 
+            // ヘッダー行は csv-schema.md の必須7列をすべて含める必要がある。
             var csv = DialogueCsvCodec.Write(
-                new[] { DialogueSchema.Id, DialogueSchema.Speaker, DialogueSchema.Text, DialogueSchema.NextId },
+                new[]
+                {
+                    DialogueSchema.Id, DialogueSchema.Speaker, DialogueSchema.Text, DialogueSchema.NextId,
+                    DialogueSchema.EmotionKey, DialogueSchema.TriggerKey, DialogueSchema.ConditionKey
+                },
                 rows);
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 

@@ -22,6 +22,11 @@ namespace kkmia.TalkSystem
         private Action _onComplete;
         private IReadOnlyList<DialogueInlineCommand> _commands;
 
+        // WaitForSeconds は再利用可能なので、待ち時間が変わらない限り同じインスタンスを
+        // 使い回す。1文字ごとの new WaitForSeconds による GC 割り当てを避けるため。
+        private WaitForSeconds _cachedWait;
+        private float _cachedWaitSeconds = -1f;
+
         /// <summary>
         /// 現在タイプ中かどうかを返します。
         /// </summary>
@@ -138,19 +143,30 @@ namespace kkmia.TalkSystem
                     if (command.Kind == DialogueInlineCommandKind.Speed)
                         currentSpeed = command.Value > 0f ? command.Value : 1f;
                     else if (command.Kind == DialogueInlineCommandKind.Wait && command.Value > 0f)
-                        yield return new WaitForSeconds(command.Value);
+                        yield return GetWait(command.Value);
                 }
 
                 _textComponent.maxVisibleCharacters = visible;
 
                 if (visible < totalCharacters)
-                    yield return new WaitForSeconds(currentSpeed > 0f ? interval / currentSpeed : interval);
+                    yield return GetWait(currentSpeed > 0f ? interval / currentSpeed : interval);
             }
 
             _textComponent.maxVisibleCharacters = int.MaxValue;
             _commands = null;
             _typingCoroutine = null;
             _onComplete?.Invoke();
+        }
+
+        private WaitForSeconds GetWait(float seconds)
+        {
+            if (_cachedWait == null || !Mathf.Approximately(_cachedWaitSeconds, seconds))
+            {
+                _cachedWaitSeconds = seconds;
+                _cachedWait = new WaitForSeconds(seconds);
+            }
+
+            return _cachedWait;
         }
     }
 }

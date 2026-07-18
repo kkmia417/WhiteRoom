@@ -226,6 +226,25 @@ namespace kkmia.TalkSystem.Tests
         }
 
         [Test]
+        public void Manager_StartDialogueWithNullPredicate_LogsErrorWithoutThrowing()
+        {
+            var view = CreateView("DialogueView");
+            var manager = CreateManager(view);
+
+            try
+            {
+                LogAssert.Expect(LogType.Error, "DialogueManager: predicate が null です。");
+                Assert.DoesNotThrow(() => manager.StartDialogue((Func<DialogueData, bool>)null));
+                Assert.AreEqual(DialogueSessionState.Idle, manager.State, "会話は開始されない");
+            }
+            finally
+            {
+                Destroy(manager);
+                Destroy(view);
+            }
+        }
+
+        [Test]
         public void Manager_WithoutInspectorCsv_StillRaisesInstanceChanged()
         {
             InvokeStatic("ResetStatics");

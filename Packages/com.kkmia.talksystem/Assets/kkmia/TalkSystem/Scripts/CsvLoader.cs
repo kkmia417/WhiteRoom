@@ -60,6 +60,18 @@ namespace kkmia.TalkSystem
 
             var map = DialogueSchema.BuildHeaderMap(document.Headers);
 
+            // 既知スキーマ外のヘッダーはユーザー独自の拡張カラムとして行ごとに取り込む。
+            List<KeyValuePair<string, int>> extraColumns = null;
+            foreach (var entry in map)
+            {
+                if (DialogueSchema.IsKnownHeader(entry.Key))
+                    continue;
+
+                if (extraColumns == null)
+                    extraColumns = new List<KeyValuePair<string, int>>();
+                extraColumns.Add(new KeyValuePair<string, int>(entry.Key, entry.Value));
+            }
+
             foreach (var row in document.Rows)
             {
                 var values = row.Values;
@@ -91,12 +103,39 @@ namespace kkmia.TalkSystem
                         EndingKey = Get(values, map, DialogueSchema.EndingKey, -1)
                     };
 
+                    if (extraColumns != null)
+                        data.SetExtraColumns(ReadExtraColumns(values, extraColumns));
+
                     result.Add(data);
                 }
                 catch (Exception e)
                 {
                     report?.Add(DialogueValidationSeverity.Error, row.RowNumber, string.Empty, e.Message);
                 }
+            }
+
+            return result;
+        }
+
+        private static Dictionary<string, string> ReadExtraColumns(
+            IReadOnlyList<string> values,
+            List<KeyValuePair<string, int>> extraColumns)
+        {
+            // 空セルは取り込まない。全セルが空なら辞書自体を作らない。
+            Dictionary<string, string> result = null;
+            for (var i = 0; i < extraColumns.Count; i++)
+            {
+                var column = extraColumns[i];
+                if (column.Value < 0 || column.Value >= values.Count)
+                    continue;
+
+                var value = values[column.Value];
+                if (string.IsNullOrEmpty(value))
+                    continue;
+
+                if (result == null)
+                    result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                result[column.Key] = value;
             }
 
             return result;

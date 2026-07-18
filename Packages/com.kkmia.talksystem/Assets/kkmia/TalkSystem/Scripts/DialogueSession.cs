@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 namespace kkmia.TalkSystem
 {
@@ -18,8 +17,14 @@ namespace kkmia.TalkSystem
 
     public sealed class DialogueSession : IReadOnlyDialogueSession
     {
+        // 「選択肢なし」「マーカーなし」を表す共有インスタンス。行送り・会話終了のたびに
+        // 空リストを確保しないための定数。
+        private static readonly IReadOnlyList<DialogueChoice> EmptyChoices = new DialogueChoice[0];
+        private static readonly IReadOnlyList<DialogueProgressMarker> EmptyMarkers = new DialogueProgressMarker[0];
+
         private readonly IDialogueRepository _repository;
         private readonly List<int> _seenLineIds = new List<int>();
+        private readonly HashSet<int> _seenLineIdSet = new HashSet<int>();
         private readonly List<DialogueChoiceRecord> _choiceRecords = new List<DialogueChoiceRecord>();
         private readonly List<int> _legacyChoiceHistory = new List<int>();
         private readonly List<DialogueHistoryEntry> _history = new List<DialogueHistoryEntry>();
@@ -35,7 +40,7 @@ namespace kkmia.TalkSystem
 
         public DialogueSessionState State { get; private set; }
         public DialogueData CurrentData { get; private set; }
-        public IReadOnlyList<DialogueChoice> CurrentChoices { get; private set; } = new List<DialogueChoice>();
+        public IReadOnlyList<DialogueChoice> CurrentChoices { get; private set; } = EmptyChoices;
         public IReadOnlyList<int> SeenLineIds { get { return _seenLineIds; } }
         public IReadOnlyList<DialogueChoiceRecord> ChoiceRecords { get { return _choiceRecords; } }
         public IReadOnlyList<int> ChoiceHistory { get { return _legacyChoiceHistory; } }
@@ -52,6 +57,7 @@ namespace kkmia.TalkSystem
             TriggerKey = triggerKey ?? string.Empty;
             _skipGuard.Clear();
             _seenLineIds.Clear();
+            _seenLineIdSet.Clear();
             _choiceRecords.Clear();
             _legacyChoiceHistory.Clear();
             _history.Clear();
@@ -83,19 +89,23 @@ namespace kkmia.TalkSystem
 
         public IReadOnlyList<DialogueProgressMarker> MarkProgress(DialogueData data)
         {
-            var markers = new List<DialogueProgressMarker>();
             if (data == null)
-                return markers;
+                return EmptyMarkers;
 
-            AddProgressMarker(markers, DialogueProgressMarkerType.Chapter, data.ChapterKey);
-            AddProgressMarker(markers, DialogueProgressMarkerType.Route, data.RouteKey);
-            AddProgressMarker(markers, DialogueProgressMarkerType.Ending, data.EndingKey);
-            return markers;
+            // マーカー付きの行は少数派なので、必要になるまでリストを確保しない。
+            List<DialogueProgressMarker> markers = null;
+            AddProgressMarker(ref markers, DialogueProgressMarkerType.Chapter, data.ChapterKey);
+            AddProgressMarker(ref markers, DialogueProgressMarkerType.Route, data.RouteKey);
+            AddProgressMarker(ref markers, DialogueProgressMarkerType.Ending, data.EndingKey);
+            return markers != null ? markers : EmptyMarkers;
         }
 
         public bool Advance()
         {
-            if (State != DialogueSessionState.WaitingForInput && State != DialogueSessionState.ShowingLine)
+            // 行の表示準備（MarkLineReady）が済むまで送りは受け付けない。ShowingLine は
+            // LoadLine 直後の過渡状態であり、Presenter/PreviewWindow は必ず MarkTyping /
+            // MarkLineReady を経由してから Advance を呼ぶ契約になっている。
+            if (State != DialogueSessionState.WaitingForInput)
                 return false;
 
             if (CurrentData == null)
@@ -140,7 +150,7 @@ namespace kkmia.TalkSystem
         public void End()
         {
             CurrentData = null;
-            CurrentChoices = new List<DialogueChoice>();
+            CurrentChoices = EmptyChoices;
             State = DialogueSessionState.Ended;
         }
 
@@ -166,8 +176,12 @@ namespace kkmia.TalkSystem
 
             _skipGuard.Clear();
             _seenLineIds.Clear();
+            _seenLineIdSet.Clear();
             if (saveData.SeenLineIds != null)
-                _seenLineIds.AddRange(saveData.SeenLineIds);
+            {
+                for (var i = 0; i < saveData.SeenLineIds.Count; i++)
+                    AddSeenLineId(saveData.SeenLineIds[i]);
+            }
 
             _choiceRecords.Clear();
             if (saveData.ChoiceRecords != null && saveData.ChoiceRecords.Count > 0)
@@ -199,7 +213,7 @@ namespace kkmia.TalkSystem
             {
                 // 復元は「保存時の行をそのまま再構築する」操作であり、新規進行ではない。
                 // LoadLine は条件スキップや State=ShowingLine への上書きを伴うため使わず、
-                // 保存された CurrentData / CurrentChoices を組み立てつつ State は saveData の値を尊重する。
+                // 保存された CurrentData / CurrentChoices を組み立てる。
                 var data = _repository.Get(saveData.CurrentDialogueId);
                 if (data == null)
                 {
@@ -208,51 +222,79 @@ namespace kkmia.TalkSystem
                 }
 
                 CurrentData = data;
-                if (!_seenLineIds.Contains(data.Id))
-                    _seenLineIds.Add(data.Id);
+                AddSeenLineId(data.Id);
 
-                CurrentChoices = data.GetChoices().Where(PassesCondition).ToList();
-                State = saveData.State;
+                CurrentChoices = FilterChoices(data.GetChoices());
+                State = CoerceRestoredActiveState(saveData.State, CurrentChoices.Count > 0);
                 return true;
             }
 
             CurrentData = null;
-            CurrentChoices = new List<DialogueChoice>();
-            State = saveData.State;
+            CurrentChoices = EmptyChoices;
+            State = CoerceRestoredIdleState(saveData.State);
             return true;
+        }
+
+        /// <summary>
+        /// セーブデータは外部入力（破損・改竄・条件変化があり得る）なので、State は保存値を
+        /// そのまま信頼せず、復元後の実データと突き合わせて休止状態へ補正する。
+        /// 選択肢ゼロの ChoicePending（進行不能）や選択肢ありの WaitingForInput
+        /// （選択肢を無視して NextId へ進んでしまう）をここで防ぐ。
+        /// Typing / ShowingLine は表示過渡状態であり、復元後の再描画で改めて遷移するため保持しない。
+        /// </summary>
+        private static DialogueSessionState CoerceRestoredActiveState(DialogueSessionState saved, bool hasChoices)
+        {
+            return hasChoices ? DialogueSessionState.ChoicePending : DialogueSessionState.WaitingForInput;
+        }
+
+        /// <summary>現在行を持たない復元で有効な State は Idle / Ended のみ。それ以外（不正値含む）は Ended に補正する。</summary>
+        private static DialogueSessionState CoerceRestoredIdleState(DialogueSessionState saved)
+        {
+            return saved == DialogueSessionState.Idle ? DialogueSessionState.Idle : DialogueSessionState.Ended;
         }
 
         private bool LoadLine(int id)
         {
-            var data = _repository.Get(id);
-            if (data == null)
+            while (true)
             {
-                End();
-                return false;
-            }
-
-            if (!PassesCondition(data))
-            {
-                if (!_skipGuard.Add(id))
+                var data = _repository.Get(id);
+                if (data == null)
                 {
                     End();
                     return false;
                 }
 
-                if (data.NextId >= 0)
-                    return LoadLine(data.NextId);
+                if (!PassesCondition(data))
+                {
+                    if (!_skipGuard.Add(id))
+                    {
+                        End();
+                        return false;
+                    }
 
-                End();
-                return false;
+                    if (data.NextId >= 0)
+                    {
+                        id = data.NextId;
+                        continue;
+                    }
+
+                    End();
+                    return false;
+                }
+
+                CurrentData = data;
+                AddSeenLineId(data.Id);
+
+                CurrentChoices = FilterChoices(data.GetChoices());
+                State = DialogueSessionState.ShowingLine;
+                return true;
             }
+        }
 
-            CurrentData = data;
-            if (!_seenLineIds.Contains(data.Id))
-                _seenLineIds.Add(data.Id);
-
-            CurrentChoices = data.GetChoices().Where(PassesCondition).ToList();
-            State = DialogueSessionState.ShowingLine;
-            return true;
+        private void AddSeenLineId(int id)
+        {
+            if (_seenLineIdSet.Add(id))
+                _seenLineIds.Add(id);
         }
 
         private bool PassesCondition(DialogueData data)
@@ -306,14 +348,51 @@ namespace kkmia.TalkSystem
             return result;
         }
 
-        private void AddProgressMarker(List<DialogueProgressMarker> markers, DialogueProgressMarkerType type, string key)
+        private void AddProgressMarker(ref List<DialogueProgressMarker> markers, DialogueProgressMarkerType type, string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return;
 
             var normalized = key.Trim();
             var isFirstReach = _progress.Mark(type, normalized);
+            if (markers == null)
+                markers = new List<DialogueProgressMarker>();
             markers.Add(new DialogueProgressMarker(type, normalized, isFirstReach));
+        }
+
+        /// <summary>
+        /// 条件を満たす選択肢のみを返す。全選択肢が可視ならパース済みリストをそのまま共有し、
+        /// 選択肢が無い/全滅の場合は共有の空リストを返して行送りごとの確保を避ける。
+        /// </summary>
+        private IReadOnlyList<DialogueChoice> FilterChoices(IReadOnlyList<DialogueChoice> rawChoices)
+        {
+            if (rawChoices == null || rawChoices.Count == 0)
+                return EmptyChoices;
+
+            List<DialogueChoice> filtered = null;
+            for (var i = 0; i < rawChoices.Count; i++)
+            {
+                var choice = rawChoices[i];
+                if (PassesCondition(choice))
+                {
+                    if (filtered != null)
+                        filtered.Add(choice);
+                    continue;
+                }
+
+                // 初めて非表示の選択肢が見つかった時点で、それまでの可視分をコピーする。
+                if (filtered == null)
+                {
+                    filtered = new List<DialogueChoice>(rawChoices.Count);
+                    for (var j = 0; j < i; j++)
+                        filtered.Add(rawChoices[j]);
+                }
+            }
+
+            if (filtered == null)
+                return rawChoices;
+
+            return filtered.Count > 0 ? filtered : EmptyChoices;
         }
     }
 }

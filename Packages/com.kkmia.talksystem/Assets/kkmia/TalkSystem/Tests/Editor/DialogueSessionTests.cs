@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using System.Collections.Generic;
+using System.Text;
 
 namespace kkmia.TalkSystem.Tests
 {
@@ -53,6 +55,29 @@ namespace kkmia.TalkSystem.Tests
             Assert.IsTrue(session.Advance());
             Assert.AreEqual(3, session.CurrentData.Id);
             Assert.AreNotEqual(DialogueSessionState.Ended, session.State);
+        }
+
+        [Test]
+        public void Session_SkipsLongConditionFailingChain_WithoutRecursion()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices");
+
+            const int skippedLines = 5000;
+            for (var i = 1; i <= skippedLines; i++)
+                builder.Append(i).Append(",A,Skip,").Append(i + 1).Append(",,,gate,,").AppendLine();
+
+            builder.Append(skippedLines + 1).AppendLine(",A,Visible,-1,,,,,");
+
+            var repo = new DialogueRepository(CsvLoader.ParseText<DialogueData>(builder.ToString()).Values);
+            var session = new DialogueSession(repo)
+            {
+                ConditionEvaluator = new BlockKeyConditionEvaluator("gate")
+            };
+
+            Assert.IsTrue(session.Start(1));
+            Assert.AreEqual(skippedLines + 1, session.CurrentData.Id);
+            CollectionAssert.AreEqual(new[] { skippedLines + 1 }, session.SeenLineIds);
         }
 
         [Test]
@@ -256,6 +281,27 @@ namespace kkmia.TalkSystem.Tests
             Assert.AreEqual(2, restored.ChoiceRecords[0].RawChoiceIndex);
             Assert.AreEqual(-1, restored.ChoiceRecords[0].LineId);
             Assert.AreEqual(-1, restored.ChoiceRecords[0].NextId);
+        }
+
+        [Test]
+        public void Session_Restore_DeduplicatesSeenLines()
+        {
+            var repo = new DialogueRepository(CsvLoader.ParseText<DialogueData>(
+                "Id,Speaker,Text,NextId\n1,A,Hello,2\n2,A,End,-1\n").Values);
+            var save = new DialogueSaveData
+            {
+                CurrentDialogueId = 2,
+                State = DialogueSessionState.WaitingForInput,
+                SeenLineIds = new List<int> { 1, 1, 2, 2 }
+            };
+
+            var restored = new DialogueSession(repo);
+
+            Assert.IsTrue(restored.Restore(save));
+            CollectionAssert.AreEqual(new[] { 1, 2 }, restored.SeenLineIds);
+
+            var captured = restored.Capture();
+            CollectionAssert.AreEqual(new[] { 1, 2 }, captured.SeenLineIds);
         }
 
         [Test]

@@ -30,6 +30,46 @@ namespace kkmia.TalkSystem
 
         public int RowNumber { get; internal set; }
 
+        // TalkSystem が解釈しない CSV カラム（ヘッダー名 → セル値）。ロード時に確定し、以後は
+        // 読み取り専用。JsonUtility では直列化されない（履歴はフィールド展開型で保存されるため
+        // セーブ互換に影響しない）。
+        [NonSerialized] private Dictionary<string, string> _extraColumns;
+        private static readonly IReadOnlyDictionary<string, string> EmptyExtraColumns =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // ChoicesRaw はロード/構築時に確定する前提で、パース結果をキャッシュして
+        // 行送り・選択のたびの再パースを避ける。
+        [NonSerialized] private IReadOnlyList<DialogueChoice> _parsedChoices;
+
+        /// <summary>
+        /// 既知スキーマ外のカラム値。ゲーム固有のメタデータ（カメラ指示・演出タグなど）を
+        /// CSV に足しても TalkSystem 側の対応を待たずに読み出せる。ヘッダー名は大文字小文字を区別しない。
+        /// </summary>
+        public IReadOnlyDictionary<string, string> ExtraColumns
+        {
+            get { return _extraColumns != null ? _extraColumns : EmptyExtraColumns; }
+        }
+
+        public bool HasExtraColumns
+        {
+            get { return _extraColumns != null && _extraColumns.Count > 0; }
+        }
+
+        /// <summary>拡張カラムの値を取得する。存在しない場合は false。</summary>
+        public bool TryGetExtra(string column, out string value)
+        {
+            if (_extraColumns != null && !string.IsNullOrEmpty(column))
+                return _extraColumns.TryGetValue(column, out value);
+
+            value = null;
+            return false;
+        }
+
+        internal void SetExtraColumns(Dictionary<string, string> columns)
+        {
+            _extraColumns = columns;
+        }
+
         public bool HasTriggerKey
         {
             get { return !string.IsNullOrEmpty(TriggerKey); }
@@ -87,7 +127,9 @@ namespace kkmia.TalkSystem
 
         public IReadOnlyList<DialogueChoice> GetChoices()
         {
-            return DialogueChoice.ParseList(ChoicesRaw);
+            if (_parsedChoices == null)
+                _parsedChoices = DialogueChoice.ParseList(ChoicesRaw);
+            return _parsedChoices;
         }
 
         public DialogueMediaCue GetBackgroundCue()
@@ -100,11 +142,14 @@ namespace kkmia.TalkSystem
             return DialogueMediaCue.Parse(Bgm);
         }
 
+        private static readonly IReadOnlyList<string> EmptySeKeys = new string[0];
+
         /// <summary>Se 列を <c>|</c> 区切りで分解した効果音キー列。空要素は除外する。</summary>
         public IReadOnlyList<string> GetSeKeys()
         {
+            if (string.IsNullOrWhiteSpace(Se)) return EmptySeKeys;
+
             var result = new List<string>();
-            if (string.IsNullOrWhiteSpace(Se)) return result;
 
             foreach (var entry in Se.Split('|'))
             {
@@ -143,7 +188,9 @@ namespace kkmia.TalkSystem
                 ChapterKey = ChapterKey,
                 RouteKey = RouteKey,
                 EndingKey = EndingKey,
-                RowNumber = RowNumber
+                RowNumber = RowNumber,
+                // 拡張カラムはロード後は読み取り専用なので、コピーではなく参照を共有する。
+                _extraColumns = _extraColumns
             };
         }
 
