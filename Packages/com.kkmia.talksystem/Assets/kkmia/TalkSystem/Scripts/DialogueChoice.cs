@@ -22,10 +22,13 @@ namespace kkmia.TalkSystem
             get { return !string.IsNullOrEmpty(ConditionKey); }
         }
 
+        private static readonly IReadOnlyList<DialogueChoice> EmptyChoices = new DialogueChoice[0];
+
         public static IReadOnlyList<DialogueChoice> ParseList(string raw)
         {
+            if (string.IsNullOrWhiteSpace(raw)) return EmptyChoices;
+
             var result = new List<DialogueChoice>();
-            if (string.IsNullOrWhiteSpace(raw)) return result;
 
             foreach (var entry in raw.Split('|'))
             {

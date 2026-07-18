@@ -92,6 +92,23 @@ namespace kkmia.TalkSystem
             EndingKey
         };
 
+        // TalkSystem が意味を解釈する全ヘッダー。ここに無いヘッダーはユーザー独自の
+        // 拡張カラムとして DialogueData.ExtraColumns に取り込まれる。
+        private static readonly HashSet<string> KnownHeaderSet = BuildKnownHeaderSet();
+
+        private static HashSet<string> BuildKnownHeaderSet()
+        {
+            var set = new HashSet<string>(FullHeaders, StringComparer.OrdinalIgnoreCase);
+            set.Add(Localization);
+            return set;
+        }
+
+        /// <summary>TalkSystem が解釈する既知ヘッダーかどうか（大文字小文字を区別しない）。</summary>
+        public static bool IsKnownHeader(string header)
+        {
+            return !string.IsNullOrWhiteSpace(header) && KnownHeaderSet.Contains(header.Trim());
+        }
+
         public static Dictionary<string, int> BuildHeaderMap(IReadOnlyList<string> headers)
         {
             var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

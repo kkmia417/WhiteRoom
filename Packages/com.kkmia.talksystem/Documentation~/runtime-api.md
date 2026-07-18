@@ -8,6 +8,18 @@
 - `IDialogueEventDispatcher`
 - `IDialogueView`
 
+## Custom CSV Columns
+
+Headers outside the known schema are captured per row and exposed on `DialogueData`:
+
+```csharp
+string shot;
+if (data.TryGetExtra("CameraShot", out shot))
+    ApplyCameraShot(shot);
+```
+
+See [CSV Schema — Custom (Extra) Columns](csv-schema.md#custom-extra-columns) for details.
+
 ## Progress Metadata
 
 CSV columns `ChapterKey`, `RouteKey`, and `EndingKey` are generic markers. `DialoguePresenter.ProgressMarkerReached` and `DialogueManager.ProgressMarkerReached` fire when a shown line contains a marker, and `DialogueManager.Progress` returns the current recorded state.

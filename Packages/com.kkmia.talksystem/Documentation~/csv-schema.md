@@ -26,6 +26,28 @@ Background,Bgm,Se,Voice,Characters
 
 All columns are matched by header name, so any subset can be added in any order; older CSVs without these columns keep working.
 
+## Custom (Extra) Columns
+
+Any header that Talk System does not recognize is captured per row as an extra column, so you can keep game-specific metadata (camera shots, mood tags, analytics keys, and so on) in the same CSV without waiting for package support:
+
+```csv
+Id,Speaker,Text,NextId,CameraShot,Mood
+1,Guide,Hello,2,close_up,tense
+```
+
+Read the values from `DialogueData` at runtime:
+
+```csharp
+string shot;
+if (data.TryGetExtra("CameraShot", out shot))
+    cameraDirector.Apply(shot);
+
+foreach (var pair in data.ExtraColumns)
+    Debug.Log(pair.Key + " = " + pair.Value);
+```
+
+Header names are case-insensitive. Empty cells are not captured (`TryGetExtra` returns `false`).
+
 ## Choices
 
 Choices use `Label->NextId` entries separated by `|`.

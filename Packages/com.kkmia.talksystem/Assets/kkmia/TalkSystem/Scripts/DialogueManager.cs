@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace kkmia.TalkSystem
@@ -75,13 +75,15 @@ namespace kkmia.TalkSystem
             }
         }
 
-        public System.Collections.Generic.IReadOnlyList<DialogueHistoryEntry> History
+        private static readonly IReadOnlyList<DialogueHistoryEntry> EmptyHistory = new DialogueHistoryEntry[0];
+
+        public IReadOnlyList<DialogueHistoryEntry> History
         {
             get
             {
                 return _presenter != null
                     ? _presenter.Session.History
-                    : new System.Collections.Generic.List<DialogueHistoryEntry>();
+                    : EmptyHistory;
             }
         }
 
@@ -216,8 +218,6 @@ namespace kkmia.TalkSystem
                     view.gameObject.SetActive(false);
                 }
             }
-
-            Debug.Log("[DialogueManager] View がセットされました。");
         }
 
         private void CreatePresenter(DialogueView targetView)
@@ -291,13 +291,24 @@ namespace kkmia.TalkSystem
 
         public void StartDialogue(Func<DialogueData, bool> predicate)
         {
+            if (predicate == null)
+            {
+                Debug.LogError("DialogueManager: predicate が null です。");
+                return;
+            }
+
             if (!EnsureReady()) return;
 
-            var data = _repository.GetAll().FirstOrDefault(predicate);
-            if (data != null)
+            foreach (var data in _repository.GetAll())
+            {
+                if (!predicate(data))
+                    continue;
+
                 StartDialogue(data.Id);
-            else
-                Debug.LogWarning("DialogueManager: 該当する会話データが見つかりません。");
+                return;
+            }
+
+            Debug.LogWarning("DialogueManager: 該当する会話データが見つかりません。");
         }
 
         public void StartDialogueForState(string triggerKey)

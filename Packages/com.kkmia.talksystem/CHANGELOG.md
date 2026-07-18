@@ -34,9 +34,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Packaging guidance documenting the current root UPM layout, target `Runtime`/`Editor`/`Tests` migration plan, and optional dependency boundaries for Input System, Live2D, Spine, and Addressables.
 - `IReadOnlyDialogueSession` for public session inspection without exposing mutation methods.
 
+- Custom CSV columns: headers outside the known schema are captured per row into `DialogueData.ExtraColumns` (`TryGetExtra`, case-insensitive), so game-specific metadata can live in the same CSV without package changes.
+
 ### Changed
 
 - `DialoguePresenter.Session` now exposes `IReadOnlyDialogueSession`; advance, choice selection, and ending remain routed through presenter/manager APIs.
+- `DialogueView` reuses choice buttons through an internal pool instead of destroying and re-instantiating them on every line, and `DialogueSession` avoids per-line list allocations (shared empty choice/marker lists, cached parsed choices per `DialogueData`).
+- `DialogueSaveSystem` now logs failed operations (with the original exception and stack trace when available) even when no `OperationFailed` subscriber is attached.
+
+### Fixed
+
+- Restoring a save no longer trusts the stored session state blindly: the state is validated against the restored line (a `ChoicePending` state without visible choices no longer soft-locks the session, a `WaitingForInput` state with choices no longer bypasses the branch, and undefined state values are coerced to a consistent resting state).
+- `DialogueManager.StartDialogue(Func<DialogueData, bool>)` now reports an error instead of throwing when the predicate is null.
 
 ## [0.2.0] - 2026-06-18
 

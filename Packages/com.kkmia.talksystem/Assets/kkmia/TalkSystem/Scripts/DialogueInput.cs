@@ -130,6 +130,12 @@ namespace kkmia.TalkSystem
             private static readonly Type KeyboardType = Type.GetType("UnityEngine.InputSystem.Keyboard, Unity.InputSystem");
             private static readonly PropertyInfo CurrentProperty = KeyboardType != null ? KeyboardType.GetProperty("current", BindingFlags.Public | BindingFlags.Static) : null;
 
+            // GetKeyDown は毎フレーム呼ばれるため、リフレクション検索の結果をキーごとにキャッシュする。
+            // 見つからないキーも null としてキャッシュし、毎フレームの再検索を避ける。
+            private static readonly System.Collections.Generic.Dictionary<DialogueKeyCode, PropertyInfo> KeyProperties =
+                new System.Collections.Generic.Dictionary<DialogueKeyCode, PropertyInfo>();
+            private static PropertyInfo _wasPressedThisFrameProperty;
+
             public static bool GetKeyDown(DialogueKeyCode key)
             {
                 if (CurrentProperty == null)
@@ -139,11 +145,7 @@ namespace kkmia.TalkSystem
                 if (keyboard == null)
                     return false;
 
-                var propertyName = ToInputSystemPropertyName(key);
-                if (string.IsNullOrEmpty(propertyName))
-                    return false;
-
-                var keyProperty = KeyboardType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                var keyProperty = GetKeyProperty(key);
                 if (keyProperty == null)
                     return false;
 
@@ -151,8 +153,25 @@ namespace kkmia.TalkSystem
                 if (keyControl == null)
                     return false;
 
-                var pressedProperty = keyControl.GetType().GetProperty("wasPressedThisFrame", BindingFlags.Public | BindingFlags.Instance);
-                return pressedProperty != null && (bool)pressedProperty.GetValue(keyControl, null);
+                // KeyControl 型は全キー共通のため、wasPressedThisFrame は一度だけ解決すればよい。
+                if (_wasPressedThisFrameProperty == null)
+                    _wasPressedThisFrameProperty = keyControl.GetType().GetProperty("wasPressedThisFrame", BindingFlags.Public | BindingFlags.Instance);
+
+                return _wasPressedThisFrameProperty != null && (bool)_wasPressedThisFrameProperty.GetValue(keyControl, null);
+            }
+
+            private static PropertyInfo GetKeyProperty(DialogueKeyCode key)
+            {
+                PropertyInfo keyProperty;
+                if (KeyProperties.TryGetValue(key, out keyProperty))
+                    return keyProperty;
+
+                var propertyName = ToInputSystemPropertyName(key);
+                keyProperty = string.IsNullOrEmpty(propertyName)
+                    ? null
+                    : KeyboardType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                KeyProperties.Add(key, keyProperty);
+                return keyProperty;
             }
 
             private static string ToInputSystemPropertyName(DialogueKeyCode key)
