@@ -16,10 +16,15 @@ Issue. Read these documents before making a non-trivial change:
 
 Run the repository governance checks locally with:
 
-```powershell
-python .\scripts\validate_governance.py --root .
-python -m unittest discover -s .\scripts\tests -p "test_*.py"
+```text
+python scripts/check_cross_platform.py --root .
+python scripts/validate_governance.py --root .
+python -m unittest discover -s scripts/tests -p "test_*.py"
 ```
+
+Windows and macOS setup, file-naming rules, and line-ending troubleshooting are
+documented in the
+[cross-platform development guide](docs/development/cross-platform-setup.md).
 
 ## Codex Harness
 

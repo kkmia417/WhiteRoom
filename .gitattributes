@@ -1,0 +1,77 @@
+# Keep the repository index and every supported developer checkout deterministic.
+* text=auto eol=lf
+
+# Windows command files require CRLF when executed by cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Source files benefit from language-aware diffs.
+*.cs text eol=lf diff=csharp
+
+# Unity serializes these files as text (ProjectSettings uses Force Text).
+*.anim text eol=lf
+*.asmdef text eol=lf
+*.asmref text eol=lf
+*.asset text eol=lf
+*.controller text eol=lf
+*.cubemap text eol=lf
+*.guiskin text eol=lf
+*.inputactions text eol=lf
+*.lighting text eol=lf
+*.mask text eol=lf
+*.mat text eol=lf
+*.meta text eol=lf
+*.overrideController text eol=lf
+*.physicMaterial text eol=lf
+*.physicsMaterial2D text eol=lf
+*.playable text eol=lf
+*.prefab text eol=lf
+*.renderTexture text eol=lf
+*.shadergraph text eol=lf
+*.shadersubgraph text eol=lf
+*.terrainlayer text eol=lf
+*.unity text eol=lf
+
+# Binary assets must never be line-ending converted or text-merged.
+*.7z binary
+*.aif binary
+*.aiff binary
+*.avi binary
+*.bin binary
+*.blend binary
+*.bmp binary
+*.bundle binary
+*.dll binary
+*.dylib binary
+*.exe binary
+*.exr binary
+*.fbx binary
+*.flac binary
+*.gif binary
+*.gz binary
+*.hdr binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.m4a binary
+*.mov binary
+*.mp3 binary
+*.mp4 binary
+*.ogg binary
+*.otf binary
+*.pdf binary
+*.png binary
+*.psb binary
+*.psd binary
+*.so binary
+*.tga binary
+*.tif binary
+*.tiff binary
+*.ttf binary
+*.unitypackage binary
+*.wav binary
+*.webm binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
