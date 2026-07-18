@@ -1,0 +1,56 @@
+name: Architecture decision
+description: Propose a durable technical decision and its evaluation
+title: "[Architecture] "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form starts decision work. Create the English ADR from docs/adr/0000-template.md and its Japanese pair from docs/adr/0000-template.ja.md before implementation.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What problem, constraints, and quality attributes force a decision?
+    validations:
+      required: true
+  - type: textarea
+    id: decision_drivers
+    attributes:
+      label: Decision drivers
+      placeholder: |
+        - Reliability
+        - Reversibility
+        - Unity lifecycle constraints
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Credible options
+      description: Include the status quo and meaningful alternatives with trade-offs.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence needed
+      description: Define tests, measurements, prototypes, or review needed to decide.
+    validations:
+      required: true
+  - type: input
+    id: adr
+    attributes:
+      label: Proposed ADR path
+      description: Provide both docs/adr/NNNN-short-title.md and docs/adr/NNNN-short-title.ja.md, or state when the pair will be created.
+      placeholder: docs/adr/0004-example.md / docs/adr/0004-example.ja.md
+    validations:
+      required: true
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Expected consequences and rollback
+      description: Include negative trade-offs, migration cost, and reversibility.
+    validations:
+      required: true

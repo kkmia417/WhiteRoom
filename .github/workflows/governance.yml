@@ -1,0 +1,39 @@
+name: Governance
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/**"
+      - "docs/**"
+      - "scripts/**"
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+      - "Assets/Scripts/**"
+      - "Packages/com.kkmia.talksystem/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Run governance tests
+        run: python -m unittest discover -s scripts/tests -p "test_*.py"
+      - name: Validate repository and PR traceability
+        run: python scripts/validate_governance.py --root . --pr-event "$GITHUB_EVENT_PATH"

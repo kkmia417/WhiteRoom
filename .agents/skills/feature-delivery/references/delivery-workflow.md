@@ -2,6 +2,22 @@
 
 Use this reference for feature implementation tasks.
 
+## Issue Contract
+
+Treat the primary Issue as the scope boundary. Extract:
+
+- desired outcome
+- explicit non-goals
+- acceptance criteria
+- affected surfaces and constraints
+- validation plan
+- architecture impact
+- English/Japanese ADR pair when architecture is affected
+
+If the user has not supplied an Issue, inspect connected Issue context when
+available. Otherwise write an Issue-ready scope in the work summary and state
+that repository traceability is incomplete; do not invent an Issue number.
+
 ## Planning Heuristics
 
 Write a plan before editing when:
@@ -16,6 +32,7 @@ Skip a formal plan for narrow one-file fixes, but still inspect context first.
 
 ## Audit Checklist
 
+- primary Issue and related ADRs
 - current git status
 - relevant instructions
 - existing tests and commands
@@ -25,12 +42,15 @@ Skip a formal plan for narrow one-file fixes, but still inspect context first.
 
 ## Implementation Order
 
-1. Update shared contracts or types.
-2. Update producers.
-3. Update consumers.
-4. Update tests.
-5. Update docs or examples.
-6. Run validation.
+1. Confirm or propose the canonical English ADR and Japanese `.ja.md` pair when
+   architecture is affected.
+2. Update shared contracts or types.
+3. Update producers.
+4. Update consumers.
+5. Update focused tests.
+6. Update docs or examples.
+7. Map acceptance criteria to evidence.
+8. Run validation.
 
 For UI work, verify responsive behavior and text fit when feasible.
 
@@ -42,6 +62,22 @@ For UI work, verify responsive behavior and text fit when feasible.
 - changed frontend UI: run build and visual smoke checks when available
 - changed scripts: run the script on a representative sample
 - changed docs commands: execute or clearly mark as unverified
+- changed Unity source or assets: run the repository's Unity batch-mode check
+  when available
+- changed governance artifacts: run
+  `python scripts/validate_governance.py --root .`
+
+## Delivery Trace
+
+Before handoff, provide this compact trace:
+
+| Issue acceptance criterion | Implementation | Evidence |
+| --- | --- | --- |
+| observable criterion | changed file or behavior | test or manual check |
+
+Link the PR with `Closes #<number>` when it completes the Issue. Use
+`Refs #<number>` only for partial work or a spike and explain why the Issue
+remains open.
 
 ## Handoff to Integration QA
 

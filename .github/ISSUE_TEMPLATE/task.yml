@@ -1,0 +1,50 @@
+name: Maintenance task
+description: Track bounded documentation, tooling, dependency, or cleanup work
+title: "[Task] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Describe the repository state that should exist when this task is complete.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why now?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: List included files or systems and explicit exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Completion checklist
+      placeholder: |
+        - [ ] Repository change is complete
+        - [ ] Validation is documented and passing
+        - [ ] Follow-up work is filed separately
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture impact
+      options:
+        - "No"
+        - "Uncertain — investigate first"
+        - "Yes — a proposed ADR is required"
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+    validations:
+      required: true

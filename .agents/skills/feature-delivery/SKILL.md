@@ -1,22 +1,32 @@
 ---
 name: feature-delivery
-description: Plan, implement, validate, and summarize repository feature work across code, tests, docs, and integration boundaries. Use when asked to build a feature, make a product change, implement a workflow, update behavior end to end, or continue feature work with validation.
+description: Deliver Issue-driven repository features across code, tests, docs, ADRs, and integration boundaries. Use when asked to implement a GitHub Issue, build a feature, make a product change, update behavior end to end, or continue bounded feature work with validation.
 ---
 
 # Feature Delivery
 
-Deliver a bounded feature end to end while preserving the repository's existing architecture and validation flow.
+Deliver one bounded Issue end to end while preserving the repository's
+architecture, decision history, and validation flow.
 
 ## Workflow
 
-1. Audit the request, current git state, and relevant project conventions.
-2. Identify affected modules, data contracts, tests, and docs.
-3. Produce a short implementation plan when the change spans multiple files or behaviors.
-4. Implement the smallest coherent change.
-5. Add or update focused tests when the risk justifies it.
-6. Run validation commands that match the touched surfaces.
-7. Use `$integration-qa` when frontend/backend, docs/scripts, config/runtime, or schema/query boundaries changed.
-8. Summarize files changed, validation results, and remaining risk.
+1. Identify the primary Issue and extract its outcome, non-goals, acceptance
+   criteria, and validation plan. If no Issue exists, prepare an Issue-ready
+   scope before implementation and make the missing traceability explicit.
+2. Audit the current git state, project instructions, and relevant conventions.
+3. Identify affected modules, contracts, tests, documentation, and ADRs.
+4. Check `docs/adr/README.md`; create or update both the canonical English ADR
+   and its Japanese `.ja.md` counterpart before code when the change meets its
+   decision criteria.
+5. Produce a short implementation plan when the change spans multiple files or
+   behaviors.
+6. Implement the smallest vertical slice that satisfies the Issue.
+7. Add or update focused tests and map them to acceptance criteria.
+8. Run validation commands that match every touched surface.
+9. Use `$integration-qa` when frontend/backend, docs/scripts, config/runtime, or
+   schema/query boundaries changed.
+10. Summarize the Issue mapping, files changed, validation results, ADR impact,
+    remaining risk, and follow-up Issues.
 
 Read `references/delivery-workflow.md` for planning and validation details.
 
@@ -26,12 +36,20 @@ Read `references/delivery-workflow.md` for planning and validation details.
 - Keep unrelated refactors out of scope.
 - Preserve user edits in the worktree.
 - Make validation failures explicit if they cannot be fixed in scope.
+- Do not silently expand acceptance criteria. Record separate work as follow-up
+  Issues.
+- Do not claim an Issue is closed or a PR is linked unless external state
+  confirms it.
+- Keep English/Japanese ADR number, status, decision meaning, related work,
+  enforcement rules, and reconsideration conditions equivalent.
 
 ## Output
 
 Return:
 
 - what changed
+- primary Issue and acceptance-criterion mapping
 - validation run
+- ADR impact
 - user-facing behavior impact
-- follow-up work if the feature exposed a separate issue
+- follow-up Issues if the feature exposed separate work

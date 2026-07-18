@@ -1,5 +1,26 @@
 # WhiteRoom
 
+WhiteRoom is a Unity visual-novel and escape-game project built on the embedded
+Talk System package.
+
+## Development
+
+Work starts from a GitHub Issue and ends with a pull request that links the
+Issue. Read these documents before making a non-trivial change:
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Issue-driven development](docs/development/issue-driven-development.md)
+- [Architecture](docs/architecture/README.md)
+- [Architecture Decision Records](docs/adr/README.md)
+  ([日本語](docs/adr/README.ja.md))
+
+Run the repository governance checks locally with:
+
+```powershell
+python .\scripts\validate_governance.py --root .
+python -m unittest discover -s .\scripts\tests -p "test_*.py"
+```
+
 ## Codex Harness
 
 This repository includes Harness for Codex skills under `.agents/skills`.
