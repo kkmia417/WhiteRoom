@@ -115,6 +115,9 @@ test friction、複数lifecycle scopeを根拠とする後継ADRを要求する�
 **影響**: 当面 `Assets/Scripts` を `Assembly-CSharp` に残す。application asmdef Issueには
 EditMode test、明示reference、Unity compile検証、影響するEditor/Runtime code移行を含める。
 
+本条項は初期migration guardの履歴であり、module/test contractをacceptedにしてvertical-slice
+asmdef移行を開始するADR-0004によって置き換えられた。
+
 ## 利点
 
 - Unity lifecycleと完全なobject graphを発見しやすい。
@@ -154,6 +157,8 @@ EditMode test、明示reference、Unity compile検証、影響するEditor/Runti
   package/application所有境界
 - [ADR-0003](0003-issue-driven-bilingual-adrs.ja.md) — この責務分割を変更するための
   Issue・レビュー手順
+- [ADR-0004](0004-modular-monolith-boundaries.ja.md) — 一時的asmdef延期を置き換え、
+  target application assemblyを定義する
 
 ## 開発ルール連携
 
@@ -168,5 +173,7 @@ EditMode test、明示reference、Unity compile検証、影響するEditor/Runti
 
 - 本ADRはscene内容、visual design、save-data format、dialogue schema、将来のDI/asmdef実装を決めない。
 - 現在のpackage-private reflectionは制限された負債として受け入れ、推奨統合方法にはしない。
+- ADR-0004が置き換えるのはasmdef延期条項だけである。Composition、Setup/Services/UI ownership、
+  reflection、明示的constructionの判断はAcceptedのまま維持する。
 - 計測したgraph複雑性、複数runtime scope、test差し替えcostがcontainer overheadを上回る場合に
   明示的constructionを再検討する。
