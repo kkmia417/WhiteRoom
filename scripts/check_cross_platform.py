@@ -325,6 +325,15 @@ def find_build_setting_issues(root: Path) -> list[str]:
                 f"{relative.as_posix()}: Assets/Scenes/{scene}.unity uses guid "
                 f"{match.group(1).lower()}, expected {scene_guid}"
             )
+
+    enabled_sample_scene = re.compile(
+        r"- enabled: 1\s+path: Assets/Scenes/SampleScene\.unity(?:\s|$)"
+    )
+    if enabled_sample_scene.search(content):
+        issues.append(
+            f"{relative.as_posix()}: Assets/Scenes/SampleScene.unity "
+            "must be disabled in Build Settings"
+        )
     return issues
 
 

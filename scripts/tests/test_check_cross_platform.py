@@ -210,6 +210,7 @@ class BuildSettingsTests(unittest.TestCase):
         *,
         title_enabled: bool = True,
         main_enabled: bool = True,
+        sample_enabled: bool = False,
     ) -> None:
         settings = root / "ProjectSettings"
         settings.mkdir()
@@ -228,6 +229,9 @@ class BuildSettingsTests(unittest.TestCase):
         (settings / "EditorBuildSettings.asset").write_text(
             "EditorBuildSettings:\n"
             "  m_Scenes:\n"
+            f"  - enabled: {int(sample_enabled)}\n"
+            "    path: Assets/Scenes/SampleScene.unity\n"
+            "    guid: 00000000000000000000000000000000\n"
             f"  - enabled: {int(title_enabled)}\n"
             "    path: Assets/Scenes/Title.unity\n"
             f"    guid: {title_guid}\n"
@@ -253,6 +257,15 @@ class BuildSettingsTests(unittest.TestCase):
             errors = cross_platform.find_build_setting_issues(root)
             self.assertEqual(1, len(errors))
             self.assertIn("Main.unity", errors[0])
+
+    def test_rejects_enabled_sample_scene(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_build_settings(root, sample_enabled=True)
+            errors = cross_platform.find_build_setting_issues(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("SampleScene.unity", errors[0])
+            self.assertIn("must be disabled", errors[0])
 
     def test_rejects_scene_guid_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
