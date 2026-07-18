@@ -8,6 +8,10 @@ compatibility, multiple release targets, and evidence-based quality gates.
 This document is a map, not a second source of decisions. The English ADRs are
 normative; their Japanese counterparts provide the human-facing translation.
 
+The concrete classes of the current runtime slice are diagrammed in
+[the runtime class diagram](class-diagram.md)
+([日本語](class-diagram.ja.md)).
+
 ## Decision map
 
 | Concern | Normative decision |
