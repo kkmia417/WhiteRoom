@@ -46,6 +46,7 @@ namespace WhiteRoom.Novel
         private NovelCommandDefinition _tooltipCommand;
         private bool _locked = true;
         private bool _sceneVisible;
+        private bool _inputBlocked;
         private bool _pointerInside;
         private float _lastActivityTime;
         private float _lastStateRefreshTime;
@@ -105,7 +106,7 @@ namespace WhiteRoom.Novel
             {
                 var entry = pair.Value;
                 var isLock = entry.Definition.Id == NovelCommandId.ToolbarLock;
-                var available = isLock || entry.Definition.CanExecute();
+                var available = !_inputBlocked && (isLock || entry.Definition.CanExecute());
                 var active = isLock ? _locked : entry.Definition.IsSelected();
 
                 entry.Button.interactable = available;
@@ -126,6 +127,13 @@ namespace WhiteRoom.Novel
             RecordActivity();
         }
 
+        public void SetInputBlocked(bool blocked)
+        {
+            _inputBlocked = blocked;
+            Refresh();
+            SetBarShown(IsBarShown);
+        }
+
         public void NotifyPointerExited()
         {
             _pointerInside = false;
@@ -135,6 +143,8 @@ namespace WhiteRoom.Novel
         public void Tick(float now, bool keyboardRevealRequested)
         {
             if (!_sceneVisible || _root == null)
+                return;
+            if (_inputBlocked)
                 return;
 
             if (now - _lastStateRefreshTime >= StateRefreshSeconds)
@@ -454,8 +464,8 @@ namespace WhiteRoom.Novel
                 return;
 
             _canvasGroup.alpha = shown ? 1f : 0f;
-            _canvasGroup.interactable = shown;
-            _canvasGroup.blocksRaycasts = shown;
+            _canvasGroup.interactable = shown && !_inputBlocked;
+            _canvasGroup.blocksRaycasts = shown && !_inputBlocked;
             if (!shown && _tooltipRoot != null)
                 _tooltipRoot.SetActive(false);
         }

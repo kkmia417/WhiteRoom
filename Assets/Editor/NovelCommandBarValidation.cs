@@ -52,6 +52,11 @@ namespace WhiteRoom.Novel.Editor
 
                 var lockButton = controller.GetButton(NovelCommandId.ToolbarLock);
                 Require(lockButton != null && controller.IsLocked, "Command bar must start locked.");
+                var saveButton = controller.GetButton(NovelCommandId.Save);
+                controller.SetInputBlocked(true);
+                Require(saveButton != null && !saveButton.interactable, "Overlay input blocking must disable command execution.");
+                controller.SetInputBlocked(false);
+                Require(saveButton != null && saveButton.interactable, "Closing an overlay must restore command execution.");
                 lockButton.onClick.Invoke();
                 Require(!controller.IsLocked, "Lock command must unlock the command bar.");
 
