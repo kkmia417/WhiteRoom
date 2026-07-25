@@ -112,8 +112,10 @@ namespace WhiteRoom.Novel
 
         public Func<bool> CanSave { get; set; }
         public Func<bool> CanQuickLoad { get; set; }
+        public Func<bool> CanBackSkip { get; set; }
         public Func<bool> HasDialogue { get; set; }
         public Func<bool> IsBacklogOpen { get; set; }
+        public Func<bool> IsBackSkipActive { get; set; }
         public Func<bool> IsAutoActive { get; set; }
         public Func<bool> IsSkipActive { get; set; }
     }
@@ -136,7 +138,7 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.SystemConfig, NovelCommandGroup.Settings, "CFG", "System configuration", bindings.OpenSystemConfig),
                 Command(NovelCommandId.PreviousChoice, NovelCommandGroup.BackwardNavigation, "<C", "Previous choice", bindings.PreviousChoice),
                 Command(NovelCommandId.PreviousScene, NovelCommandGroup.BackwardNavigation, "<S", "Previous scene", bindings.PreviousScene),
-                Command(NovelCommandId.BackSkip, NovelCommandGroup.BackwardNavigation, "B.SK", "Back skip", bindings.BackSkip),
+                Command(NovelCommandId.BackSkip, NovelCommandGroup.BackwardNavigation, "B.SK", "Back skip", bindings.BackSkip, bindings.CanBackSkip, bindings.IsBackSkipActive),
                 Command(NovelCommandId.PreviousText, NovelCommandGroup.BackwardNavigation, "<TXT", "Previous text", bindings.PreviousText, bindings.HasDialogue),
                 Command(NovelCommandId.Backlog, NovelCommandGroup.Playback, "LOG", "Backlog", bindings.ToggleBacklog, null, bindings.IsBacklogOpen),
                 Command(NovelCommandId.Auto, NovelCommandGroup.Playback, "AUTO", "Auto mode", bindings.ToggleAuto, bindings.HasDialogue, bindings.IsAutoActive),

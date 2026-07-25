@@ -1,3 +1,4 @@
+using System;
 using kkmia.TalkSystem;
 
 namespace WhiteRoom.Novel
@@ -9,11 +10,16 @@ namespace WhiteRoom.Novel
     {
         private readonly DialogueBacklogView _backlogView;
         private readonly DialogueAutoAdvanceGate _autoAdvanceGate;
+        private readonly Action _beforeOpen;
 
-        public BacklogController(DialogueBacklogView backlogView, DialogueAutoAdvanceGate autoAdvanceGate)
+        public BacklogController(
+            DialogueBacklogView backlogView,
+            DialogueAutoAdvanceGate autoAdvanceGate,
+            Action beforeOpen = null)
         {
             _backlogView = backlogView;
             _autoAdvanceGate = autoAdvanceGate;
+            _beforeOpen = beforeOpen;
         }
 
         public bool IsOpen => _backlogView != null && _backlogView.IsOpen;
@@ -34,6 +40,7 @@ namespace WhiteRoom.Novel
             if (_backlogView == null)
                 return;
 
+            _beforeOpen?.Invoke();
             _autoAdvanceGate.Suspend(this);
             _backlogView.Open();
         }

@@ -58,6 +58,8 @@ namespace WhiteRoom.Novel
         private NovelCommandBarController _commandBar;
         private NovelNotificationController _notifications;
         private DialogueKeyboardInput _dialogueKeyboardInput;
+        private DialoguePlaybackController _playbackController;
+        private DialogueBackSkipController _backSkip;
         private bool _quickLoadAvailable;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -91,6 +93,8 @@ namespace WhiteRoom.Novel
             _progress?.Dispose();
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
+            if (_playbackController != null)
+                _playbackController.StateChanged -= HandlePlaybackStateChanged;
 
             if (_instance == this)
                 _instance = null;
@@ -148,6 +152,7 @@ namespace WhiteRoom.Novel
 
         public void Rollback()
         {
+            StopPlaybackAutomation();
             if (_manager != null)
                 _manager.Rollback();
         }
@@ -253,6 +258,18 @@ namespace WhiteRoom.Novel
             _manager = DialogueRuntimeFactory.EnsureManager();
             var saveSystem = DialogueRuntimeFactory.EnsureSaveSystem(_manager, saveContentVersion, saveProductChannel);
             var playbackController = DialogueRuntimeFactory.EnsurePlaybackController(_manager);
+            _playbackController = playbackController;
+            if (_playbackController != null)
+                _playbackController.StateChanged += HandlePlaybackStateChanged;
+            _backSkip = new DialogueBackSkipController(_manager, playbackController);
+            var backSkipDriver = _manager.GetComponent<DialogueBackSkipDriver>();
+            if (backSkipDriver == null)
+                backSkipDriver = _manager.gameObject.AddComponent<DialogueBackSkipDriver>();
+            backSkipDriver.Configure(_backSkip);
+            var pointerStopper = _view.GetComponent<DialogueBackSkipPointerStopper>();
+            if (pointerStopper == null)
+                pointerStopper = _view.gameObject.AddComponent<DialogueBackSkipPointerStopper>();
+            pointerStopper.Configure(_backSkip);
 
             var presentation = DialoguePresentationFactory.Ensure(backgroundDatabase, characterDatabase, audioDatabase);
             presentation.RegisterSaveContributors(saveSystem);
@@ -272,7 +289,7 @@ namespace WhiteRoom.Novel
             var autoAdvanceGate = new DialogueAutoAdvanceGate(_view);
             _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
             _quickLoadAvailable = _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
-            _backlog = new BacklogController(backlogView, autoAdvanceGate);
+            _backlog = new BacklogController(backlogView, autoAdvanceGate, StopPlaybackAutomation);
             _titleMenu = new TitleMenuController(_saveService, StartNewGame, OpenLoadScreen);
             _notifications = new NovelNotificationController();
             _saveLoadScreen = new SaveLoadScreenController(
@@ -345,8 +362,22 @@ namespace WhiteRoom.Novel
                 _notifications?.Show(feedback.Message, feedback.Succeeded);
         }
 
+        private void HandlePlaybackStateChanged(DialoguePlaybackState state)
+        {
+            if (state.HasChoices && state.Mode != DialoguePlaybackMode.Normal)
+            {
+                _backSkip?.Stop();
+                _playbackController?.SetMode(DialoguePlaybackMode.Normal);
+                return;
+            }
+
+            _commandBar?.Refresh();
+        }
+
         private void HandleSaveLoadVisibilityChanged(bool visible)
         {
+            if (visible)
+                StopPlaybackAutomation();
             if (_dialogueKeyboardInput != null)
                 _dialogueKeyboardInput.enabled = !visible;
             _commandBar?.SetInputBlocked(visible);
@@ -391,6 +422,7 @@ namespace WhiteRoom.Novel
             if (_titleMenu == null)
                 return;
 
+            StopPlaybackAutomation();
             if (ShouldShowTitleMenu(scene.name))
                 _titleMenu.Show();
             else
@@ -421,18 +453,40 @@ namespace WhiteRoom.Novel
                 QuickSave = () => QuickSave(),
                 QuickLoad = () => QuickLoad(),
                 PreviousText = Rollback,
+                BackSkip = _backSkip != null ? _backSkip.Toggle : null,
                 ToggleBacklog = ToggleBacklog,
-                ToggleAuto = playbackController != null ? playbackController.ToggleAuto : null,
-                ToggleSkip = playbackController != null ? playbackController.ToggleSkip : null,
+                ToggleAuto = playbackController != null
+                    ? () =>
+                    {
+                        _backSkip?.Stop();
+                        playbackController.ToggleAuto();
+                    }
+                    : null,
+                ToggleSkip = playbackController != null
+                    ? () =>
+                    {
+                        _backSkip?.Stop();
+                        playbackController.ToggleSkip();
+                    }
+                    : null,
                 CanSave = () => _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
                 CanQuickLoad = () => _quickLoadAvailable,
+                CanBackSkip = () => _backSkip != null && _backSkip.CanStart,
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
+                IsBackSkipActive = () => _backSkip != null && _backSkip.IsActive,
                 IsAutoActive = () => playbackController != null && playbackController.Mode == DialoguePlaybackMode.Auto,
                 IsSkipActive = () => playbackController != null && playbackController.Mode == DialoguePlaybackMode.Skip
             };
 
             return new NovelCommandBarController(NovelCommandCatalog.Create(bindings));
+        }
+
+        private void StopPlaybackAutomation()
+        {
+            _backSkip?.Stop();
+            _playbackController?.SetMode(DialoguePlaybackMode.Normal);
+            _commandBar?.Refresh();
         }
 
         private bool ShouldShowCommandBar()
