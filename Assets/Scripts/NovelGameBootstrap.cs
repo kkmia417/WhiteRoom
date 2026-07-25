@@ -56,6 +56,8 @@ namespace WhiteRoom.Novel
         private TitleMenuController _titleMenu;
         private SaveLoadScreenController _saveLoadScreen;
         private NovelCommandBarController _commandBar;
+        private NovelNotificationController _notifications;
+        private DialogueKeyboardInput _dialogueKeyboardInput;
         private bool _quickLoadAvailable;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -101,6 +103,9 @@ namespace WhiteRoom.Novel
 
         private void Update()
         {
+            if (_saveLoadScreen != null && _saveLoadScreen.IsOpen)
+                return;
+
             if (enableDebugSaveHotkeys)
             {
                 if (DialogueKeyboard.GetKeyDown(DialogueKeyCode.F5))
@@ -259,16 +264,21 @@ namespace WhiteRoom.Novel
             _progress.AttachTo(_manager);
 
             if (enableDialogueKeyboardInput)
+            {
                 DialogueRuntimeFactory.EnsureKeyboardInputRouting(_view, backlogView, playbackController);
+                _dialogueKeyboardInput = _view.GetComponent<DialogueKeyboardInput>();
+            }
 
             var autoAdvanceGate = new DialogueAutoAdvanceGate(_view);
             _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
             _quickLoadAvailable = _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _backlog = new BacklogController(backlogView, autoAdvanceGate);
             _titleMenu = new TitleMenuController(_saveService, StartNewGame, OpenLoadScreen);
+            _notifications = new NovelNotificationController();
             _saveLoadScreen = new SaveLoadScreenController(
                 _saveService,
                 autoAdvanceGate,
+                _notifications,
                 manualSaveSlotCount,
                 showSaveLoadLauncher && !showCommandBar);
             _saveLoadScreen.EnsureLauncher();
@@ -278,7 +288,9 @@ namespace WhiteRoom.Novel
 
             _saveService.Saved += HandleSaveCompleted;
             _saveService.Loaded += HandleLoadCompleted;
+            _saveService.Feedback += HandleSaveFeedback;
             _titleMenu.VisibilityChanged += _saveLoadScreen.SetTitleMenuVisible;
+            _saveLoadScreen.VisibilityChanged += HandleSaveLoadVisibilityChanged;
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(new PlayerNameVariableResolver(() => playerName));
@@ -325,6 +337,19 @@ namespace WhiteRoom.Novel
         {
             _titleMenu.Hide();
             _saveLoadScreen.Close();
+        }
+
+        private void HandleSaveFeedback(NovelSaveFeedback feedback)
+        {
+            if (feedback != null)
+                _notifications?.Show(feedback.Message, feedback.Succeeded);
+        }
+
+        private void HandleSaveLoadVisibilityChanged(bool visible)
+        {
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = !visible;
+            _commandBar?.SetInputBlocked(visible);
         }
 
         private void HandleDialogueEvent(DialogueEventContext context)
@@ -391,6 +416,7 @@ namespace WhiteRoom.Novel
             var bindings = new NovelCommandBarBindings
             {
                 OpenSave = OpenSaveScreen,
+                DirectSave = _saveLoadScreen.DirectSave,
                 OpenLoad = OpenLoadScreen,
                 QuickSave = () => QuickSave(),
                 QuickLoad = () => QuickLoad(),
@@ -398,7 +424,7 @@ namespace WhiteRoom.Novel
                 ToggleBacklog = ToggleBacklog,
                 ToggleAuto = playbackController != null ? playbackController.ToggleAuto : null,
                 ToggleSkip = playbackController != null ? playbackController.ToggleSkip : null,
-                CanSave = () => _saveService != null && _saveService.CanSaveNow,
+                CanSave = () => _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
                 CanQuickLoad = () => _quickLoadAvailable,
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
