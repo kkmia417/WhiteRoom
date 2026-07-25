@@ -41,6 +41,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool unlockProgressMarkers = true;
         [SerializeField] private int defaultManualSaveSlot = DialogueSaveSlotConventions.FirstManualSlot;
         [SerializeField] private int manualSaveSlotCount = 6;
+        [SerializeField] private bool showCommandBar = true;
         [SerializeField] private bool showSaveLoadLauncher = true;
         [SerializeField] private bool saveThumbnails;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
@@ -54,6 +55,8 @@ namespace WhiteRoom.Novel
         private BacklogController _backlog;
         private TitleMenuController _titleMenu;
         private SaveLoadScreenController _saveLoadScreen;
+        private NovelCommandBarController _commandBar;
+        private bool _quickLoadAvailable;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -85,6 +88,7 @@ namespace WhiteRoom.Novel
             _saveService?.Dispose();
             _progress?.Dispose();
             _presentationIssueLogger?.Dispose();
+            _commandBar?.Dispose();
 
             if (_instance == this)
                 _instance = null;
@@ -259,10 +263,18 @@ namespace WhiteRoom.Novel
 
             var autoAdvanceGate = new DialogueAutoAdvanceGate(_view);
             _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
+            _quickLoadAvailable = _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _backlog = new BacklogController(backlogView, autoAdvanceGate);
             _titleMenu = new TitleMenuController(_saveService, StartNewGame, OpenLoadScreen);
-            _saveLoadScreen = new SaveLoadScreenController(_saveService, autoAdvanceGate, manualSaveSlotCount, showSaveLoadLauncher);
+            _saveLoadScreen = new SaveLoadScreenController(
+                _saveService,
+                autoAdvanceGate,
+                manualSaveSlotCount,
+                showSaveLoadLauncher && !showCommandBar);
             _saveLoadScreen.EnsureLauncher();
+            _commandBar = CreateCommandBar(playbackController);
+            _commandBar.EnsureCreated();
+            _commandBar.SetSceneVisible(ShouldShowCommandBar());
 
             _saveService.Saved += HandleSaveCompleted;
             _saveService.Loaded += HandleLoadCompleted;
@@ -302,8 +314,11 @@ namespace WhiteRoom.Novel
 
         private void HandleSaveCompleted()
         {
+            _quickLoadAvailable = _saveService != null &&
+                                  _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _titleMenu.RefreshButtons();
             _saveLoadScreen.Refresh();
+            _commandBar?.Refresh();
         }
 
         private void HandleLoadCompleted()
@@ -355,6 +370,8 @@ namespace WhiteRoom.Novel
                 _titleMenu.Show();
             else
                 _titleMenu.Hide();
+
+            _commandBar?.SetSceneVisible(ShouldShowCommandBar(scene.name));
         }
 
         private bool ShouldShowTitleMenu()
@@ -367,6 +384,41 @@ namespace WhiteRoom.Novel
             return showTitleMenu
                 && !string.IsNullOrEmpty(titleSceneName)
                 && string.Equals(sceneName, titleSceneName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private NovelCommandBarController CreateCommandBar(DialoguePlaybackController playbackController)
+        {
+            var bindings = new NovelCommandBarBindings
+            {
+                OpenSave = OpenSaveScreen,
+                OpenLoad = OpenLoadScreen,
+                QuickSave = () => QuickSave(),
+                QuickLoad = () => QuickLoad(),
+                PreviousText = Rollback,
+                ToggleBacklog = ToggleBacklog,
+                ToggleAuto = playbackController != null ? playbackController.ToggleAuto : null,
+                ToggleSkip = playbackController != null ? playbackController.ToggleSkip : null,
+                CanSave = () => _saveService != null && _saveService.CanSaveNow,
+                CanQuickLoad = () => _quickLoadAvailable,
+                HasDialogue = () => _manager != null && _manager.CurrentData != null,
+                IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
+                IsAutoActive = () => playbackController != null && playbackController.Mode == DialoguePlaybackMode.Auto,
+                IsSkipActive = () => playbackController != null && playbackController.Mode == DialoguePlaybackMode.Skip
+            };
+
+            return new NovelCommandBarController(NovelCommandCatalog.Create(bindings));
+        }
+
+        private bool ShouldShowCommandBar()
+        {
+            return ShouldShowCommandBar(SceneManager.GetActiveScene().name);
+        }
+
+        private bool ShouldShowCommandBar(string sceneName)
+        {
+            return showCommandBar
+                && !string.IsNullOrEmpty(mainSceneName)
+                && string.Equals(sceneName, mainSceneName, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
