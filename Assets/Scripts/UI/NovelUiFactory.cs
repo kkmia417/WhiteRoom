@@ -204,7 +204,8 @@ namespace WhiteRoom.Novel
         private static Canvas CreateCanvas()
         {
             var canvasObject = new GameObject(CanvasName, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            UnityEngine.Object.DontDestroyOnLoad(canvasObject);
+            if (Application.isPlaying)
+                UnityEngine.Object.DontDestroyOnLoad(canvasObject);
 
             var canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;

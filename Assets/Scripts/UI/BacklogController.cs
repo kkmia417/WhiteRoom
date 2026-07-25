@@ -16,6 +16,8 @@ namespace WhiteRoom.Novel
             _autoAdvanceGate = autoAdvanceGate;
         }
 
+        public bool IsOpen => _backlogView != null && _backlogView.IsOpen;
+
         public void Toggle()
         {
             if (_backlogView == null)
