@@ -24,6 +24,7 @@ namespace kkmia.TalkSystem
         [SerializeField] private float defaultFadeDuration = 0.5f;
 
         private Coroutine _bgmFade;
+        private DialogueSettings _settings;
 
         public event Action<DialoguePresentationIssueContext> PresentationIssueRaised;
 
@@ -31,6 +32,24 @@ namespace kkmia.TalkSystem
         public AudioSource VoiceSource
         {
             get { return voiceSource; }
+        }
+
+        public void BindSettings(DialogueSettings settings)
+        {
+            if (_settings == settings)
+                return;
+            if (_settings != null)
+                _settings.Changed -= ApplySettingsVolumes;
+            _settings = settings;
+            if (_settings != null)
+                _settings.Changed += ApplySettingsVolumes;
+            ApplySettingsVolumes();
+        }
+
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= ApplySettingsVolumes;
         }
 
         public void PlayBgm(string bgmKey, bool stop, string transition, float duration)
@@ -69,11 +88,11 @@ namespace kkmia.TalkSystem
             {
                 bgmSource.volume = 0f;
                 bgmSource.Play();
-                FadeBgm(1f, fade, stopAtEnd: false);
+                FadeBgm(ResolveBgmVolume(), fade, stopAtEnd: false);
             }
             else
             {
-                bgmSource.volume = 1f;
+                bgmSource.volume = ResolveBgmVolume();
                 bgmSource.Play();
             }
         }
@@ -148,6 +167,24 @@ namespace kkmia.TalkSystem
             ResetSource(bgmSource);
             ResetSource(seSource);
             ResetSource(voiceSource);
+            ApplySettingsVolumes();
+        }
+
+        private void ApplySettingsVolumes()
+        {
+            if (_bgmFade != null)
+            {
+                StopCoroutine(_bgmFade);
+                _bgmFade = null;
+            }
+            if (bgmSource != null) bgmSource.volume = ResolveBgmVolume();
+            if (seSource != null) seSource.volume = _settings != null ? _settings.EffectiveSeVolume : 1f;
+            if (voiceSource != null) voiceSource.volume = _settings != null ? _settings.EffectiveVoiceVolume : 1f;
+        }
+
+        private float ResolveBgmVolume()
+        {
+            return _settings != null ? _settings.EffectiveBgmVolume : 1f;
         }
 
         private static void ResetSource(AudioSource source)

@@ -23,6 +23,8 @@ namespace WhiteRoom.Novel
         private readonly Action _openLoadScreen;
         private readonly Action _openEndingList;
         private readonly Action _openGallery;
+        private readonly Action _openConfig;
+        private readonly Action _openQuit;
 
         private GameObject _root;
         private Button _continueButton;
@@ -33,13 +35,17 @@ namespace WhiteRoom.Novel
             Action startNewGame,
             Action openLoadScreen,
             Action openEndingList = null,
-            Action openGallery = null)
+            Action openGallery = null,
+            Action openConfig = null,
+            Action openQuit = null)
         {
             _saveService = saveService;
             _startNewGame = startNewGame;
             _openLoadScreen = openLoadScreen;
             _openEndingList = openEndingList;
             _openGallery = openGallery;
+            _openConfig = openConfig;
+            _openQuit = openQuit;
         }
 
         public event Action<bool> VisibilityChanged;
@@ -91,12 +97,21 @@ namespace WhiteRoom.Novel
             var background = root.GetComponent<Image>();
             background.color = new Color(0.018f, 0.02f, 0.022f, 0.96f);
 
+            var safeArea = new GameObject("SafeArea", typeof(RectTransform), typeof(NovelSafeAreaDriver));
+            safeArea.transform.SetParent(root.transform, false);
+            var safeRect = (RectTransform)safeArea.transform;
+            safeRect.anchorMin = Vector2.zero;
+            safeRect.anchorMax = Vector2.one;
+            safeRect.offsetMin = Vector2.zero;
+            safeRect.offsetMax = Vector2.zero;
+            safeArea.GetComponent<NovelSafeAreaDriver>().Configure(safeRect);
+
             var menuObject = new GameObject("Menu", typeof(RectTransform), typeof(VerticalLayoutGroup));
-            menuObject.transform.SetParent(root.transform, false);
+            menuObject.transform.SetParent(safeArea.transform, false);
 
             var menuRect = (RectTransform)menuObject.transform;
-            menuRect.anchorMin = new Vector2(0.08f, 0.18f);
-            menuRect.anchorMax = new Vector2(0.42f, 0.78f);
+            menuRect.anchorMin = new Vector2(0.08f, 0.08f);
+            menuRect.anchorMax = new Vector2(0.42f, 0.92f);
             menuRect.offsetMin = Vector2.zero;
             menuRect.offsetMax = Vector2.zero;
 
@@ -118,6 +133,10 @@ namespace WhiteRoom.Novel
                 CreateMenuButton(menuObject.transform, "Ending List", () => _openEndingList());
             if (_openGallery != null)
                 CreateMenuButton(menuObject.transform, "Gallery", () => _openGallery());
+            if (_openConfig != null)
+                CreateMenuButton(menuObject.transform, "Config", () => _openConfig());
+            if (_openQuit != null)
+                CreateMenuButton(menuObject.transform, "Quit", () => _openQuit());
 
             root.SetActive(false);
             return root;

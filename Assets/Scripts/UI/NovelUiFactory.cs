@@ -232,4 +232,45 @@ namespace WhiteRoom.Novel
             return canvas;
         }
     }
+
+    public static class NovelSafeAreaUtility
+    {
+        public static void Apply(RectTransform target, Rect safeArea, int screenWidth, int screenHeight)
+        {
+            if (target == null || screenWidth <= 0 || screenHeight <= 0)
+                return;
+            target.anchorMin = new Vector2(safeArea.xMin / screenWidth, safeArea.yMin / screenHeight);
+            target.anchorMax = new Vector2(safeArea.xMax / screenWidth, safeArea.yMax / screenHeight);
+            target.offsetMin = Vector2.zero;
+            target.offsetMax = Vector2.zero;
+        }
+    }
+
+    public sealed class NovelSafeAreaDriver : MonoBehaviour
+    {
+        private RectTransform _target;
+        private Rect _lastSafeArea;
+        private Vector2Int _lastScreenSize;
+
+        public void Configure(RectTransform target)
+        {
+            _target = target;
+            Apply();
+        }
+
+        private void Update()
+        {
+            if (_lastSafeArea != Screen.safeArea ||
+                _lastScreenSize.x != Screen.width ||
+                _lastScreenSize.y != Screen.height)
+                Apply();
+        }
+
+        private void Apply()
+        {
+            NovelSafeAreaUtility.Apply(_target, Screen.safeArea, Screen.width, Screen.height);
+            _lastSafeArea = Screen.safeArea;
+            _lastScreenSize = new Vector2Int(Screen.width, Screen.height);
+        }
+    }
 }

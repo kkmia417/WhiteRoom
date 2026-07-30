@@ -59,6 +59,9 @@ namespace WhiteRoom.Novel
         private EndingFlowService _endingFlow;
         private EndingResultScreenController _endingResultScreen;
         private CollectionScreenController _collectionScreen;
+        private ConfigScreenController _configScreen;
+        private QuitConfirmationController _quitConfirmation;
+        private VersionedDialogueSettingsStore _settingsStore;
         private DialoguePresentationIssueLogger _presentationIssueLogger;
         private BacklogController _backlog;
         private TitleMenuController _titleMenu;
@@ -121,6 +124,10 @@ namespace WhiteRoom.Novel
             _progress?.Dispose();
             if (_collectionScreen != null)
                 _collectionScreen.VisibilityChanged -= HandleCollectionVisibilityChanged;
+            if (_configScreen != null)
+                _configScreen.VisibilityChanged -= HandleTitleSubScreenVisibilityChanged;
+            if (_quitConfirmation != null)
+                _quitConfirmation.VisibilityChanged -= HandleTitleSubScreenVisibilityChanged;
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
             if (_playbackController != null)
@@ -307,6 +314,18 @@ namespace WhiteRoom.Novel
             _collectionScreen?.Close();
         }
 
+        public void OpenConfig()
+        {
+            if (!IsEndingInputBlocked())
+                _configScreen?.Open();
+        }
+
+        public void OpenQuitConfirmation()
+        {
+            if (!IsEndingInputBlocked())
+                _quitConfirmation?.Open();
+        }
+
         private void BuildRuntime()
         {
             NovelUiFactory.EnsureFont(uiFontAsset, uiFontResourcePath);
@@ -332,6 +351,13 @@ namespace WhiteRoom.Novel
             var saveSystem = DialogueRuntimeFactory.EnsureSaveSystem(_manager, saveContentVersion, saveProductChannel);
             var playbackController = DialogueRuntimeFactory.EnsurePlaybackController(_manager);
             _playbackController = playbackController;
+            _settingsStore = new VersionedDialogueSettingsStore();
+            if (_playbackController != null && _playbackController.Settings != null)
+            {
+                _playbackController.Settings.Load(_settingsStore);
+                if (!string.IsNullOrEmpty(_settingsStore.LastWarning))
+                    Debug.LogWarning(_settingsStore.LastWarning);
+            }
             if (_playbackController != null)
                 _playbackController.StateChanged += HandlePlaybackStateChanged;
             _backSkip = new DialogueBackSkipController(_manager, playbackController);
@@ -376,6 +402,7 @@ namespace WhiteRoom.Novel
                     : null);
             _presentationIssueLogger.Watch(_presentation.StageView);
             _presentationIssueLogger.Watch(_presentation.AudioPlayer);
+            _presentation.AudioPlayer.BindSettings(_playbackController != null ? _playbackController.Settings : null);
 
             _progress = new DialogueProgressService(unlockProgressMarkers);
             _endingFlow = new EndingFlowService(
@@ -413,12 +440,17 @@ namespace WhiteRoom.Novel
                 category => _progress != null ? _progress.ListUnlockedIds(category) : new List<string>(),
                 Debug.LogWarning);
             _collectionScreen = new CollectionScreenController(collectionService);
+            _configScreen = new ConfigScreenController(_playbackController.Settings, _settingsStore);
+            _quitConfirmation = new QuitConfirmationController(
+                new ApplicationQuitService(new UnityApplicationQuitter()));
             _titleMenu = new TitleMenuController(
                 _saveService,
                 StartNewGame,
                 OpenLoadScreen,
                 OpenEndingList,
-                OpenGallery);
+                OpenGallery,
+                OpenConfig,
+                OpenQuitConfirmation);
             _notifications = new NovelNotificationController();
             _saveLoadScreen = new SaveLoadScreenController(
                 _saveService,
@@ -437,6 +469,8 @@ namespace WhiteRoom.Novel
             _titleMenu.VisibilityChanged += _saveLoadScreen.SetTitleMenuVisible;
             _saveLoadScreen.VisibilityChanged += HandleSaveLoadVisibilityChanged;
             _collectionScreen.VisibilityChanged += HandleCollectionVisibilityChanged;
+            _configScreen.VisibilityChanged += HandleTitleSubScreenVisibilityChanged;
+            _quitConfirmation.VisibilityChanged += HandleTitleSubScreenVisibilityChanged;
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(new PlayerNameVariableResolver(() => playerName));
@@ -527,6 +561,19 @@ namespace WhiteRoom.Novel
 
             if (_dialogueKeyboardInput != null)
                 _dialogueKeyboardInput.enabled = !visible;
+        }
+
+        private void HandleTitleSubScreenVisibilityChanged(bool visible)
+        {
+            if (visible)
+            {
+                _titleMenu?.Hide();
+                _saveLoadScreen?.SetTitleMenuVisible(true);
+            }
+            else if (ShouldShowTitleMenu())
+            {
+                _titleMenu?.Show();
+            }
         }
 
         private void HandleDialogueEvent(DialogueEventContext context)
@@ -698,7 +745,9 @@ namespace WhiteRoom.Novel
         private bool IsEndingInputBlocked()
         {
             return (_endingFlow != null && _endingFlow.IsInputBlocked)
-                || (_collectionScreen != null && _collectionScreen.IsOpen);
+                || (_collectionScreen != null && _collectionScreen.IsOpen)
+                || (_configScreen != null && _configScreen.IsOpen)
+                || (_quitConfirmation != null && _quitConfirmation.IsOpen);
         }
 
         private bool ShouldShowCommandBar()
