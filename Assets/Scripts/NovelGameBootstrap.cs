@@ -18,11 +18,13 @@ namespace WhiteRoom.Novel
     {
         private const string DefaultDialogueResourcePath = "Dialogue/r00_escape_talksystem";
         private const string DefaultStartTriggerKey = "R00EscapeStart";
+        private const string DefaultCollectionCatalogResourcePath = "WhiteRoom/collection_catalog";
 
         private static NovelGameBootstrap _instance;
 
         [SerializeField] private string dialogueResourcePath = DefaultDialogueResourcePath;
         [SerializeField] private string startTriggerKey = DefaultStartTriggerKey;
+        [SerializeField] private string collectionCatalogResourcePath = DefaultCollectionCatalogResourcePath;
         [SerializeField] private bool startOnLaunch = true;
         [SerializeField] private string playerName = "Player";
         [SerializeField] private float typewriterInterval = 0.025f;
@@ -56,6 +58,7 @@ namespace WhiteRoom.Novel
         private DialogueProgressService _progress;
         private EndingFlowService _endingFlow;
         private EndingResultScreenController _endingResultScreen;
+        private CollectionScreenController _collectionScreen;
         private DialoguePresentationIssueLogger _presentationIssueLogger;
         private BacklogController _backlog;
         private TitleMenuController _titleMenu;
@@ -116,6 +119,8 @@ namespace WhiteRoom.Novel
             _saveService?.Dispose();
             _endingFlow?.Dispose();
             _progress?.Dispose();
+            if (_collectionScreen != null)
+                _collectionScreen.VisibilityChanged -= HandleCollectionVisibilityChanged;
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
             if (_playbackController != null)
@@ -133,6 +138,9 @@ namespace WhiteRoom.Novel
         private void Update()
         {
             if (IsEndingInputBlocked())
+                return;
+
+            if (_collectionScreen != null && _collectionScreen.IsOpen)
                 return;
 
             if (_saveLoadScreen != null && _saveLoadScreen.IsOpen)
@@ -282,6 +290,23 @@ namespace WhiteRoom.Novel
             _backlog?.Close();
         }
 
+        public void OpenEndingList()
+        {
+            if (!IsEndingInputBlocked())
+                _collectionScreen?.OpenEndingList();
+        }
+
+        public void OpenGallery()
+        {
+            if (!IsEndingInputBlocked())
+                _collectionScreen?.OpenGallery();
+        }
+
+        public void CloseCollectionScreen()
+        {
+            _collectionScreen?.Close();
+        }
+
         private void BuildRuntime()
         {
             NovelUiFactory.EnsureFont(uiFontAsset, uiFontResourcePath);
@@ -377,7 +402,23 @@ namespace WhiteRoom.Novel
             _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
             _quickLoadAvailable = _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _backlog = new BacklogController(backlogView, autoAdvanceGate, StopPlaybackAutomation);
-            _titleMenu = new TitleMenuController(_saveService, StartNewGame, OpenLoadScreen);
+            var collectionCatalogAsset = Resources.Load<TextAsset>(collectionCatalogResourcePath);
+            var collectionCatalogResult = CollectionCatalogLoader.Load(collectionCatalogAsset);
+            for (var index = 0; index < collectionCatalogResult.Warnings.Count; index++)
+                Debug.LogWarning(collectionCatalogResult.Warnings[index]);
+            if (collectionCatalogAsset == null)
+                Debug.LogWarning("NovelGameBootstrap: collection catalog was not found at Resources/" + collectionCatalogResourcePath + ".");
+            var collectionService = new CollectionService(
+                collectionCatalogResult.Catalog,
+                category => _progress != null ? _progress.ListUnlockedIds(category) : new List<string>(),
+                Debug.LogWarning);
+            _collectionScreen = new CollectionScreenController(collectionService);
+            _titleMenu = new TitleMenuController(
+                _saveService,
+                StartNewGame,
+                OpenLoadScreen,
+                OpenEndingList,
+                OpenGallery);
             _notifications = new NovelNotificationController();
             _saveLoadScreen = new SaveLoadScreenController(
                 _saveService,
@@ -395,6 +436,7 @@ namespace WhiteRoom.Novel
             _saveService.Feedback += HandleSaveFeedback;
             _titleMenu.VisibilityChanged += _saveLoadScreen.SetTitleMenuVisible;
             _saveLoadScreen.VisibilityChanged += HandleSaveLoadVisibilityChanged;
+            _collectionScreen.VisibilityChanged += HandleCollectionVisibilityChanged;
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(new PlayerNameVariableResolver(() => playerName));
@@ -468,6 +510,23 @@ namespace WhiteRoom.Novel
             if (_dialogueKeyboardInput != null)
                 _dialogueKeyboardInput.enabled = !visible;
             _commandBar?.SetInputBlocked(visible);
+        }
+
+        private void HandleCollectionVisibilityChanged(bool visible)
+        {
+            if (visible)
+            {
+                _titleMenu?.Hide();
+                _saveLoadScreen?.Close();
+                _saveLoadScreen?.SetTitleMenuVisible(true);
+            }
+            else if (ShouldShowTitleMenu())
+            {
+                _titleMenu?.Show();
+            }
+
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = !visible;
         }
 
         private void HandleDialogueEvent(DialogueEventContext context)
@@ -638,7 +697,8 @@ namespace WhiteRoom.Novel
 
         private bool IsEndingInputBlocked()
         {
-            return _endingFlow != null && _endingFlow.IsInputBlocked;
+            return (_endingFlow != null && _endingFlow.IsInputBlocked)
+                || (_collectionScreen != null && _collectionScreen.IsOpen);
         }
 
         private bool ShouldShowCommandBar()
