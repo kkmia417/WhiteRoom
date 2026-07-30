@@ -12,4 +12,281 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 599a9b23369b44e3afda8b8856be35c3, type: 3}
   m_Name: WhiteRoomCharacterExpressionDatabase
   m_EditorClassIdentifier: kkmia.TalkSystem.Runtime::kkmia.TalkSystem.CharacterExpressionDatabase
-  characters: []
+  characters:
+  - speakerKey: Rei
+    displayName: "\u30EC\u30A4"
+    nameColor: {r: 0.72, g: 0.88, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 09ea1a9a3cb288b498247232036e0798, type: 3}
+    expressions:
+    - emotionKey: blank
+      sprite: {fileID: 21300000, guid: 09ea1a9a3cb288b498247232036e0798, type: 3}
+    - emotionKey: determined
+      sprite: {fileID: 21300000, guid: 07e30602225498a458cad8198b3ae510, type: 3}
+    - emotionKey: frozen
+      sprite: {fileID: 21300000, guid: 3d341788a7361754e8c1521181a3ccf3, type: 3}
+    - emotionKey: lost
+      sprite: {fileID: 21300000, guid: 2179fedb91c1d1e4c98c6405259373eb, type: 3}
+    - emotionKey: running
+      sprite: {fileID: 21300000, guid: 5f3c1509bea43b74fa666cb9c94f63f4, type: 3}
+    - emotionKey: serious
+      sprite: {fileID: 21300000, guid: a0be2e0405c48ff42960c0bc0e8968cd, type: 3}
+    - emotionKey: shocked
+      sprite: {fileID: 21300000, guid: 9b8a477c6c8051947bbf19c6291ae1d2, type: 3}
+    - emotionKey: soft
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+    - emotionKey: surprise
+      sprite: {fileID: 21300000, guid: 13d1f6ec5f860ee4cab83b4cc134a690, type: 3}
+    - emotionKey: tired
+      sprite: {fileID: 21300000, guid: be4a2900c6e54d9428851036793ac98b, type: 3}
+    - emotionKey: calm
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: a0be2e0405c48ff42960c0bc0e8968cd, type: 3}
+    - emotionKey: pain
+      sprite: {fileID: 21300000, guid: be4a2900c6e54d9428851036793ac98b, type: 3}
+    - emotionKey: small
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+  - speakerKey: "\u30EC\u30A4"
+    displayName: "\u30EC\u30A4"
+    nameColor: {r: 0.72, g: 0.88, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 09ea1a9a3cb288b498247232036e0798, type: 3}
+    expressions:
+    - emotionKey: blank
+      sprite: {fileID: 21300000, guid: 09ea1a9a3cb288b498247232036e0798, type: 3}
+    - emotionKey: determined
+      sprite: {fileID: 21300000, guid: 07e30602225498a458cad8198b3ae510, type: 3}
+    - emotionKey: frozen
+      sprite: {fileID: 21300000, guid: 3d341788a7361754e8c1521181a3ccf3, type: 3}
+    - emotionKey: lost
+      sprite: {fileID: 21300000, guid: 2179fedb91c1d1e4c98c6405259373eb, type: 3}
+    - emotionKey: running
+      sprite: {fileID: 21300000, guid: 5f3c1509bea43b74fa666cb9c94f63f4, type: 3}
+    - emotionKey: serious
+      sprite: {fileID: 21300000, guid: a0be2e0405c48ff42960c0bc0e8968cd, type: 3}
+    - emotionKey: shocked
+      sprite: {fileID: 21300000, guid: 9b8a477c6c8051947bbf19c6291ae1d2, type: 3}
+    - emotionKey: soft
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+    - emotionKey: surprise
+      sprite: {fileID: 21300000, guid: 13d1f6ec5f860ee4cab83b4cc134a690, type: 3}
+    - emotionKey: tired
+      sprite: {fileID: 21300000, guid: be4a2900c6e54d9428851036793ac98b, type: 3}
+    - emotionKey: calm
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: a0be2e0405c48ff42960c0bc0e8968cd, type: 3}
+    - emotionKey: pain
+      sprite: {fileID: 21300000, guid: be4a2900c6e54d9428851036793ac98b, type: 3}
+    - emotionKey: small
+      sprite: {fileID: 21300000, guid: f76555f295980844c858b6da18799524, type: 3}
+  - speakerKey: Nagi
+    displayName: "\u30CA\u30AE"
+    nameColor: {r: 1, g: 0.78, b: 0.35, a: 1}
+    defaultSprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    expressions:
+    - emotionKey: angry
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: focus
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+    - emotionKey: running
+      sprite: {fileID: 21300000, guid: 5bc0453a5e1e2874d9a5ef725ebb0ed4, type: 3}
+    - emotionKey: serious
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: shadow
+      sprite: {fileID: 21300000, guid: 59ff8937d108a6641b14cfe6b6967596, type: 3}
+    - emotionKey: shocked
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: smile
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: soft
+      sprite: {fileID: 21300000, guid: 725572f42eae7f44390a401a39c27baa, type: 3}
+    - emotionKey: tired
+      sprite: {fileID: 21300000, guid: ff6c57c8cf71e4f4da865db87a82ec2a, type: 3}
+    - emotionKey: wary
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: choice
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: dry
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: grim
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: irritated
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: panic
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: relieved
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: tense
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: urgent
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+  - speakerKey: "\u30CA\u30AE"
+    displayName: "\u30CA\u30AE"
+    nameColor: {r: 1, g: 0.78, b: 0.35, a: 1}
+    defaultSprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    expressions:
+    - emotionKey: angry
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: focus
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+    - emotionKey: running
+      sprite: {fileID: 21300000, guid: 5bc0453a5e1e2874d9a5ef725ebb0ed4, type: 3}
+    - emotionKey: serious
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: shadow
+      sprite: {fileID: 21300000, guid: 59ff8937d108a6641b14cfe6b6967596, type: 3}
+    - emotionKey: shocked
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: smile
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: soft
+      sprite: {fileID: 21300000, guid: 725572f42eae7f44390a401a39c27baa, type: 3}
+    - emotionKey: tired
+      sprite: {fileID: 21300000, guid: ff6c57c8cf71e4f4da865db87a82ec2a, type: 3}
+    - emotionKey: wary
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: choice
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: dry
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: grim
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: irritated
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: panic
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: relieved
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: tense
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: urgent
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+  - speakerKey: "\uFF1F\uFF1F\uFF1F"
+    displayName: "\u30CA\u30AE"
+    nameColor: {r: 1, g: 0.78, b: 0.35, a: 1}
+    defaultSprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    expressions:
+    - emotionKey: angry
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: focus
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+    - emotionKey: running
+      sprite: {fileID: 21300000, guid: 5bc0453a5e1e2874d9a5ef725ebb0ed4, type: 3}
+    - emotionKey: serious
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: shadow
+      sprite: {fileID: 21300000, guid: 59ff8937d108a6641b14cfe6b6967596, type: 3}
+    - emotionKey: shocked
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: smile
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: soft
+      sprite: {fileID: 21300000, guid: 725572f42eae7f44390a401a39c27baa, type: 3}
+    - emotionKey: tired
+      sprite: {fileID: 21300000, guid: ff6c57c8cf71e4f4da865db87a82ec2a, type: 3}
+    - emotionKey: wary
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: choice
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: dry
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: grim
+      sprite: {fileID: 21300000, guid: f2b8fbad1613ca640bb84b6299d2c4c5, type: 3}
+    - emotionKey: irritated
+      sprite: {fileID: 21300000, guid: e98f52135fb23da47b439227ae086fb5, type: 3}
+    - emotionKey: panic
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: relieved
+      sprite: {fileID: 21300000, guid: c6fd44f99e7dcc64e9d65aac27ce6d6e, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 15b1b7b862e80e849a9a377c09da0638, type: 3}
+    - emotionKey: tense
+      sprite: {fileID: 21300000, guid: 3c43f027fdc82094282200523a2b77b2, type: 3}
+    - emotionKey: urgent
+      sprite: {fileID: 21300000, guid: 333144e07e8e22546930c4a2b55ced20, type: 3}
+  - speakerKey: Researcher
+    displayName: "\u7814\u7A76\u54E1"
+    nameColor: {r: 0.72, g: 0.92, b: 0.86, a: 1}
+    defaultSprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    expressions:
+    - emotionKey: guilty
+      sprite: {fileID: 21300000, guid: 951eb6dc5633b7e46abb54d610918c4f, type: 3}
+    - emotionKey: nervous
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: neutral
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: afraid
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+  - speakerKey: "\u7814\u7A76\u54E1"
+    displayName: "\u7814\u7A76\u54E1"
+    nameColor: {r: 0.72, g: 0.92, b: 0.86, a: 1}
+    defaultSprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    expressions:
+    - emotionKey: guilty
+      sprite: {fileID: 21300000, guid: 951eb6dc5633b7e46abb54d610918c4f, type: 3}
+    - emotionKey: nervous
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: neutral
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: afraid
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+  - speakerKey: "\u82E5\u3044\u7814\u7A76\u54E1"
+    displayName: "\u7814\u7A76\u54E1"
+    nameColor: {r: 0.72, g: 0.92, b: 0.86, a: 1}
+    defaultSprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    expressions:
+    - emotionKey: guilty
+      sprite: {fileID: 21300000, guid: 951eb6dc5633b7e46abb54d610918c4f, type: 3}
+    - emotionKey: nervous
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: neutral
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: fc5d5dd0bb16d8e4bbb531a5169b4ecb, type: 3}
+    - emotionKey: surprised
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+    - emotionKey: afraid
+      sprite: {fileID: 21300000, guid: 932af7dd216e7b549b233742b0e29858, type: 3}
+  - speakerKey: "\u5730\u306E\u6587"
+    displayName: "\u5730\u306E\u6587"
+    nameColor: {r: 1, g: 1, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions:
+    - emotionKey: choice
+      sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    - emotionKey: ending
+      sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    - emotionKey: narration
+      sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+  - speakerKey: "\u30B7\u30B9\u30C6\u30E0\u97F3\u58F0"
+    displayName: "\u30B7\u30B9\u30C6\u30E0\u97F3\u58F0"
+    nameColor: {r: 1, g: 1, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions:
+    - emotionKey: system
+      sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+  - speakerKey: "\u8B66\u5099\u54E1"
+    displayName: "\u8B66\u5099\u54E1"
+    nameColor: {r: 1, g: 1, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions:
+    - emotionKey: cold
+      sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
