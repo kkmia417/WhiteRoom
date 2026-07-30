@@ -56,10 +56,15 @@ classDiagram
     class NovelSaveService
     class AutosaveCheckpointService
     class DialogueProgressService
+    class GameplayOverlayCoordinator
+    class TitleReturnService
     class PlayerNameVariableResolver
     class TitleMenuController
     class SaveLoadScreenController
     class BacklogController
+    class ConfigScreenController
+    class MessageWindowVisibilityController
+    class TitleReturnConfirmationController
     class DialogueAutoAdvanceGate
     class NovelUiFactory
     class UiButtonStyle
@@ -82,10 +87,15 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService : 所有
     NovelGameBootstrap *-- AutosaveCheckpointService : 所有
     NovelGameBootstrap *-- DialogueProgressService : 所有
+    NovelGameBootstrap *-- GameplayOverlayCoordinator : 所有
+    NovelGameBootstrap *-- TitleReturnService : 所有
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : 所有
     NovelGameBootstrap *-- TitleMenuController : 所有
     NovelGameBootstrap *-- SaveLoadScreenController : 所有
     NovelGameBootstrap *-- BacklogController : 所有
+    NovelGameBootstrap *-- ConfigScreenController : 所有
+    NovelGameBootstrap *-- MessageWindowVisibilityController : 所有
+    NovelGameBootstrap *-- TitleReturnConfirmationController : 所有
     NovelGameBootstrap ..> PlayerNameVariableResolver : 登録
     NovelGameBootstrap --> DialogueManager : 駆動
     NovelGameBootstrap --> DialogueView : 保持
@@ -113,6 +123,7 @@ classDiagram
     AutosaveCheckpointService --> DialoguePlaybackController : Auto/Skipを一時停止
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : ProgressMarkerReached購読
+    TitleReturnService --> DialogueManager : Bootstrap経由でdirty進行を追跡
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
 
     TitleMenuController --> NovelSaveService : 照会・ロード
@@ -122,6 +133,8 @@ classDiagram
     SaveLoadScreenController ..> NovelUiFactory : 画面構築
     BacklogController --> DialogueBacklogView : 開閉
     BacklogController --> DialogueAutoAdvanceGate : 一時停止
+    MessageWindowVisibilityController --> DialogueView : narrative UIを非表示
+    TitleReturnConfirmationController --> TitleReturnService : transition確認
     DialogueAutoAdvanceGate --> DialogueView : 自動送りを制御
     NovelUiFactory ..> UiButtonStyle : ボタン装飾
 ```
@@ -157,6 +170,9 @@ classDiagram
         +IsUnlocked(string unlockId) bool
         +ListUnlockedIds(string category) List~string~
         +ToggleBacklog()
+        +OpenConfig()
+        +HideMessageWindow()
+        +RequestReturnToTitle() bool
         -BuildRuntime()
         -HandleDialogueEvent(DialogueEventContext context)
         -HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -210,6 +226,25 @@ classDiagram
         +TryResolve(string variableName, DialogueData data, out string value) bool
     }
 
+    class GameplayOverlayCoordinator {
+        <<sealed>>
+        +IsSuspended bool
+        +Suspend()
+        +Resume()
+        +ResetForTransition()
+    }
+
+    class TitleReturnService {
+        <<sealed>>
+        +HasUnsavedProgress bool
+        +IsTransitionInProgress bool
+        +MarkProgressChanged()
+        +MarkProgressSaved()
+        +RequestReturnToTitle() TitleReturnRequestResult
+        +ConfirmReturnToTitle() TitleReturnRequestResult
+        +NotifySceneLoaded()
+    }
+
     class IDialogueConditionEvaluator {
         <<interface>>
         +Evaluate(string conditionKey, DialogueData data) bool
@@ -225,6 +260,8 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueProgressService
+    NovelGameBootstrap *-- GameplayOverlayCoordinator
+    NovelGameBootstrap *-- TitleReturnService
     NovelGameBootstrap ..> PlayerNameVariableResolver : managerへ登録
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
@@ -246,6 +283,8 @@ Talk System 側に留まる。
 [Autosave checkpointとContinue選択](../development/autosave-checkpoints.ja.md)に記載する。
 Thumbnail sidecar captureとUI lifecycleは
 [Save thumbnail](../development/save-thumbnails.ja.md)に記載する。
+ゲーム中Config、message表示、Title帰還のlifecycleは
+[ゲーム中System UI](../development/ingame-system-ui.ja.md)に記載する。
 
 ## Setup ファクトリ
 
@@ -361,6 +400,30 @@ classDiagram
         -Apply()
     }
 
+    class ConfigScreenController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +Open()
+        +Close()
+    }
+
+    class MessageWindowVisibilityController {
+        <<sealed>>
+        +event Action~bool~ HiddenChanged
+        +IsHidden bool
+        +Hide() bool
+        +Restore() bool
+        +Dispose()
+    }
+
+    class TitleReturnConfirmationController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +Request() bool
+        +Confirm() bool
+        +Cancel()
+    }
+
     class NovelUiFactory {
         <<static>>
         +CanvasName string
@@ -382,6 +445,7 @@ classDiagram
     }
 
     class NovelSaveService
+    class TitleReturnService
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -391,6 +455,8 @@ classDiagram
     BacklogController --> DialogueBacklogView
     BacklogController --> DialogueAutoAdvanceGate
     DialogueAutoAdvanceGate --> DialogueView
+    MessageWindowVisibilityController --> DialogueView
+    TitleReturnConfirmationController --> TitleReturnService
     TitleMenuController ..> NovelUiFactory
     SaveLoadScreenController ..> NovelUiFactory
     NovelUiFactory ..> UiButtonStyle
@@ -413,9 +479,10 @@ classDiagram
 | `DialogueRuntimeFactory`, `DialogueViewFactory`, `DialoguePresentationFactory`, `RuntimeFieldBinder` | `WhiteRoom.Bootstrap`(インストーラ) |
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence`(アプリケーション面) |
+| `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation`(プレハブ駆動UIへの置換まで) |
 
 ## この図が符号化する設計ルール

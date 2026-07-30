@@ -113,6 +113,9 @@ namespace WhiteRoom.Novel
         public Func<bool> CanSave { get; set; }
         public Func<bool> CanQuickLoad { get; set; }
         public Func<bool> CanBackSkip { get; set; }
+        public Func<bool> CanOpenSystemConfig { get; set; }
+        public Func<bool> CanHideMessage { get; set; }
+        public Func<bool> CanReturnTitle { get; set; }
         public Func<bool> HasDialogue { get; set; }
         public Func<bool> IsBacklogOpen { get; set; }
         public Func<bool> IsBackSkipActive { get; set; }
@@ -135,7 +138,7 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.Load, NovelCommandGroup.SaveLoad, "LOAD", "Open load slots", bindings.OpenLoad),
                 Command(NovelCommandId.QuickSave, NovelCommandGroup.SaveLoad, "Q.S", "Quick save", bindings.QuickSave, bindings.CanSave),
                 Command(NovelCommandId.QuickLoad, NovelCommandGroup.SaveLoad, "Q.L", "Quick load", bindings.QuickLoad, bindings.CanQuickLoad, null, "No quick save data"),
-                Command(NovelCommandId.SystemConfig, NovelCommandGroup.Settings, "CFG", "System configuration", bindings.OpenSystemConfig),
+                Command(NovelCommandId.SystemConfig, NovelCommandGroup.Settings, "CFG", "System configuration", bindings.OpenSystemConfig, bindings.CanOpenSystemConfig),
                 Command(NovelCommandId.PreviousChoice, NovelCommandGroup.BackwardNavigation, "<C", "Previous choice", bindings.PreviousChoice),
                 Command(NovelCommandId.PreviousScene, NovelCommandGroup.BackwardNavigation, "<S", "Previous scene", bindings.PreviousScene),
                 Command(NovelCommandId.BackSkip, NovelCommandGroup.BackwardNavigation, "B.SK", "Back skip", bindings.BackSkip, bindings.CanBackSkip, bindings.IsBackSkipActive),
@@ -150,8 +153,8 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.VoiceReplay, NovelCommandGroup.Voice, "VOICE", "Replay current voice", bindings.ReplayVoice),
                 Command(NovelCommandId.FavoriteVoiceAdd, NovelCommandGroup.Voice, "+FAV", "Add favorite voice", bindings.AddFavoriteVoice),
                 Command(NovelCommandId.Screenshot, NovelCommandGroup.System, "SHOT", "Capture screenshot", bindings.CaptureScreenshot),
-                Command(NovelCommandId.HideMessage, NovelCommandGroup.System, "HIDE", "Hide message window", bindings.HideMessage),
-                Command(NovelCommandId.ReturnTitle, NovelCommandGroup.System, "TITLE", "Return to title", bindings.ReturnTitle)
+                Command(NovelCommandId.HideMessage, NovelCommandGroup.System, "HIDE", "Hide message window", bindings.HideMessage, bindings.CanHideMessage),
+                Command(NovelCommandId.ReturnTitle, NovelCommandGroup.System, "TITLE", "Return to title", bindings.ReturnTitle, bindings.CanReturnTitle)
             };
         }
 

@@ -57,10 +57,15 @@ classDiagram
     class NovelSaveService
     class AutosaveCheckpointService
     class DialogueProgressService
+    class GameplayOverlayCoordinator
+    class TitleReturnService
     class PlayerNameVariableResolver
     class TitleMenuController
     class SaveLoadScreenController
     class BacklogController
+    class ConfigScreenController
+    class MessageWindowVisibilityController
+    class TitleReturnConfirmationController
     class DialogueAutoAdvanceGate
     class NovelUiFactory
     class UiButtonStyle
@@ -83,10 +88,15 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService : owns
     NovelGameBootstrap *-- AutosaveCheckpointService : owns
     NovelGameBootstrap *-- DialogueProgressService : owns
+    NovelGameBootstrap *-- GameplayOverlayCoordinator : owns
+    NovelGameBootstrap *-- TitleReturnService : owns
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : owns
     NovelGameBootstrap *-- TitleMenuController : owns
     NovelGameBootstrap *-- SaveLoadScreenController : owns
     NovelGameBootstrap *-- BacklogController : owns
+    NovelGameBootstrap *-- ConfigScreenController : owns
+    NovelGameBootstrap *-- MessageWindowVisibilityController : owns
+    NovelGameBootstrap *-- TitleReturnConfirmationController : owns
     NovelGameBootstrap ..> PlayerNameVariableResolver : registers
     NovelGameBootstrap --> DialogueManager : drives
     NovelGameBootstrap --> DialogueView : holds
@@ -114,6 +124,7 @@ classDiagram
     AutosaveCheckpointService --> DialoguePlaybackController : suspends Auto/Skip
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : listens ProgressMarkerReached
+    TitleReturnService --> DialogueManager : tracks dirty progress via bootstrap
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
 
     TitleMenuController --> NovelSaveService : queries/loads
@@ -123,6 +134,8 @@ classDiagram
     SaveLoadScreenController ..> NovelUiFactory : builds screen with
     BacklogController --> DialogueBacklogView : opens/closes
     BacklogController --> DialogueAutoAdvanceGate : suspends
+    MessageWindowVisibilityController --> DialogueView : hides narrative UI
+    TitleReturnConfirmationController --> TitleReturnService : confirms transition
     DialogueAutoAdvanceGate --> DialogueView : gates auto-advance
     NovelUiFactory ..> UiButtonStyle : styles buttons with
 ```
@@ -159,6 +172,9 @@ classDiagram
         +IsUnlocked(string unlockId) bool
         +ListUnlockedIds(string category) List~string~
         +ToggleBacklog()
+        +OpenConfig()
+        +HideMessageWindow()
+        +RequestReturnToTitle() bool
         -BuildRuntime()
         -HandleDialogueEvent(DialogueEventContext context)
         -HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -212,6 +228,25 @@ classDiagram
         +TryResolve(string variableName, DialogueData data, out string value) bool
     }
 
+    class GameplayOverlayCoordinator {
+        <<sealed>>
+        +IsSuspended bool
+        +Suspend()
+        +Resume()
+        +ResetForTransition()
+    }
+
+    class TitleReturnService {
+        <<sealed>>
+        +HasUnsavedProgress bool
+        +IsTransitionInProgress bool
+        +MarkProgressChanged()
+        +MarkProgressSaved()
+        +RequestReturnToTitle() TitleReturnRequestResult
+        +ConfirmReturnToTitle() TitleReturnRequestResult
+        +NotifySceneLoaded()
+    }
+
     class IDialogueConditionEvaluator {
         <<interface>>
         +Evaluate(string conditionKey, DialogueData data) bool
@@ -227,6 +262,8 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueProgressService
+    NovelGameBootstrap *-- GameplayOverlayCoordinator
+    NovelGameBootstrap *-- TitleReturnService
     NovelGameBootstrap ..> PlayerNameVariableResolver : registers on manager
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
@@ -249,6 +286,8 @@ The concrete checkpoint and Continue policy is documented in
 [Autosave checkpoints and Continue selection](../development/autosave-checkpoints.md).
 Thumbnail sidecar capture and UI lifecycle are documented in
 [Save thumbnails](../development/save-thumbnails.md).
+In-game Config, message visibility, and Return-to-Title lifecycle are documented in
+[In-game system UI](../development/ingame-system-ui.md).
 
 ## Setup factories
 
@@ -362,6 +401,30 @@ classDiagram
         -Apply()
     }
 
+    class ConfigScreenController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +Open()
+        +Close()
+    }
+
+    class MessageWindowVisibilityController {
+        <<sealed>>
+        +event Action~bool~ HiddenChanged
+        +IsHidden bool
+        +Hide() bool
+        +Restore() bool
+        +Dispose()
+    }
+
+    class TitleReturnConfirmationController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +Request() bool
+        +Confirm() bool
+        +Cancel()
+    }
+
     class NovelUiFactory {
         <<static>>
         +CanvasName string
@@ -383,6 +446,7 @@ classDiagram
     }
 
     class NovelSaveService
+    class TitleReturnService
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -392,6 +456,8 @@ classDiagram
     BacklogController --> DialogueBacklogView
     BacklogController --> DialogueAutoAdvanceGate
     DialogueAutoAdvanceGate --> DialogueView
+    MessageWindowVisibilityController --> DialogueView
+    TitleReturnConfirmationController --> TitleReturnService
     TitleMenuController ..> NovelUiFactory
     SaveLoadScreenController ..> NovelUiFactory
     NovelUiFactory ..> UiButtonStyle
@@ -414,9 +480,10 @@ can move them without re-deciding boundaries.
 | `DialogueRuntimeFactory`, `DialogueViewFactory`, `DialoguePresentationFactory`, `RuntimeFieldBinder` | `WhiteRoom.Bootstrap` (installers) |
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence` (application face) |
+| `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation` (until prefab-driven UI replaces them) |
 
 ## Design rules this diagram encodes
