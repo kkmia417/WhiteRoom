@@ -5,6 +5,7 @@ using kkmia.TalkSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 namespace WhiteRoom.Novel
@@ -49,6 +50,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool showCommandBar = true;
         [SerializeField] private bool showSaveLoadLauncher = true;
         [SerializeField] private bool saveThumbnails = true;
+        [SerializeField] private Key screenshotShortcut = Key.F12;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
         [SerializeField] private string saveProductChannel = string.Empty;
 
@@ -68,6 +70,8 @@ namespace WhiteRoom.Novel
         private TitleReturnConfirmationController _titleReturnConfirmation;
         private MessageWindowVisibilityController _messageVisibility;
         private GameplayOverlayCoordinator _gameplayOverlay;
+        private ScreenshotCaptureService _screenshotService;
+        private ScreenshotCaptureUiController _screenshotUi;
         private VersionedDialogueSettingsStore _settingsStore;
         private DialoguePresentationIssueLogger _presentationIssueLogger;
         private BacklogController _backlog;
@@ -134,6 +138,11 @@ namespace WhiteRoom.Novel
                 _saveSystem.ThumbnailCaptureStarted -= HandleThumbnailCaptureStarted;
                 _saveSystem.ThumbnailCaptureCompleted -= HandleThumbnailCaptureCompleted;
             }
+            if (_screenshotService != null)
+            {
+                _screenshotService.CaptureStarted -= HandleScreenshotCaptureStarted;
+                _screenshotService.CaptureCompleted -= HandleScreenshotCaptureCompleted;
+            }
 
             _saveService?.Dispose();
             _autosaveCheckpoints?.Dispose();
@@ -170,6 +179,9 @@ namespace WhiteRoom.Novel
         private void Update()
         {
             _autosaveCheckpoints?.TryFlush();
+
+            if (IsScreenshotShortcutPressed())
+                RequestScreenshot();
 
             if (IsEndingInputBlocked())
                 return;
@@ -359,6 +371,21 @@ namespace WhiteRoom.Novel
                 _messageVisibility?.Hide();
         }
 
+        public bool RequestScreenshot()
+        {
+            if (_screenshotService == null || IsScreenshotInteractionBlocked())
+                return false;
+
+            IEnumerator captureRoutine;
+            var started = _screenshotService.TryBegin(out captureRoutine);
+            _commandBar?.Refresh();
+            if (!started || captureRoutine == null)
+                return false;
+
+            StartCoroutine(captureRoutine);
+            return true;
+        }
+
         public bool RequestReturnToTitle()
         {
             return !IsEndingInputBlocked() &&
@@ -507,6 +534,7 @@ namespace WhiteRoom.Novel
                 OpenConfig,
                 OpenQuitConfirmation);
             _notifications = new NovelNotificationController();
+            _screenshotService = new ScreenshotCaptureService(new FileScreenshotStorage());
             _saveLoadScreen = new SaveLoadScreenController(
                 _saveService,
                 autoAdvanceGate,
@@ -521,6 +549,11 @@ namespace WhiteRoom.Novel
             _titleReturnService = new TitleReturnService(ResetForTitleTransition, ReturnToTitle);
             _titleReturnConfirmation = new TitleReturnConfirmationController(_titleReturnService);
             _messageVisibility = new MessageWindowVisibilityController(_view, _commandBar, ShouldShowCommandBar);
+            _screenshotUi = new ScreenshotCaptureUiController(
+                _commandBar,
+                _notifications,
+                ShouldShowCommandBar,
+                () => _messageVisibility != null && _messageVisibility.IsHidden);
             _gameplayOverlay = new GameplayOverlayCoordinator(
                 () => _playbackController != null ? _playbackController.Mode : DialoguePlaybackMode.Normal,
                 mode => _playbackController?.SetMode(mode),
@@ -529,6 +562,8 @@ namespace WhiteRoom.Novel
 
             saveSystem.ThumbnailCaptureStarted += HandleThumbnailCaptureStarted;
             saveSystem.ThumbnailCaptureCompleted += HandleThumbnailCaptureCompleted;
+            _screenshotService.CaptureStarted += HandleScreenshotCaptureStarted;
+            _screenshotService.CaptureCompleted += HandleScreenshotCaptureCompleted;
 
             _saveService.Saved += HandleSaveCompleted;
             _saveService.Loaded += HandleLoadCompleted;
@@ -633,6 +668,20 @@ namespace WhiteRoom.Novel
                                                  && !IsEndingInputBlocked()
                                                  && (_saveLoadScreen == null || !_saveLoadScreen.IsOpen);
             _commandBar?.SetInputBlocked(IsEndingInputBlocked() || (_saveLoadScreen != null && _saveLoadScreen.IsOpen));
+        }
+
+        private void HandleScreenshotCaptureStarted()
+        {
+            _screenshotUi?.HideForCapture();
+            _commandBar?.Refresh();
+        }
+
+        private void HandleScreenshotCaptureCompleted(ScreenshotCaptureResult result)
+        {
+            _screenshotUi?.RestoreAfterCapture();
+            _commandBar?.Refresh();
+            if (result != null)
+                _notifications?.Show(result.Message, result.Succeeded);
         }
 
         private void HandlePlaybackStateChanged(DialoguePlaybackState state)
@@ -812,14 +861,22 @@ namespace WhiteRoom.Novel
                         playbackController.ToggleSkip();
                     }
                     : null,
+                CaptureScreenshot = () => RequestScreenshot(),
                 HideMessage = HideMessageWindow,
                 ReturnTitle = () => RequestReturnToTitle(),
                 CanSave = () => !IsEndingInputBlocked() && _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
                 CanQuickLoad = () => !IsEndingInputBlocked() && _quickLoadAvailable,
                 CanBackSkip = () => _backSkip != null && _backSkip.CanStart,
                 CanOpenSystemConfig = () => !IsEndingInputBlocked(),
+                CanCaptureScreenshot = () => _screenshotService != null
+                                             && _screenshotService.IsAvailable
+                                             && !_screenshotService.IsBusy
+                                             && !IsScreenshotInteractionBlocked(),
                 CanHideMessage = () => !IsEndingInputBlocked() && _manager != null && _manager.CurrentData != null,
                 CanReturnTitle = () => !IsEndingInputBlocked(),
+                ScreenshotUnavailableReason = _screenshotService != null
+                    ? _screenshotService.UnavailableReason
+                    : "Screenshot capture is unavailable",
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
                 IsBackSkipActive = () => _backSkip != null && _backSkip.IsActive,
@@ -911,6 +968,29 @@ namespace WhiteRoom.Novel
                 || (_collectionScreen != null && _collectionScreen.IsOpen)
                 || (_configScreen != null && _configScreen.IsOpen)
                 || (_quitConfirmation != null && _quitConfirmation.IsOpen);
+        }
+
+        private bool IsScreenshotShortcutPressed()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null || screenshotShortcut == Key.None)
+                return false;
+            var key = keyboard[screenshotShortcut];
+            return key != null && key.wasPressedThisFrame;
+        }
+
+        private bool IsScreenshotInteractionBlocked()
+        {
+            return !ShouldShowCommandBar()
+                || (_endingFlow != null && _endingFlow.IsInputBlocked)
+                || (_titleReturnService != null && _titleReturnService.IsTransitionInProgress)
+                || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
+                || (_collectionScreen != null && _collectionScreen.IsOpen)
+                || (_configScreen != null && _configScreen.IsOpen)
+                || (_quitConfirmation != null && _quitConfirmation.IsOpen)
+                || (_saveLoadScreen != null && _saveLoadScreen.IsOpen)
+                || (_backlog != null && _backlog.IsOpen)
+                || (_saveSystem != null && _saveSystem.IsThumbnailCaptureInProgress);
         }
 
         private void ResumeGameplayAfterSystemOverlay()

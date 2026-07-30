@@ -58,6 +58,8 @@ classDiagram
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
+    class ScreenshotCaptureService
+    class FileScreenshotStorage
     class PlayerNameVariableResolver
     class TitleMenuController
     class SaveLoadScreenController
@@ -65,6 +67,7 @@ classDiagram
     class ConfigScreenController
     class MessageWindowVisibilityController
     class TitleReturnConfirmationController
+    class ScreenshotCaptureUiController
     class DialogueAutoAdvanceGate
     class NovelUiFactory
     class UiButtonStyle
@@ -89,6 +92,7 @@ classDiagram
     NovelGameBootstrap *-- DialogueProgressService : 所有
     NovelGameBootstrap *-- GameplayOverlayCoordinator : 所有
     NovelGameBootstrap *-- TitleReturnService : 所有
+    NovelGameBootstrap *-- ScreenshotCaptureService : 所有
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : 所有
     NovelGameBootstrap *-- TitleMenuController : 所有
     NovelGameBootstrap *-- SaveLoadScreenController : 所有
@@ -96,6 +100,7 @@ classDiagram
     NovelGameBootstrap *-- ConfigScreenController : 所有
     NovelGameBootstrap *-- MessageWindowVisibilityController : 所有
     NovelGameBootstrap *-- TitleReturnConfirmationController : 所有
+    NovelGameBootstrap *-- ScreenshotCaptureUiController : 所有
     NovelGameBootstrap ..> PlayerNameVariableResolver : 登録
     NovelGameBootstrap --> DialogueManager : 駆動
     NovelGameBootstrap --> DialogueView : 保持
@@ -124,6 +129,7 @@ classDiagram
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : ProgressMarkerReached購読
     TitleReturnService --> DialogueManager : Bootstrap経由でdirty進行を追跡
+    ScreenshotCaptureService --> FileScreenshotStorage : full PNG書込
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
 
     TitleMenuController --> NovelSaveService : 照会・ロード
@@ -135,6 +141,7 @@ classDiagram
     BacklogController --> DialogueAutoAdvanceGate : 一時停止
     MessageWindowVisibilityController --> DialogueView : narrative UIを非表示
     TitleReturnConfirmationController --> TitleReturnService : transition確認
+    ScreenshotCaptureUiController --> NovelCommandBarController : capture UIを非表示
     DialogueAutoAdvanceGate --> DialogueView : 自動送りを制御
     NovelUiFactory ..> UiButtonStyle : ボタン装飾
 ```
@@ -173,6 +180,7 @@ classDiagram
         +OpenConfig()
         +HideMessageWindow()
         +RequestReturnToTitle() bool
+        +RequestScreenshot() bool
         -BuildRuntime()
         -HandleDialogueEvent(DialogueEventContext context)
         -HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -245,6 +253,20 @@ classDiagram
         +NotifySceneLoaded()
     }
 
+    class ScreenshotCaptureService {
+        <<sealed>>
+        +IsAvailable bool
+        +IsBusy bool
+        +TryBegin(out IEnumerator captureRoutine) bool
+    }
+
+    class FileScreenshotStorage {
+        <<sealed>>
+        +DirectoryPath string
+        +Exists(string fileName) bool
+        +WritePng(string fileName, byte[] pngBytes)
+    }
+
     class IDialogueConditionEvaluator {
         <<interface>>
         +Evaluate(string conditionKey, DialogueData data) bool
@@ -262,6 +284,8 @@ classDiagram
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
+    NovelGameBootstrap *-- ScreenshotCaptureService
+    ScreenshotCaptureService --> FileScreenshotStorage
     NovelGameBootstrap ..> PlayerNameVariableResolver : managerへ登録
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
@@ -285,6 +309,8 @@ Thumbnail sidecar captureとUI lifecycleは
 [Save thumbnail](../development/save-thumbnails.ja.md)に記載する。
 ゲーム中Config、message表示、Title帰還のlifecycleは
 [ゲーム中System UI](../development/ingame-system-ui.ja.md)に記載する。
+Player captureとplatform所有file storageは
+[プレイヤーScreenshot](../development/screenshots.ja.md)に記載する。
 
 ## Setup ファクトリ
 
@@ -424,6 +450,13 @@ classDiagram
         +Cancel()
     }
 
+    class ScreenshotCaptureUiController {
+        <<sealed>>
+        +IsCaptureUiHidden bool
+        +HideForCapture()
+        +RestoreAfterCapture()
+    }
+
     class NovelUiFactory {
         <<static>>
         +CanvasName string
@@ -446,6 +479,7 @@ classDiagram
 
     class NovelSaveService
     class TitleReturnService
+    class NovelCommandBarController
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -457,6 +491,7 @@ classDiagram
     DialogueAutoAdvanceGate --> DialogueView
     MessageWindowVisibilityController --> DialogueView
     TitleReturnConfirmationController --> TitleReturnService
+    ScreenshotCaptureUiController --> NovelCommandBarController
     TitleMenuController ..> NovelUiFactory
     SaveLoadScreenController ..> NovelUiFactory
     NovelUiFactory ..> UiButtonStyle
@@ -480,9 +515,10 @@ classDiagram
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence`(アプリケーション面) |
 | `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
+| `ScreenshotCaptureService`, `FileScreenshotStorage` | `WhiteRoom.Platform`(capture/storage portとlocal adapter) |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation`(プレハブ駆動UIへの置換まで) |
 
 ## この図が符号化する設計ルール
