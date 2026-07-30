@@ -26,6 +26,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool startOnLaunch = true;
         [SerializeField] private string playerName = "Player";
         [SerializeField] private float typewriterInterval = 0.025f;
+        [SerializeField] private NovelUiConfiguration novelUiConfiguration;
         [SerializeField] private DialogueView dialogueViewPrefab;
         [SerializeField] private DialogueBacklogView dialogueBacklogViewPrefab;
         [SerializeField] private BackgroundDatabase backgroundDatabase;
@@ -252,8 +253,21 @@ namespace WhiteRoom.Novel
             NovelUiFactory.EnsureFont(uiFontAsset, uiFontResourcePath);
             NovelUiFactory.EnsureEventSystem();
 
-            _view = DialogueViewFactory.EnsureDialogueView(dialogueViewPrefab);
-            var backlogView = DialogueViewFactory.EnsureBacklogView(dialogueBacklogViewPrefab);
+            var uiConfiguration = novelUiConfiguration != null
+                ? novelUiConfiguration
+                : NovelUiConfiguration.LoadDefault();
+            var resolvedDialogueViewPrefab = dialogueViewPrefab != null
+                ? dialogueViewPrefab
+                : uiConfiguration != null ? uiConfiguration.DialogueViewPrefab : null;
+            var resolvedBacklogViewPrefab = dialogueBacklogViewPrefab != null
+                ? dialogueBacklogViewPrefab
+                : uiConfiguration != null ? uiConfiguration.DialogueBacklogViewPrefab : null;
+            var dialogueWindowSprite = uiConfiguration != null
+                ? uiConfiguration.DialogueWindowSprite
+                : null;
+
+            _view = DialogueViewFactory.EnsureDialogueView(resolvedDialogueViewPrefab, dialogueWindowSprite);
+            var backlogView = DialogueViewFactory.EnsureBacklogView(resolvedBacklogViewPrefab);
 
             _manager = DialogueRuntimeFactory.EnsureManager();
             var saveSystem = DialogueRuntimeFactory.EnsureSaveSystem(_manager, saveContentVersion, saveProductChannel);

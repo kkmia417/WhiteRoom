@@ -77,6 +77,19 @@ namespace WhiteRoom.Novel
             return CreateCanvas();
         }
 
+        /// <summary>
+        /// Applies the resolved shared UI font to text components loaded from a prefab.
+        /// Runtime-created text already receives the same font in <see cref="CreateText"/>.
+        /// </summary>
+        public static void ApplyFontToHierarchy(Component root)
+        {
+            if (_fontAsset == null || root == null)
+                return;
+
+            foreach (var text in root.GetComponentsInChildren<TMP_Text>(true))
+                text.font = _fontAsset;
+        }
+
         public static void EnsureEventSystem()
         {
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using kkmia.TalkSystem;
 using TMPro;
 using UnityEngine;
@@ -11,12 +12,22 @@ namespace WhiteRoom.Novel
     /// </summary>
     public static class DialogueViewFactory
     {
-        public static DialogueView EnsureDialogueView(DialogueView prefab)
+        private static readonly HashSet<string> ReportedFallbacks = new HashSet<string>();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetFallbackWarnings()
+        {
+            ReportedFallbacks.Clear();
+        }
+
+        public static DialogueView EnsureDialogueView(DialogueView prefab, Sprite dialogueWindowSprite = null)
         {
             var existingView = Object.FindFirstObjectByType<DialogueView>(FindObjectsInactive.Include);
             if (existingView != null)
             {
                 EnsureViewBinder(existingView);
+                NovelUiFactory.ApplyFontToHierarchy(existingView);
+                ApplyDialogueWindowSkin(existingView, dialogueWindowSprite);
                 return existingView;
             }
 
@@ -26,27 +37,43 @@ namespace WhiteRoom.Novel
                 var prefabView = Object.Instantiate(prefab, canvas.transform);
                 prefabView.gameObject.SetActive(false);
                 EnsureViewBinder(prefabView);
+                NovelUiFactory.ApplyFontToHierarchy(prefabView);
+                ApplyDialogueWindowSkin(prefabView, dialogueWindowSprite);
                 return prefabView;
             }
 
-            return CreateDefaultDialogueView(canvas.transform, true);
+            WarnFallbackOnce(
+                "dialogue-view",
+                "DialogueView prefab was not configured; using the runtime fallback UI. " +
+                $"Check Resources/{NovelUiConfiguration.DefaultResourcePath}.");
+            var fallbackView = CreateDefaultDialogueView(canvas.transform, true);
+            ApplyDialogueWindowSkin(fallbackView, dialogueWindowSprite);
+            return fallbackView;
         }
 
         public static DialogueBacklogView EnsureBacklogView(DialogueBacklogView prefab)
         {
             var existingBacklog = Object.FindFirstObjectByType<DialogueBacklogView>(FindObjectsInactive.Include);
             if (existingBacklog != null)
+            {
+                NovelUiFactory.ApplyFontToHierarchy(existingBacklog);
                 return existingBacklog;
+            }
 
             var canvas = NovelUiFactory.EnsureCanvas();
             if (prefab != null)
             {
                 var prefabBacklog = Object.Instantiate(prefab, canvas.transform);
                 prefabBacklog.gameObject.SetActive(true);
+                NovelUiFactory.ApplyFontToHierarchy(prefabBacklog);
                 prefabBacklog.Close();
                 return prefabBacklog;
             }
 
+            WarnFallbackOnce(
+                "backlog-view",
+                "DialogueBacklogView prefab was not configured; using the runtime fallback UI. " +
+                $"Check Resources/{NovelUiConfiguration.DefaultResourcePath}.");
             return CreateDefaultBacklogView(canvas.transform);
         }
 
@@ -238,6 +265,27 @@ namespace WhiteRoom.Novel
         {
             if (view != null && view.GetComponent<DialogueViewBinder>() == null)
                 view.gameObject.AddComponent<DialogueViewBinder>();
+        }
+
+        private static void ApplyDialogueWindowSkin(DialogueView view, Sprite sprite)
+        {
+            if (view == null || sprite == null)
+                return;
+
+            var image = view.GetComponent<Image>();
+            if (image == null)
+                return;
+
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.type = sprite.border.sqrMagnitude > 0f ? Image.Type.Sliced : Image.Type.Simple;
+            image.preserveAspect = false;
+        }
+
+        private static void WarnFallbackOnce(string key, string message)
+        {
+            if (ReportedFallbacks.Add(key))
+                Debug.LogWarning("DialogueViewFactory: " + message);
         }
     }
 }
