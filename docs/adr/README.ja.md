@@ -24,6 +24,7 @@
 | ADR-0009 | [Deterministicかつcancel可能なcue runtimeでpresentationを駆動する](0009-deterministic-presentation-runtime.ja.md) | [Drive presentation through a deterministic, cancellable cue runtime](0009-deterministic-presentation-runtime.md) | Accepted | 2026-07-18 |
 | ADR-0010 | [自動品質evidenceとplatform adapterでreleaseをgateする](0010-release-quality-platform-boundary.ja.md) | [Gate releases with automated quality evidence and platform adapters](0010-release-quality-platform-boundary.md) | Accepted | 2026-07-18 |
 | ADR-0011 | [到達済み境界snapshotでdialogueを移動する](0011-reached-boundary-navigation.ja.md) | [Navigate dialogue through reached boundary snapshots](0011-reached-boundary-navigation.md) | Accepted | 2026-07-30 |
+| ADR-0012 | [Run単位のstory factを一貫したdialogue snapshotへ保存する](0012-run-scoped-story-facts.ja.md) | [Persist run-scoped story facts in coherent dialogue snapshots](0012-run-scoped-story-facts.md) | Proposed | 2026-07-30 |
 
 `0000-template.md` と `0000-template.ja.md` は複製用テンプレートであり、判断には数えない。
 
