@@ -78,7 +78,9 @@ namespace WhiteRoom.Novel
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            var background = CreateStageImage("Background", stageObject.transform, Vector2.zero, Vector2.one, false);
+            // Background art is authored at 16:9. Preserve that ratio on other displays
+            // so ultrawide layouts letterbox instead of stretching the environment.
+            var background = CreateStageImage("Background", stageObject.transform, Vector2.zero, Vector2.one, true);
             var left = CreateStageImage("LeftCharacter", stageObject.transform, new Vector2(0.04f, 0.08f), new Vector2(0.42f, 0.94f), true);
             var center = CreateStageImage("CenterCharacter", stageObject.transform, new Vector2(0.30f, 0.08f), new Vector2(0.70f, 0.94f), true);
             var right = CreateStageImage("RightCharacter", stageObject.transform, new Vector2(0.58f, 0.08f), new Vector2(0.96f, 0.94f), true);

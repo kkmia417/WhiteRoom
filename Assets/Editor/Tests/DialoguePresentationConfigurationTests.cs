@@ -75,6 +75,9 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(
                 serializedAudio.FindProperty("audioDatabase").objectReferenceValue,
                 Is.SameAs(configuration.AudioDatabase));
+            var backgroundImage = (Image)serializedStage.FindProperty("backgroundImage").objectReferenceValue;
+            Assert.That(backgroundImage, Is.Not.Null);
+            Assert.That(backgroundImage.preserveAspect, Is.True);
 
             var second = DialoguePresentationFactory.Ensure(
                 configuration.BackgroundDatabase,
@@ -122,8 +125,7 @@ namespace WhiteRoom.Novel.Editor.Tests
 
             Assert.That(report.HasErrors, Is.False);
             Assert.That(report.Messages.Any(message =>
-                message.FieldName == DialogueSchema.Background &&
-                message.Severity == DialogueValidationSeverity.Warning), Is.True);
+                message.FieldName == DialogueSchema.Background), Is.False);
             Assert.That(report.Messages.Any(message =>
                 message.FieldName == DialogueSchema.Bgm &&
                 message.Message.Contains("\"stop\"")), Is.False);
