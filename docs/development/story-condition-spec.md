@@ -76,6 +76,14 @@ ensure condition-negative states still progress.
 - Unity EditMode, PlayMode, batch compilation, governance, and Python unit gates
   must pass.
 
+## Pre-approval simulation evidence
+
+A read-only exhaustive simulation applied the four proposed filters in memory to
+the unchanged shipped CSV. It reached all 14 unique endings, found no reachable
+choice node with zero visible choices, and replayed all 14 canonical route
+fixtures after only the three substitutions listed above. This proves the table
+is internally coherent; it does not replace story-owner approval.
+
 ## Approval record
 
 Approval is intentionally blank. A story owner must approve this table or list

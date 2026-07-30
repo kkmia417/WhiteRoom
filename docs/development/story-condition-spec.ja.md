@@ -72,6 +72,13 @@ target列は次の3件だけである。
   残ること、canonical ending 14件へ到達できることを証明する
 - Unity EditMode/PlayMode/batch compile、governance、Python unit gateを通す
 
+## 承認前simulation evidence
+
+変更していない出荷CSVへ4つのfilter案をmemory上だけで適用し、全経路をread-onlyで探索した。
+Unique ending 14/14へ到達し、visible choice 0件の到達可能nodeはなく、上記3 substitutionだけを
+反映したcanonical route fixture 14件もすべて成立した。この結果は表内部の一貫性を証明するが、
+story-owner承認の代替にはしない。
+
 ## 承認記録
 
 承認欄は意図的に空欄である。CSVの`ConditionKey`を変更する前に、story ownerがIssue #22
