@@ -11,7 +11,14 @@ namespace WhiteRoom.Novel
     /// </summary>
     public sealed class DialoguePresentationIssueLogger : IDisposable
     {
+        private readonly Func<int?> _dialogueIdProvider;
         private readonly List<IDialoguePresentationIssueSource> _sources = new List<IDialoguePresentationIssueSource>();
+        private readonly HashSet<string> _reportedIssues = new HashSet<string>();
+
+        public DialoguePresentationIssueLogger(Func<int?> dialogueIdProvider = null)
+        {
+            _dialogueIdProvider = dialogueIdProvider;
+        }
 
         public void Watch(object candidate)
         {
@@ -28,6 +35,7 @@ namespace WhiteRoom.Novel
                 source.PresentationIssueRaised -= HandleIssue;
 
             _sources.Clear();
+            _reportedIssues.Clear();
         }
 
         private void HandleIssue(DialoguePresentationIssueContext context)
@@ -35,7 +43,36 @@ namespace WhiteRoom.Novel
             if (context == null)
                 return;
 
-            Debug.LogWarning($"DialoguePresentationIssueLogger: presentation issue {context.Kind} '{context.Key}': {context.Message}");
+            var dialogueId = _dialogueIdProvider?.Invoke();
+            var column = ToColumnName(context.Kind);
+            var signature = $"{dialogueId?.ToString() ?? "unknown"}|{column}|{context.Key}";
+            if (!_reportedIssues.Add(signature))
+                return;
+
+            Debug.LogWarning(
+                $"DialoguePresentationIssueLogger: DialogueId={dialogueId?.ToString() ?? "unknown"} " +
+                $"Column={column} Key='{context.Key}': {context.Message}");
+        }
+
+        private static string ToColumnName(DialoguePresentationIssueKind kind)
+        {
+            switch (kind)
+            {
+                case DialoguePresentationIssueKind.Background:
+                    return DialogueSchema.Background;
+                case DialoguePresentationIssueKind.Bgm:
+                    return DialogueSchema.Bgm;
+                case DialoguePresentationIssueKind.Se:
+                    return DialogueSchema.Se;
+                case DialoguePresentationIssueKind.Voice:
+                    return DialogueSchema.Voice;
+                case DialoguePresentationIssueKind.StageSlot:
+                case DialoguePresentationIssueKind.Character:
+                case DialoguePresentationIssueKind.CharacterModel:
+                    return DialogueSchema.Characters;
+                default:
+                    return kind.ToString();
+            }
         }
     }
 }
