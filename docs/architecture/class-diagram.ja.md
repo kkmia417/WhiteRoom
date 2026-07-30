@@ -54,6 +54,7 @@ classDiagram
     class DialoguePresentationIssueLogger
     class RuntimeFieldBinder
     class NovelSaveService
+    class AutosaveCheckpointService
     class DialogueProgressService
     class PlayerNameVariableResolver
     class TitleMenuController
@@ -79,6 +80,7 @@ classDiagram
     NovelGameBootstrap ..> DialoguePresentationFactory : 舞台・音声構築
     NovelGameBootstrap ..> NovelUiFactory : フォント・Canvas確保
     NovelGameBootstrap *-- NovelSaveService : 所有
+    NovelGameBootstrap *-- AutosaveCheckpointService : 所有
     NovelGameBootstrap *-- DialogueProgressService : 所有
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : 所有
     NovelGameBootstrap *-- TitleMenuController : 所有
@@ -106,6 +108,9 @@ classDiagram
 
     NovelSaveService --> DialogueManager : 現在行を参照
     NovelSaveService --> DialogueSaveSystem : 永続化を委譲
+    AutosaveCheckpointService --> DialogueManager : checkpoint eventを購読
+    AutosaveCheckpointService --> NovelSaveService : autosaveを要求
+    AutosaveCheckpointService --> DialoguePlaybackController : Auto/Skipを一時停止
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : ProgressMarkerReached購読
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -141,6 +146,7 @@ classDiagram
         +LoadDialogue(int slot) bool
         +QuickSave() bool
         +QuickLoad() bool
+        +Autosave(string checkpointTitle) bool
         +ContinueLatest() bool
         +OpenSaveScreen()
         +OpenLoadScreen()
@@ -168,9 +174,21 @@ classDiagram
         +ContinueLatest() bool
         +HasSave(int slot) bool
         +HasContinueSave() bool
+        +GetContinueCandidate() DialogueSaveSlotViewModel
         +GetSlotViewModel(int slot) DialogueSaveSlotViewModel
         +Dispose()
         -BuildSaveTitle(int slot) string
+    }
+
+    class AutosaveCheckpointService {
+        <<sealed>>
+        +PendingCount int
+        +AttachTo(DialogueManager manager)
+        +TryFlush() bool
+        +Dispose()
+        -HandleLineStarted(DialogueEventContext context)
+        -HandleLineCompleted(DialogueEventContext context)
+        -HandleProgressMarkerReached(DialogueProgressEventContext context)
     }
 
     class DialogueProgressService {
@@ -204,9 +222,12 @@ classDiagram
     }
 
     NovelGameBootstrap *-- NovelSaveService
+    NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap ..> PlayerNameVariableResolver : managerへ登録
     NovelSaveService ..|> IDisposable
+    AutosaveCheckpointService ..|> IDisposable
+    AutosaveCheckpointService --> NovelSaveService : autosaveを要求
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -220,6 +241,8 @@ Talk System の `DialogueUnlockRegistry` + `DialogueUnlockSaveService` の
 エンベロープ、クイックセーブスロット、コンティニュー候補)は
 [ADR-0008](../adr/0008-versioned-save-compatibility.ja.md)に従い
 Talk System 側に留まる。
+具体的なcheckpointとContinue規則は
+[Autosave checkpointとContinue選択](../development/autosave-checkpoints.ja.md)に記載する。
 
 ## Setup ファクトリ
 
