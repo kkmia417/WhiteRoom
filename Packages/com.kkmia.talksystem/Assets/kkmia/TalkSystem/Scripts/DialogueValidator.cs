@@ -316,7 +316,7 @@ namespace kkmia.TalkSystem
                 }
 
                 Sprite sprite;
-                if (!string.IsNullOrEmpty(row.EmotionKey) && !character.TryGetSprite(row.EmotionKey, out sprite))
+                if (!string.IsNullOrEmpty(row.EmotionKey) && !character.TryGetExactSprite(row.EmotionKey, out sprite))
                     report.Add(severity, row.RowNumber, DialogueSchema.EmotionKey, "EmotionKey is not found in the character expression database.");
             }
 
@@ -486,7 +486,7 @@ namespace kkmia.TalkSystem
                 }
 
                 Sprite sprite;
-                if (directive.HasExpression && !character.TryGetSprite(directive.Expression, out sprite))
+                if (directive.HasExpression && !character.TryGetExactSprite(directive.Expression, out sprite))
                     report.Add(severity, row.RowNumber, DialogueSchema.Characters,
                         "Expression \"" + directive.Expression + "\" for \"" + directive.CharacterKey + "\" is not found in the character expression database.");
             }

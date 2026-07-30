@@ -22,12 +22,29 @@ namespace kkmia.TalkSystem
 
         public bool TryGetSprite(string emotionKey, out Sprite sprite)
         {
+            bool usedFallback;
+            return TryGetSprite(emotionKey, out sprite, out usedFallback);
+        }
+
+        public bool TryGetSprite(string emotionKey, out Sprite sprite, out bool usedFallback)
+        {
+            usedFallback = false;
             if (string.IsNullOrEmpty(emotionKey))
             {
                 sprite = defaultSprite;
                 return sprite != null;
             }
 
+            if (TryGetExactSprite(emotionKey, out sprite))
+                return true;
+
+            sprite = defaultSprite;
+            usedFallback = sprite != null;
+            return sprite != null;
+        }
+
+        public bool TryGetExactSprite(string emotionKey, out Sprite sprite)
+        {
             for (var i = 0; i < expressions.Count; i++)
             {
                 var expression = expressions[i];
@@ -38,8 +55,8 @@ namespace kkmia.TalkSystem
                 }
             }
 
-            sprite = defaultSprite;
-            return sprite != null;
+            sprite = null;
+            return false;
         }
     }
 
@@ -71,9 +88,26 @@ namespace kkmia.TalkSystem
 
         public bool TryGetSprite(string speakerKey, string emotionKey, out Sprite sprite)
         {
+            bool usedFallback;
+            return TryGetSprite(speakerKey, emotionKey, out sprite, out usedFallback);
+        }
+
+        public bool TryGetSprite(string speakerKey, string emotionKey, out Sprite sprite, out bool usedFallback)
+        {
             CharacterDefinition character;
             if (TryGetCharacter(speakerKey, out character))
-                return character.TryGetSprite(emotionKey, out sprite);
+                return character.TryGetSprite(emotionKey, out sprite, out usedFallback);
+
+            sprite = null;
+            usedFallback = false;
+            return false;
+        }
+
+        public bool TryGetExactSprite(string speakerKey, string emotionKey, out Sprite sprite)
+        {
+            CharacterDefinition character;
+            if (TryGetCharacter(speakerKey, out character))
+                return character.TryGetExactSprite(emotionKey, out sprite);
 
             sprite = null;
             return false;

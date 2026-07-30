@@ -107,12 +107,22 @@ namespace kkmia.TalkSystem
             }
 
             Sprite sprite;
-            if (characterDatabase == null || !characterDatabase.TryGetSprite(characterKey, expression, out sprite))
+            bool usedFallback;
+            if (characterDatabase == null || !characterDatabase.TryGetSprite(characterKey, expression, out sprite, out usedFallback))
             {
                 RaiseIssue(DialoguePresentationIssueKind.Character, characterKey,
                     "Character key \"" + characterKey + "\" expression \"" + expression + "\" could not be resolved.");
                 Debug.LogWarning("[DialogueStageView] 立ち絵 \"" + characterKey + "\" (" + expression + ") を解決できません。");
                 return;
+            }
+
+            if (usedFallback)
+            {
+                RaiseIssue(DialoguePresentationIssueKind.Character, characterKey,
+                    "Expression \"" + expression + "\" for character \"" + characterKey +
+                    "\" is missing; the default sprite was used.");
+                Debug.LogWarning("[DialogueStageView] Expression \"" + expression + "\" for character \"" +
+                                 characterKey + "\" is missing; using the default sprite.");
             }
 
             image.sprite = sprite;
