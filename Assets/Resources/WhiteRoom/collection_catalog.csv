@@ -1,0 +1,15 @@
+Kind,Key,DisplayName,Category,Order,LockedName
+ending,bad_too_good,できすぎる子,BAD END,10,Show
+ending,bad_sleep_room,眠る白い部屋,BAD END,20,Show
+ending,bad_kind_cage,やさしい檻,BAD END,30,Show
+ending,normal_white_hand,白衣の手,NORMAL END,40,Show
+ending,normal_drain_alone,排水路のひとり,NORMAL END,50,Show
+ending,bad_no_return,戻れない道,BAD END,60,Show
+ending,bad_eleven_seconds,十一秒、足りない,BAD END,70,Show
+ending,bad_too_fast,早すぎた出口,BAD END,80,Show
+ending,bad_white_target,白髪の対象,BAD END,90,Show
+ending,end_regular_escape,施設の外、自由の手前,正規END,100,Show
+ending,end_true_name,名前を呼ぶ声,TRUE END,110,Mask
+ending,end_hidden_underground_child,地下の子,HIDDEN END,120,Mask
+ending,end_regular_with_battery,施設の外、荷物を抱えて,正規END＋,130,Mask
+ending,end_true_name_plus,名前を呼ぶ声,TRUE END＋,140,Mask

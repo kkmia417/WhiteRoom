@@ -21,16 +21,25 @@ namespace WhiteRoom.Novel
         private readonly NovelSaveService _saveService;
         private readonly Action _startNewGame;
         private readonly Action _openLoadScreen;
+        private readonly Action _openEndingList;
+        private readonly Action _openGallery;
 
         private GameObject _root;
         private Button _continueButton;
         private Button _quickLoadButton;
 
-        public TitleMenuController(NovelSaveService saveService, Action startNewGame, Action openLoadScreen)
+        public TitleMenuController(
+            NovelSaveService saveService,
+            Action startNewGame,
+            Action openLoadScreen,
+            Action openEndingList = null,
+            Action openGallery = null)
         {
             _saveService = saveService;
             _startNewGame = startNewGame;
             _openLoadScreen = openLoadScreen;
+            _openEndingList = openEndingList;
+            _openGallery = openGallery;
         }
 
         public event Action<bool> VisibilityChanged;
@@ -105,6 +114,10 @@ namespace WhiteRoom.Novel
             _continueButton = CreateMenuButton(menuObject.transform, "Continue", () => _saveService.ContinueLatest());
             CreateMenuButton(menuObject.transform, "Load Game", () => _openLoadScreen());
             _quickLoadButton = CreateMenuButton(menuObject.transform, "Quick Load", () => _saveService.QuickLoad());
+            if (_openEndingList != null)
+                CreateMenuButton(menuObject.transform, "Ending List", () => _openEndingList());
+            if (_openGallery != null)
+                CreateMenuButton(menuObject.transform, "Gallery", () => _openGallery());
 
             root.SetActive(false);
             return root;
