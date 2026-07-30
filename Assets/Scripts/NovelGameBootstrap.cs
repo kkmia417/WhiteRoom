@@ -51,8 +51,11 @@ namespace WhiteRoom.Novel
 
         private DialogueManager _manager;
         private DialogueView _view;
+        private DialoguePresentation _presentation;
         private NovelSaveService _saveService;
         private DialogueProgressService _progress;
+        private EndingFlowService _endingFlow;
+        private EndingResultScreenController _endingResultScreen;
         private DialoguePresentationIssueLogger _presentationIssueLogger;
         private BacklogController _backlog;
         private TitleMenuController _titleMenu;
@@ -67,11 +70,30 @@ namespace WhiteRoom.Novel
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
         {
+            // The command-line PlayMode runner owns its temporary scene and creates
+            // explicit fixtures. Auto-starting the product loop there can load Main
+            // before the runner begins executing tests.
+            if (IsCommandLineTestRun())
+                return;
+
             if (FindFirstObjectByType<NovelGameBootstrap>() != null)
                 return;
 
             var bootstrap = new GameObject(nameof(NovelGameBootstrap));
             bootstrap.AddComponent<NovelGameBootstrap>();
+        }
+
+        private static bool IsCommandLineTestRun()
+        {
+#if UNITY_EDITOR
+            var arguments = Environment.GetCommandLineArgs();
+            for (var index = 0; index < arguments.Length; index++)
+            {
+                if (string.Equals(arguments[index], "-runTests", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+#endif
+            return false;
         }
 
         private void Awake()
@@ -92,6 +114,7 @@ namespace WhiteRoom.Novel
             SceneManager.sceneLoaded -= HandleSceneLoaded;
 
             _saveService?.Dispose();
+            _endingFlow?.Dispose();
             _progress?.Dispose();
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
@@ -109,6 +132,9 @@ namespace WhiteRoom.Novel
 
         private void Update()
         {
+            if (IsEndingInputBlocked())
+                return;
+
             if (_saveLoadScreen != null && _saveLoadScreen.IsOpen)
                 return;
 
@@ -125,7 +151,7 @@ namespace WhiteRoom.Novel
 
         public void StartDialogue(int id)
         {
-            if (_manager == null)
+            if (_manager == null || IsEndingInputBlocked())
                 return;
 
             _manager.StartDialogue(id);
@@ -133,7 +159,7 @@ namespace WhiteRoom.Novel
 
         public void StartDialogueForTrigger(string triggerKey)
         {
-            if (_manager == null)
+            if (_manager == null || IsEndingInputBlocked())
                 return;
 
             _titleMenu?.Hide();
@@ -148,12 +174,15 @@ namespace WhiteRoom.Novel
 
         public void RequestNext()
         {
-            if (_manager != null)
+            if (_manager != null && !IsEndingInputBlocked())
                 _manager.RequestNext();
         }
 
         public void Rollback()
         {
+            if (IsEndingInputBlocked())
+                return;
+
             StopPlaybackAutomation();
             if (_manager != null)
                 _manager.Rollback();
@@ -161,47 +190,49 @@ namespace WhiteRoom.Novel
 
         public bool SaveDialogue()
         {
-            return _saveService != null && _saveService.Save();
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.Save();
         }
 
         public bool SaveDialogue(int slot)
         {
-            return _saveService != null && _saveService.Save(slot);
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.Save(slot);
         }
 
         public bool LoadDialogue()
         {
-            return _saveService != null && _saveService.Load();
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.Load();
         }
 
         public bool LoadDialogue(int slot)
         {
-            return _saveService != null && _saveService.Load(slot);
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.Load(slot);
         }
 
         public bool QuickSave()
         {
-            return _saveService != null && _saveService.QuickSave();
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.QuickSave();
         }
 
         public bool QuickLoad()
         {
-            return _saveService != null && _saveService.QuickLoad();
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.QuickLoad();
         }
 
         public bool ContinueLatest()
         {
-            return _saveService != null && _saveService.ContinueLatest();
+            return !IsEndingInputBlocked() && _saveService != null && _saveService.ContinueLatest();
         }
 
         public void OpenSaveScreen()
         {
-            _saveLoadScreen?.OpenSave();
+            if (!IsEndingInputBlocked())
+                _saveLoadScreen?.OpenSave();
         }
 
         public void OpenLoadScreen()
         {
-            _saveLoadScreen?.OpenLoad();
+            if (!IsEndingInputBlocked())
+                _saveLoadScreen?.OpenLoad();
         }
 
         public void CloseSaveLoadScreen()
@@ -236,12 +267,14 @@ namespace WhiteRoom.Novel
 
         public void ToggleBacklog()
         {
-            _backlog?.Toggle();
+            if (!IsEndingInputBlocked())
+                _backlog?.Toggle();
         }
 
         public void OpenBacklog()
         {
-            _backlog?.Open();
+            if (!IsEndingInputBlocked())
+                _backlog?.Open();
         }
 
         public void CloseBacklog()
@@ -307,19 +340,31 @@ namespace WhiteRoom.Novel
                     $"Check Resources/{NovelPresentationConfiguration.DefaultResourcePath}.");
             }
 
-            var presentation = DialoguePresentationFactory.Ensure(
+            _presentation = DialoguePresentationFactory.Ensure(
                 resolvedBackgroundDatabase,
                 resolvedCharacterDatabase,
                 resolvedAudioDatabase);
-            presentation.RegisterSaveContributors(saveSystem);
+            _presentation.RegisterSaveContributors(saveSystem);
             _presentationIssueLogger = new DialoguePresentationIssueLogger(
                 () => _manager != null && _manager.CurrentData != null
                     ? (int?)_manager.CurrentData.Id
                     : null);
-            _presentationIssueLogger.Watch(presentation.StageView);
-            _presentationIssueLogger.Watch(presentation.AudioPlayer);
+            _presentationIssueLogger.Watch(_presentation.StageView);
+            _presentationIssueLogger.Watch(_presentation.AudioPlayer);
 
             _progress = new DialogueProgressService(unlockProgressMarkers);
+            _endingFlow = new EndingFlowService(
+                () => _progress != null && _progress.FlushUnlocks(),
+                endingKey => _progress != null && _progress.IsUnlocked("ending:" + endingKey),
+                ResetForTitleTransition,
+                ReturnToTitle);
+            _endingResultScreen = new EndingResultScreenController(
+                () => _endingFlow.ConfirmAndReturnToTitle());
+            _endingFlow.ResultReady += HandleEndingResultReady;
+            _endingFlow.TransitionFailed += HandleEndingTransitionFailed;
+            _endingFlow.AttachTo(_manager);
+            // EndingFlow must observe the pre-unlock registry state so its NEW badge
+            // reflects durable first reach, not only this dialogue session.
             _progress.AttachTo(_manager);
 
             if (enableDialogueKeyboardInput)
@@ -464,6 +509,8 @@ namespace WhiteRoom.Novel
             if (_titleMenu == null)
                 return;
 
+            _endingFlow?.NotifySceneLoaded();
+            _endingResultScreen?.Hide();
             StopPlaybackAutomation();
             if (ShouldShowTitleMenu(scene.name))
                 _titleMenu.Show();
@@ -471,6 +518,9 @@ namespace WhiteRoom.Novel
                 _titleMenu.Hide();
 
             _commandBar?.SetSceneVisible(ShouldShowCommandBar(scene.name));
+            _commandBar?.SetInputBlocked(false);
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = true;
         }
 
         private bool ShouldShowTitleMenu()
@@ -511,8 +561,8 @@ namespace WhiteRoom.Novel
                         playbackController.ToggleSkip();
                     }
                     : null,
-                CanSave = () => _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
-                CanQuickLoad = () => _quickLoadAvailable,
+                CanSave = () => !IsEndingInputBlocked() && _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
+                CanQuickLoad = () => !IsEndingInputBlocked() && _quickLoadAvailable,
                 CanBackSkip = () => _backSkip != null && _backSkip.CanStart,
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
@@ -529,6 +579,66 @@ namespace WhiteRoom.Novel
             _backSkip?.Stop();
             _playbackController?.SetMode(DialoguePlaybackMode.Normal);
             _commandBar?.Refresh();
+        }
+
+        private void HandleEndingResultReady(EndingResultInfo result)
+        {
+            StopPlaybackAutomation();
+            _backlog?.Close();
+            _saveLoadScreen?.Close();
+            _endingResultScreen?.Show(result);
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = false;
+            _commandBar?.SetInputBlocked(true);
+        }
+
+        private void HandleEndingTransitionFailed(string message)
+        {
+            _notifications?.Show(message, false);
+        }
+
+        private void ResetForTitleTransition()
+        {
+            StopPlaybackAutomation();
+            _backlog?.Close();
+            _saveLoadScreen?.Close();
+            _view?.ForceStop();
+            _view?.Clear();
+            if (_view != null)
+                _view.gameObject.SetActive(false);
+
+            _presentation?.StageView?.ClearCharacters();
+            _presentation?.StageView?.SetBackground(string.Empty, true, string.Empty, 0f);
+            _presentation?.AudioPlayer?.ResetPlayback();
+            _endingResultScreen?.Hide();
+            _commandBar?.SetInputBlocked(true);
+        }
+
+        private void ReturnToTitle()
+        {
+            if (string.IsNullOrEmpty(titleSceneName))
+            {
+                HandleEndingTransitionFailed("Title sceneが設定されていません。");
+                _endingFlow?.NotifySceneLoaded();
+                return;
+            }
+
+            if (string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    titleSceneName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                _endingFlow?.NotifySceneLoaded();
+                _titleMenu?.Show();
+                return;
+            }
+
+            SceneManager.LoadScene(titleSceneName);
+        }
+
+        private bool IsEndingInputBlocked()
+        {
+            return _endingFlow != null && _endingFlow.IsInputBlocked;
         }
 
         private bool ShouldShowCommandBar()
