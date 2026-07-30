@@ -56,6 +56,8 @@ classDiagram
     class NovelSaveService
     class AutosaveCheckpointService
     class DialogueBoundaryNavigationService
+    class FavoriteVoiceService
+    class PlayerPrefsFavoriteVoiceStorage
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
@@ -65,6 +67,7 @@ classDiagram
     class TitleMenuController
     class SaveLoadScreenController
     class BacklogController
+    class FavoriteVoiceScreenController
     class ConfigScreenController
     class MessageWindowVisibilityController
     class TitleReturnConfirmationController
@@ -91,6 +94,7 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService : 所有
     NovelGameBootstrap *-- AutosaveCheckpointService : 所有
     NovelGameBootstrap *-- DialogueBoundaryNavigationService : 所有
+    NovelGameBootstrap *-- FavoriteVoiceService : 所有
     NovelGameBootstrap *-- DialogueProgressService : 所有
     NovelGameBootstrap *-- GameplayOverlayCoordinator : 所有
     NovelGameBootstrap *-- TitleReturnService : 所有
@@ -99,6 +103,7 @@ classDiagram
     NovelGameBootstrap *-- TitleMenuController : 所有
     NovelGameBootstrap *-- SaveLoadScreenController : 所有
     NovelGameBootstrap *-- BacklogController : 所有
+    NovelGameBootstrap *-- FavoriteVoiceScreenController : 所有
     NovelGameBootstrap *-- ConfigScreenController : 所有
     NovelGameBootstrap *-- MessageWindowVisibilityController : 所有
     NovelGameBootstrap *-- TitleReturnConfirmationController : 所有
@@ -130,6 +135,8 @@ classDiagram
     AutosaveCheckpointService --> DialoguePlaybackController : Auto/Skipを一時停止
     DialogueBoundaryNavigationService --> DialogueManager : 到達boundaryを購読
     DialogueBoundaryNavigationService --> DialogueSaveSystem : snapshotをcapture/restore
+    FavoriteVoiceService --> DialogueAudioPlayer : 単一Voice channelを再生
+    FavoriteVoiceService --> PlayerPrefsFavoriteVoiceStorage : version付きrecordを永続化
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : ProgressMarkerReached購読
     TitleReturnService --> DialogueManager : Bootstrap経由でdirty進行を追跡
@@ -143,6 +150,7 @@ classDiagram
     SaveLoadScreenController ..> NovelUiFactory : 画面構築
     BacklogController --> DialogueBacklogView : 開閉
     BacklogController --> DialogueAutoAdvanceGate : 一時停止
+    FavoriteVoiceScreenController --> FavoriteVoiceService : 一覧・再生・削除
     MessageWindowVisibilityController --> DialogueView : narrative UIを非表示
     TitleReturnConfirmationController --> TitleReturnService : transition確認
     ScreenshotCaptureUiController --> NovelCommandBarController : capture UIを非表示
@@ -231,6 +239,29 @@ classDiagram
         +Dispose()
     }
 
+    class FavoriteVoiceService {
+        <<sealed>>
+        +Count int
+        +HasFavorites bool
+        +CanUseCurrentVoice bool
+        +ReplayCurrent() FavoriteVoiceResult
+        +AddCurrent() FavoriteVoiceResult
+        +BuildList() List~FavoriteVoiceViewModel~
+        +Play(FavoriteVoiceRecord record) FavoriteVoiceResult
+        +Remove(FavoriteVoiceRecord record) FavoriteVoiceResult
+        +Stop()
+    }
+
+    class IFavoriteVoiceStorage {
+        <<interface>>
+        +TryLoad(out string json) bool
+        +Save(string json)
+    }
+
+    class PlayerPrefsFavoriteVoiceStorage {
+        <<sealed>>
+    }
+
     class DialogueProgressService {
         <<sealed>>
         +AttachTo(DialogueManager manager)
@@ -297,6 +328,7 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueBoundaryNavigationService
+    NovelGameBootstrap *-- FavoriteVoiceService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
@@ -309,6 +341,9 @@ classDiagram
     DialogueBoundaryNavigationService --> DialogueManager : 到達rowを記録
     DialogueBoundaryNavigationService --> DialogueSaveSystem : in-memory snapshot
     DialogueBoundaryNavigationService ..|> IDisposable
+    FavoriteVoiceService --> IFavoriteVoiceStorage : version付きJSON
+    PlayerPrefsFavoriteVoiceStorage ..|> IFavoriteVoiceStorage
+    FavoriteVoiceService --> DialogueAudioPlayer : 停止後に再生
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -332,6 +367,8 @@ Player captureとplatform所有file storageは
 [プレイヤーScreenshot](../development/screenshots.ja.md)に記載する。
 到達範囲とrestore動作は
 [到達済みscene/choice navigation](../development/boundary-navigation.ja.md)に記載する。
+お気に入りのidentity、migration、再生lifecycleは
+[お気に入りVoice再生と永続化](../development/favorite-voices.ja.md)に記載する。
 
 ## Setup ファクトリ
 
@@ -454,6 +491,16 @@ classDiagram
         +Close()
     }
 
+    class FavoriteVoiceScreenController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +IsOpen bool
+        +Open()
+        +Close()
+        +Stop()
+        +HandleCancel()
+    }
+
     class MessageWindowVisibilityController {
         <<sealed>>
         +event Action~bool~ HiddenChanged
@@ -501,6 +548,7 @@ classDiagram
     class NovelSaveService
     class TitleReturnService
     class NovelCommandBarController
+    class FavoriteVoiceService
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -509,6 +557,8 @@ classDiagram
     SaveLoadScreenController --> DialogueAutoAdvanceGate
     BacklogController --> DialogueBacklogView
     BacklogController --> DialogueAutoAdvanceGate
+    FavoriteVoiceScreenController --> FavoriteVoiceService
+    FavoriteVoiceScreenController ..> NovelUiFactory
     DialogueAutoAdvanceGate --> DialogueView
     MessageWindowVisibilityController --> DialogueView
     TitleReturnConfirmationController --> TitleReturnService
@@ -535,11 +585,12 @@ classDiagram
 | `DialogueRuntimeFactory`, `DialogueViewFactory`, `DialoguePresentationFactory`, `RuntimeFieldBinder` | `WhiteRoom.Bootstrap`(インストーラ) |
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence`(アプリケーション面) |
-| `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
+| `GameplayOverlayCoordinator`, `TitleReturnService`, `FavoriteVoiceService`, `IFavoriteVoiceStorage` | `WhiteRoom.Application` |
+| `PlayerPrefsFavoriteVoiceStorage` | `WhiteRoom.Persistence`(local preference adapter) |
 | `ScreenshotCaptureService`, `FileScreenshotStorage` | `WhiteRoom.Platform`(capture/storage portとlocal adapter) |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `FavoriteVoiceScreenController`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation`(プレハブ駆動UIへの置換まで) |
 
 ## この図が符号化する設計ルール

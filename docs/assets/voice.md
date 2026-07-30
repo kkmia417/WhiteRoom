@@ -27,6 +27,10 @@ consistently deliver.
   remains text/scenario timing. Voice duration never extends either delay in
   this release.
 - Backlog voice replay controls remain hidden because entries have no voice key.
+- Current-line Replay, favorite registration, and favorite-list commands are
+  disabled because no row resolves a Voice cue and there are no favorites. The
+  dormant product behavior is documented in
+  [Favorite voice replay and persistence](../development/favorite-voices.md).
 
 These rules follow the deterministic cancellation and restore policy in
 [ADR-0009](../adr/0009-deterministic-presentation-runtime.md). The release

@@ -57,6 +57,8 @@ classDiagram
     class NovelSaveService
     class AutosaveCheckpointService
     class DialogueBoundaryNavigationService
+    class FavoriteVoiceService
+    class PlayerPrefsFavoriteVoiceStorage
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
@@ -66,6 +68,7 @@ classDiagram
     class TitleMenuController
     class SaveLoadScreenController
     class BacklogController
+    class FavoriteVoiceScreenController
     class ConfigScreenController
     class MessageWindowVisibilityController
     class TitleReturnConfirmationController
@@ -92,6 +95,7 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService : owns
     NovelGameBootstrap *-- AutosaveCheckpointService : owns
     NovelGameBootstrap *-- DialogueBoundaryNavigationService : owns
+    NovelGameBootstrap *-- FavoriteVoiceService : owns
     NovelGameBootstrap *-- DialogueProgressService : owns
     NovelGameBootstrap *-- GameplayOverlayCoordinator : owns
     NovelGameBootstrap *-- TitleReturnService : owns
@@ -100,6 +104,7 @@ classDiagram
     NovelGameBootstrap *-- TitleMenuController : owns
     NovelGameBootstrap *-- SaveLoadScreenController : owns
     NovelGameBootstrap *-- BacklogController : owns
+    NovelGameBootstrap *-- FavoriteVoiceScreenController : owns
     NovelGameBootstrap *-- ConfigScreenController : owns
     NovelGameBootstrap *-- MessageWindowVisibilityController : owns
     NovelGameBootstrap *-- TitleReturnConfirmationController : owns
@@ -131,6 +136,8 @@ classDiagram
     AutosaveCheckpointService --> DialoguePlaybackController : suspends Auto/Skip
     DialogueBoundaryNavigationService --> DialogueManager : listens reached boundaries
     DialogueBoundaryNavigationService --> DialogueSaveSystem : captures/restores snapshots
+    FavoriteVoiceService --> DialogueAudioPlayer : replays one voice channel
+    FavoriteVoiceService --> PlayerPrefsFavoriteVoiceStorage : persists versioned records
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : listens ProgressMarkerReached
     TitleReturnService --> DialogueManager : tracks dirty progress via bootstrap
@@ -144,6 +151,7 @@ classDiagram
     SaveLoadScreenController ..> NovelUiFactory : builds screen with
     BacklogController --> DialogueBacklogView : opens/closes
     BacklogController --> DialogueAutoAdvanceGate : suspends
+    FavoriteVoiceScreenController --> FavoriteVoiceService : lists/plays/removes
     MessageWindowVisibilityController --> DialogueView : hides narrative UI
     TitleReturnConfirmationController --> TitleReturnService : confirms transition
     ScreenshotCaptureUiController --> NovelCommandBarController : hides capture UI
@@ -233,6 +241,29 @@ classDiagram
         +Dispose()
     }
 
+    class FavoriteVoiceService {
+        <<sealed>>
+        +Count int
+        +HasFavorites bool
+        +CanUseCurrentVoice bool
+        +ReplayCurrent() FavoriteVoiceResult
+        +AddCurrent() FavoriteVoiceResult
+        +BuildList() List~FavoriteVoiceViewModel~
+        +Play(FavoriteVoiceRecord record) FavoriteVoiceResult
+        +Remove(FavoriteVoiceRecord record) FavoriteVoiceResult
+        +Stop()
+    }
+
+    class IFavoriteVoiceStorage {
+        <<interface>>
+        +TryLoad(out string json) bool
+        +Save(string json)
+    }
+
+    class PlayerPrefsFavoriteVoiceStorage {
+        <<sealed>>
+    }
+
     class DialogueProgressService {
         <<sealed>>
         +AttachTo(DialogueManager manager)
@@ -299,6 +330,7 @@ classDiagram
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueBoundaryNavigationService
+    NovelGameBootstrap *-- FavoriteVoiceService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
@@ -311,6 +343,9 @@ classDiagram
     DialogueBoundaryNavigationService --> DialogueManager : records reached rows
     DialogueBoundaryNavigationService --> DialogueSaveSystem : in-memory snapshots
     DialogueBoundaryNavigationService ..|> IDisposable
+    FavoriteVoiceService --> IFavoriteVoiceStorage : versioned JSON
+    PlayerPrefsFavoriteVoiceStorage ..|> IFavoriteVoiceStorage
+    FavoriteVoiceService --> DialogueAudioPlayer : stop then play
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -335,6 +370,8 @@ Player capture and platform-owned file storage are documented in
 [Player screenshots](../development/screenshots.md).
 Reached-range and restore behavior are documented in
 [Reached scene and choice navigation](../development/boundary-navigation.md).
+Favorite identity, migration, and playback lifecycle are documented in
+[Favorite voice replay and persistence](../development/favorite-voices.md).
 
 ## Setup factories
 
@@ -455,6 +492,16 @@ classDiagram
         +Close()
     }
 
+    class FavoriteVoiceScreenController {
+        <<sealed>>
+        +event Action~bool~ VisibilityChanged
+        +IsOpen bool
+        +Open()
+        +Close()
+        +Stop()
+        +HandleCancel()
+    }
+
     class MessageWindowVisibilityController {
         <<sealed>>
         +event Action~bool~ HiddenChanged
@@ -502,6 +549,7 @@ classDiagram
     class NovelSaveService
     class TitleReturnService
     class NovelCommandBarController
+    class FavoriteVoiceService
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -510,6 +558,8 @@ classDiagram
     SaveLoadScreenController --> DialogueAutoAdvanceGate
     BacklogController --> DialogueBacklogView
     BacklogController --> DialogueAutoAdvanceGate
+    FavoriteVoiceScreenController --> FavoriteVoiceService
+    FavoriteVoiceScreenController ..> NovelUiFactory
     DialogueAutoAdvanceGate --> DialogueView
     MessageWindowVisibilityController --> DialogueView
     TitleReturnConfirmationController --> TitleReturnService
@@ -536,11 +586,12 @@ can move them without re-deciding boundaries.
 | `DialogueRuntimeFactory`, `DialogueViewFactory`, `DialoguePresentationFactory`, `RuntimeFieldBinder` | `WhiteRoom.Bootstrap` (installers) |
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence` (application face) |
-| `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
+| `GameplayOverlayCoordinator`, `TitleReturnService`, `FavoriteVoiceService`, `IFavoriteVoiceStorage` | `WhiteRoom.Application` |
+| `PlayerPrefsFavoriteVoiceStorage` | `WhiteRoom.Persistence` (local preference adapter) |
 | `ScreenshotCaptureService`, `FileScreenshotStorage` | `WhiteRoom.Platform` (capture/storage port and local adapter) |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `FavoriteVoiceScreenController`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation` (until prefab-driven UI replaces them) |
 
 ## Design rules this diagram encodes

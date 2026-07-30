@@ -38,7 +38,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 - `WhiteRoomBoundaryNavigationPlayModeTests`はbranch timelineへ到達し、前後のscene/choice復元、
   line eventを再実行しないpresentation/Backlog一貫性、save slotからの到達target再読込を検証する
 - Auto、Skip、Rollback、Backlog、manual/Quick/Auto Save、thumbnail、Config、collection、Ending、
-  Screenshotの詳細は既存のfocused PlayMode testが継続して担当する
+  お気に入りVoiceのReplay・一覧lifecycle、Screenshotの詳細は既存のfocused PlayMode testが
+  継続して担当する。お気に入りVoiceのstable identity、ordering、migration、deduplication、
+  missing-data方針はEditMode testが別途担当する
 
 Save fixtureは必ずmemory storageまたは一意なtemporary directoryを注入し、開発者の実save slotを
 読み書きしません。
