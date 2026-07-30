@@ -73,6 +73,15 @@ namespace kkmia.TalkSystem.Tests
             }
         }
 
+        private sealed class ThrowingRestoreContributor : IDialogueSaveContributor
+        {
+            public void Capture(DialogueSaveData data) { }
+            public void Restore(DialogueSaveData data)
+            {
+                throw new InvalidOperationException("restore failed");
+            }
+        }
+
         private sealed class ThrowingSaveStorage : IDialogueSaveStorage
         {
             public bool TryLoad(int slot, out DialogueSaveSlot data)
@@ -177,6 +186,40 @@ namespace kkmia.TalkSystem.Tests
             service.ApplyRestore(loaded.Data);
             Assert.AreEqual(1, contributor.RestoreCount);
             Assert.AreEqual("Alice@left", contributor.Restored);
+        }
+
+        [Test]
+        public void Service_InMemoryContributorOperations_ExcludeOwnerAndKeepOrder()
+        {
+            var first = new FakeContributor();
+            var excluded = new FakeContributor();
+            var service = new DialogueSaveService(
+                new MemoryStorage(),
+                new IDialogueSaveContributor[] { first, excluded });
+            var data = new DialogueSaveData();
+
+            service.ApplyCapture(data, excluded);
+            Assert.IsTrue(service.TryApplyRestore(data, excluded));
+
+            Assert.AreEqual(1, first.CaptureCount);
+            Assert.AreEqual(1, first.RestoreCount);
+            Assert.AreEqual(0, excluded.CaptureCount);
+            Assert.AreEqual(0, excluded.RestoreCount);
+        }
+
+        [Test]
+        public void Service_TryApplyRestore_ClassifiesContributorExceptionAsFailure()
+        {
+            var service = new DialogueSaveService(
+                new MemoryStorage(),
+                new IDialogueSaveContributor[] { new ThrowingRestoreContributor() });
+
+            var restored = service.TryApplyRestore(new DialogueSaveData());
+
+            Assert.IsFalse(restored);
+            Assert.IsNotNull(service.LastResult);
+            Assert.IsTrue(service.LastResult.Failed);
+            StringAssert.Contains("restore dialogue save contributors", service.LastResult.Message);
         }
 
         [Test]

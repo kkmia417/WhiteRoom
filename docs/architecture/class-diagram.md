@@ -56,6 +56,7 @@ classDiagram
     class RuntimeFieldBinder
     class NovelSaveService
     class AutosaveCheckpointService
+    class DialogueBoundaryNavigationService
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
@@ -90,6 +91,7 @@ classDiagram
     NovelGameBootstrap ..> NovelUiFactory : ensures font/canvas via
     NovelGameBootstrap *-- NovelSaveService : owns
     NovelGameBootstrap *-- AutosaveCheckpointService : owns
+    NovelGameBootstrap *-- DialogueBoundaryNavigationService : owns
     NovelGameBootstrap *-- DialogueProgressService : owns
     NovelGameBootstrap *-- GameplayOverlayCoordinator : owns
     NovelGameBootstrap *-- TitleReturnService : owns
@@ -127,6 +129,8 @@ classDiagram
     AutosaveCheckpointService --> DialogueManager : listens story checkpoints
     AutosaveCheckpointService --> NovelSaveService : requests autosave
     AutosaveCheckpointService --> DialoguePlaybackController : suspends Auto/Skip
+    DialogueBoundaryNavigationService --> DialogueManager : listens reached boundaries
+    DialogueBoundaryNavigationService --> DialogueSaveSystem : captures/restores snapshots
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : listens ProgressMarkerReached
     TitleReturnService --> DialogueManager : tracks dirty progress via bootstrap
@@ -218,6 +222,17 @@ classDiagram
         -HandleProgressMarkerReached(DialogueProgressEventContext context)
     }
 
+    class DialogueBoundaryNavigationService {
+        <<sealed>>
+        +IsBusy bool
+        +ReachedBoundaryCount int
+        +Attach()
+        +CanJump(DialogueBoundaryKind kind, DialogueBoundaryDirection direction) bool
+        +Jump(DialogueBoundaryKind kind, DialogueBoundaryDirection direction) DialogueBoundaryJumpResult
+        +Reset()
+        +Dispose()
+    }
+
     class DialogueProgressService {
         <<sealed>>
         +AttachTo(DialogueManager manager)
@@ -283,6 +298,7 @@ classDiagram
 
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
+    NovelGameBootstrap *-- DialogueBoundaryNavigationService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
@@ -292,6 +308,9 @@ classDiagram
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
     AutosaveCheckpointService --> NovelSaveService : requests autosave
+    DialogueBoundaryNavigationService --> DialogueManager : records reached rows
+    DialogueBoundaryNavigationService --> DialogueSaveSystem : in-memory snapshots
+    DialogueBoundaryNavigationService ..|> IDisposable
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -314,6 +333,8 @@ In-game Config, message visibility, and Return-to-Title lifecycle are documented
 [In-game system UI](../development/ingame-system-ui.md).
 Player capture and platform-owned file storage are documented in
 [Player screenshots](../development/screenshots.md).
+Reached-range and restore behavior are documented in
+[Reached scene and choice navigation](../development/boundary-navigation.md).
 
 ## Setup factories
 

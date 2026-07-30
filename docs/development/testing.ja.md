@@ -35,6 +35,8 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   未使用choice、想定外Endingをfailureにする
 - `WhiteRoomProductJourneyPlayModeTests`は実Title/Main sceneをloadし、製品scenarioをEndingまで進め、
   memory save復元、overlay中automation停止、Title帰還、manager/canvas/event-system重複を検証する
+- `WhiteRoomBoundaryNavigationPlayModeTests`はbranch timelineへ到達し、前後のscene/choice復元、
+  line eventを再実行しないpresentation/Backlog一貫性、save slotからの到達target再読込を検証する
 - Auto、Skip、Rollback、Backlog、manual/Quick/Auto Save、thumbnail、Config、collection、Ending、
   Screenshotの詳細は既存のfocused PlayMode testが継続して担当する
 

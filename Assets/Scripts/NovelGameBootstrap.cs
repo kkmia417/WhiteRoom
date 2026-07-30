@@ -82,6 +82,7 @@ namespace WhiteRoom.Novel
         private DialogueKeyboardInput _dialogueKeyboardInput;
         private DialoguePlaybackController _playbackController;
         private DialogueBackSkipController _backSkip;
+        private DialogueBoundaryNavigationService _boundaryNavigation;
         private bool _quickLoadAvailable;
         private DialoguePlaybackMode? _thumbnailPlaybackMode;
         private bool _thumbnailKeyboardWasEnabled;
@@ -146,6 +147,7 @@ namespace WhiteRoom.Novel
 
             _saveService?.Dispose();
             _autosaveCheckpoints?.Dispose();
+            _boundaryNavigation?.Dispose();
             _endingFlow?.Dispose();
             _progress?.Dispose();
             if (_collectionScreen != null)
@@ -223,6 +225,7 @@ namespace WhiteRoom.Novel
 
         public void StartNewGame()
         {
+            _boundaryNavigation?.Reset();
             StartDialogueForTrigger(startTriggerKey);
         }
 
@@ -599,6 +602,15 @@ namespace WhiteRoom.Novel
             yield return null;
             yield return null;
 
+            _boundaryNavigation?.Dispose();
+            _boundaryNavigation = new DialogueBoundaryNavigationService(
+                _manager,
+                _saveSystem,
+                Debug.LogWarning);
+            _saveSystem.RegisterContributor(_boundaryNavigation);
+            _boundaryNavigation.Attach();
+            _commandBar?.Refresh();
+
             if (ShouldShowTitleMenu())
             {
                 _titleMenu.Show();
@@ -844,6 +856,12 @@ namespace WhiteRoom.Novel
                 QuickSave = () => QuickSave(),
                 QuickLoad = () => QuickLoad(),
                 OpenSystemConfig = OpenConfig,
+                PreviousChoice = () => JumpBoundary(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Previous),
+                PreviousScene = () => JumpBoundary(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Previous),
                 PreviousText = Rollback,
                 BackSkip = _backSkip != null ? _backSkip.Toggle : null,
                 ToggleBacklog = ToggleBacklog,
@@ -861,12 +879,34 @@ namespace WhiteRoom.Novel
                         playbackController.ToggleSkip();
                     }
                     : null,
+                NextScene = () => JumpBoundary(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Next),
+                NextChoice = () => JumpBoundary(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Next),
                 CaptureScreenshot = () => RequestScreenshot(),
                 HideMessage = HideMessageWindow,
                 ReturnTitle = () => RequestReturnToTitle(),
-                CanSave = () => !IsEndingInputBlocked() && _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
+                CanSave = () => !IsEndingInputBlocked()
+                                    && (_boundaryNavigation == null || !_boundaryNavigation.IsBusy)
+                                    && _saveService != null
+                                    && _saveService.CanSaveNow
+                                    && !_saveService.IsBusy,
                 CanQuickLoad = () => !IsEndingInputBlocked() && _quickLoadAvailable,
                 CanBackSkip = () => _backSkip != null && _backSkip.CanStart,
+                CanPreviousChoice = () => CanJumpBoundary(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Previous),
+                CanPreviousScene = () => CanJumpBoundary(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Previous),
+                CanNextScene = () => CanJumpBoundary(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Next),
+                CanNextChoice = () => CanJumpBoundary(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Next),
                 CanOpenSystemConfig = () => !IsEndingInputBlocked(),
                 CanCaptureScreenshot = () => _screenshotService != null
                                              && _screenshotService.IsAvailable
@@ -877,6 +917,18 @@ namespace WhiteRoom.Novel
                 ScreenshotUnavailableReason = _screenshotService != null
                     ? _screenshotService.UnavailableReason
                     : "Screenshot capture is unavailable",
+                PreviousChoiceUnavailableReason = () => BoundaryUnavailableReason(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Previous),
+                PreviousSceneUnavailableReason = () => BoundaryUnavailableReason(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Previous),
+                NextSceneUnavailableReason = () => BoundaryUnavailableReason(
+                    DialogueBoundaryKind.Scene,
+                    DialogueBoundaryDirection.Next),
+                NextChoiceUnavailableReason = () => BoundaryUnavailableReason(
+                    DialogueBoundaryKind.Choice,
+                    DialogueBoundaryDirection.Next),
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
                 IsBackSkipActive = () => _backSkip != null && _backSkip.IsActive,
@@ -885,6 +937,42 @@ namespace WhiteRoom.Novel
             };
 
             return new NovelCommandBarController(NovelCommandCatalog.Create(bindings));
+        }
+
+        private bool CanJumpBoundary(DialogueBoundaryKind kind, DialogueBoundaryDirection direction)
+        {
+            return !IsEndingInputBlocked()
+                   && _boundaryNavigation != null
+                   && _boundaryNavigation.CanJump(kind, direction);
+        }
+
+        private string BoundaryUnavailableReason(
+            DialogueBoundaryKind kind,
+            DialogueBoundaryDirection direction)
+        {
+            if (IsEndingInputBlocked())
+                return "Dialogue input is blocked";
+            return _boundaryNavigation != null
+                ? _boundaryNavigation.GetUnavailableReason(kind, direction)
+                : "Dialogue navigation is not ready";
+        }
+
+        private void JumpBoundary(DialogueBoundaryKind kind, DialogueBoundaryDirection direction)
+        {
+            if (!CanJumpBoundary(kind, direction))
+                return;
+
+            StopPlaybackAutomation();
+            _backlog?.Close();
+            _saveLoadScreen?.Close();
+            _collectionScreen?.Close();
+            _configScreen?.Close();
+            SetGameplayInputEnabled(false);
+
+            var result = _boundaryNavigation.Jump(kind, direction);
+            _notifications?.Show(result.Message, result.Succeeded);
+            SetGameplayInputEnabled(true);
+            _commandBar?.Refresh();
         }
 
         private void StopPlaybackAutomation()

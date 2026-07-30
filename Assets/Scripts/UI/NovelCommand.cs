@@ -53,7 +53,8 @@ namespace WhiteRoom.Novel
             Action execute,
             Func<bool> isAvailable = null,
             Func<bool> isActive = null,
-            string unavailableTooltip = "Not available yet")
+            string unavailableTooltip = "Not available yet",
+            Func<string> unavailableTooltipProvider = null)
         {
             Id = id;
             Group = group;
@@ -62,7 +63,8 @@ namespace WhiteRoom.Novel
             Execute = execute;
             IsAvailable = isAvailable;
             IsActive = isActive;
-            UnavailableTooltip = unavailableTooltip;
+            _unavailableTooltip = unavailableTooltip;
+            _unavailableTooltipProvider = unavailableTooltipProvider;
         }
 
         public NovelCommandId Id { get; }
@@ -72,7 +74,16 @@ namespace WhiteRoom.Novel
         public Action Execute { get; }
         public Func<bool> IsAvailable { get; }
         public Func<bool> IsActive { get; }
-        public string UnavailableTooltip { get; }
+        private readonly string _unavailableTooltip;
+        private readonly Func<string> _unavailableTooltipProvider;
+        public string UnavailableTooltip
+        {
+            get
+            {
+                var provided = _unavailableTooltipProvider?.Invoke();
+                return string.IsNullOrWhiteSpace(provided) ? _unavailableTooltip : provided;
+            }
+        }
 
         public bool CanExecute()
         {
@@ -113,11 +124,19 @@ namespace WhiteRoom.Novel
         public Func<bool> CanSave { get; set; }
         public Func<bool> CanQuickLoad { get; set; }
         public Func<bool> CanBackSkip { get; set; }
+        public Func<bool> CanPreviousChoice { get; set; }
+        public Func<bool> CanPreviousScene { get; set; }
+        public Func<bool> CanNextScene { get; set; }
+        public Func<bool> CanNextChoice { get; set; }
         public Func<bool> CanOpenSystemConfig { get; set; }
         public Func<bool> CanCaptureScreenshot { get; set; }
         public Func<bool> CanHideMessage { get; set; }
         public Func<bool> CanReturnTitle { get; set; }
         public string ScreenshotUnavailableReason { get; set; }
+        public Func<string> PreviousChoiceUnavailableReason { get; set; }
+        public Func<string> PreviousSceneUnavailableReason { get; set; }
+        public Func<string> NextSceneUnavailableReason { get; set; }
+        public Func<string> NextChoiceUnavailableReason { get; set; }
         public Func<bool> HasDialogue { get; set; }
         public Func<bool> IsBacklogOpen { get; set; }
         public Func<bool> IsBackSkipActive { get; set; }
@@ -141,15 +160,15 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.QuickSave, NovelCommandGroup.SaveLoad, "Q.S", "Quick save", bindings.QuickSave, bindings.CanSave),
                 Command(NovelCommandId.QuickLoad, NovelCommandGroup.SaveLoad, "Q.L", "Quick load", bindings.QuickLoad, bindings.CanQuickLoad, null, "No quick save data"),
                 Command(NovelCommandId.SystemConfig, NovelCommandGroup.Settings, "CFG", "System configuration", bindings.OpenSystemConfig, bindings.CanOpenSystemConfig),
-                Command(NovelCommandId.PreviousChoice, NovelCommandGroup.BackwardNavigation, "<C", "Previous choice", bindings.PreviousChoice),
-                Command(NovelCommandId.PreviousScene, NovelCommandGroup.BackwardNavigation, "<S", "Previous scene", bindings.PreviousScene),
+                Command(NovelCommandId.PreviousChoice, NovelCommandGroup.BackwardNavigation, "<C", "Previous choice", bindings.PreviousChoice, bindings.CanPreviousChoice, null, "No previous reached choice", bindings.PreviousChoiceUnavailableReason),
+                Command(NovelCommandId.PreviousScene, NovelCommandGroup.BackwardNavigation, "<S", "Previous scene", bindings.PreviousScene, bindings.CanPreviousScene, null, "No previous reached scene", bindings.PreviousSceneUnavailableReason),
                 Command(NovelCommandId.BackSkip, NovelCommandGroup.BackwardNavigation, "B.SK", "Back skip", bindings.BackSkip, bindings.CanBackSkip, bindings.IsBackSkipActive),
                 Command(NovelCommandId.PreviousText, NovelCommandGroup.BackwardNavigation, "<TXT", "Previous text", bindings.PreviousText, bindings.HasDialogue),
                 Command(NovelCommandId.Backlog, NovelCommandGroup.Playback, "LOG", "Backlog", bindings.ToggleBacklog, null, bindings.IsBacklogOpen),
                 Command(NovelCommandId.Auto, NovelCommandGroup.Playback, "AUTO", "Auto mode", bindings.ToggleAuto, bindings.HasDialogue, bindings.IsAutoActive),
                 Command(NovelCommandId.Skip, NovelCommandGroup.Playback, "SKIP", "Skip read text", bindings.ToggleSkip, bindings.HasDialogue, bindings.IsSkipActive),
-                Command(NovelCommandId.NextScene, NovelCommandGroup.ForwardNavigation, "S>", "Next scene", bindings.NextScene),
-                Command(NovelCommandId.NextChoice, NovelCommandGroup.ForwardNavigation, "C>", "Next choice", bindings.NextChoice),
+                Command(NovelCommandId.NextScene, NovelCommandGroup.ForwardNavigation, "S>", "Next scene", bindings.NextScene, bindings.CanNextScene, null, "No next reached scene", bindings.NextSceneUnavailableReason),
+                Command(NovelCommandId.NextChoice, NovelCommandGroup.ForwardNavigation, "C>", "Next choice", bindings.NextChoice, bindings.CanNextChoice, null, "No next reached choice", bindings.NextChoiceUnavailableReason),
                 Command(NovelCommandId.Flowchart, NovelCommandGroup.Flowchart, "FLOW", "Flowchart", bindings.OpenFlowchart),
                 Command(NovelCommandId.FavoriteVoiceList, NovelCommandGroup.Voice, "FAV", "Favorite voices", bindings.OpenFavoriteVoices),
                 Command(NovelCommandId.VoiceReplay, NovelCommandGroup.Voice, "VOICE", "Replay current voice", bindings.ReplayVoice),
@@ -178,7 +197,8 @@ namespace WhiteRoom.Novel
             Action execute = null,
             Func<bool> isAvailable = null,
             Func<bool> isActive = null,
-            string unavailableTooltip = "Not available yet")
+            string unavailableTooltip = "Not available yet",
+            Func<string> unavailableTooltipProvider = null)
         {
             return new NovelCommandDefinition(
                 id,
@@ -188,7 +208,8 @@ namespace WhiteRoom.Novel
                 execute,
                 isAvailable,
                 isActive,
-                unavailableTooltip);
+                unavailableTooltip,
+                unavailableTooltipProvider);
         }
     }
 }

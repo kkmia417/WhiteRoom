@@ -55,6 +55,7 @@ classDiagram
     class RuntimeFieldBinder
     class NovelSaveService
     class AutosaveCheckpointService
+    class DialogueBoundaryNavigationService
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
@@ -89,6 +90,7 @@ classDiagram
     NovelGameBootstrap ..> NovelUiFactory : フォント・Canvas確保
     NovelGameBootstrap *-- NovelSaveService : 所有
     NovelGameBootstrap *-- AutosaveCheckpointService : 所有
+    NovelGameBootstrap *-- DialogueBoundaryNavigationService : 所有
     NovelGameBootstrap *-- DialogueProgressService : 所有
     NovelGameBootstrap *-- GameplayOverlayCoordinator : 所有
     NovelGameBootstrap *-- TitleReturnService : 所有
@@ -126,6 +128,8 @@ classDiagram
     AutosaveCheckpointService --> DialogueManager : checkpoint eventを購読
     AutosaveCheckpointService --> NovelSaveService : autosaveを要求
     AutosaveCheckpointService --> DialoguePlaybackController : Auto/Skipを一時停止
+    DialogueBoundaryNavigationService --> DialogueManager : 到達boundaryを購読
+    DialogueBoundaryNavigationService --> DialogueSaveSystem : snapshotをcapture/restore
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : ProgressMarkerReached購読
     TitleReturnService --> DialogueManager : Bootstrap経由でdirty進行を追跡
@@ -216,6 +220,17 @@ classDiagram
         -HandleProgressMarkerReached(DialogueProgressEventContext context)
     }
 
+    class DialogueBoundaryNavigationService {
+        <<sealed>>
+        +IsBusy bool
+        +ReachedBoundaryCount int
+        +Attach()
+        +CanJump(DialogueBoundaryKind kind, DialogueBoundaryDirection direction) bool
+        +Jump(DialogueBoundaryKind kind, DialogueBoundaryDirection direction) DialogueBoundaryJumpResult
+        +Reset()
+        +Dispose()
+    }
+
     class DialogueProgressService {
         <<sealed>>
         +AttachTo(DialogueManager manager)
@@ -281,6 +296,7 @@ classDiagram
 
     NovelGameBootstrap *-- NovelSaveService
     NovelGameBootstrap *-- AutosaveCheckpointService
+    NovelGameBootstrap *-- DialogueBoundaryNavigationService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
@@ -290,6 +306,9 @@ classDiagram
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
     AutosaveCheckpointService --> NovelSaveService : autosaveを要求
+    DialogueBoundaryNavigationService --> DialogueManager : 到達rowを記録
+    DialogueBoundaryNavigationService --> DialogueSaveSystem : in-memory snapshot
+    DialogueBoundaryNavigationService ..|> IDisposable
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -311,6 +330,8 @@ Thumbnail sidecar captureとUI lifecycleは
 [ゲーム中System UI](../development/ingame-system-ui.ja.md)に記載する。
 Player captureとplatform所有file storageは
 [プレイヤーScreenshot](../development/screenshots.ja.md)に記載する。
+到達範囲とrestore動作は
+[到達済みscene/choice navigation](../development/boundary-navigation.ja.md)に記載する。
 
 ## Setup ファクトリ
 
