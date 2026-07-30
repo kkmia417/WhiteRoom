@@ -12,4 +12,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 448499e2d5c34d65ac63132fb9804c81, type: 3}
   m_Name: WhiteRoomBackgroundDatabase
   m_EditorClassIdentifier: kkmia.TalkSystem.Runtime::kkmia.TalkSystem.BackgroundDatabase
-  backgrounds: []
+  backgrounds:
+  - backgroundKey: back_corridor
+    sprite: {fileID: 21300000, guid: c0e8b80e5ceca204da00cb4ca29d5c56, type: 3}
+  - backgroundKey: drain_dark
+    sprite: {fileID: 21300000, guid: bc821a5ba87f2804688dfc205167bad7, type: 3}
+  - backgroundKey: duct_dark
+    sprite: {fileID: 21300000, guid: ae8f50e11669b2f4fbdc9170d7069c84, type: 3}
+  - backgroundKey: duct_entry
+    sprite: {fileID: 21300000, guid: 5edbef8a77fe98b48aa8c0bd761214ab, type: 3}
+  - backgroundKey: duct_inner
+    sprite: {fileID: 21300000, guid: fa95bb7ca2038964d96e72a9fd2308a5, type: 3}
+  - backgroundKey: furnace_gate
+    sprite: {fileID: 21300000, guid: cce9a369d69a86f46855b87c5843f384, type: 3}
+  - backgroundKey: lab_room_alarm
+    sprite: {fileID: 21300000, guid: 0b78eef2208ee94489a478905581ab5d, type: 3}
+  - backgroundKey: lab_room_night
+    sprite: {fileID: 21300000, guid: 909ecef8f902246478d1fc3c60b16db1, type: 3}
+  - backgroundKey: lab_room_white
+    sprite: {fileID: 21300000, guid: 8fe2898d87488ef49a8acb1088eba84a, type: 3}
+  - backgroundKey: maintenance_corridor
+    sprite: {fileID: 21300000, guid: 5db2db99854632e499823810d65214b3, type: 3}
+  - backgroundKey: outside_wall_night
+    sprite: {fileID: 21300000, guid: d4d0d4c0e69ee8540be0a3f6190ff8c5, type: 3}
+  - backgroundKey: soft_cell
+    sprite: {fileID: 21300000, guid: 821a4944a7ea23c418025077ebf9031f, type: 3}
+  - backgroundKey: stairwell_down
+    sprite: {fileID: 21300000, guid: b9eefb791ac548a4495ced8aa43afbd3, type: 3}
+  - backgroundKey: waste_furnace
+    sprite: {fileID: 21300000, guid: b1555f7be6d62be46b37894c90936ec1, type: 3}
