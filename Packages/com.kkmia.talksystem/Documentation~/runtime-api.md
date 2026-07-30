@@ -82,6 +82,13 @@ Use `DialogueManager.CaptureState()` and `DialogueManager.RestoreState(saveData)
 
 Talk System gives you serializable state and an optional multi-slot persistence layer. Use `DialogueSaveSystem` when you want package-managed JSON slots, thumbnails, contributors, and restore orchestration. Use `DialogueManager.CaptureState()` directly when your game already owns every save file.
 
+For an in-memory checkpoint that must include registered contributors, use
+`DialogueSaveSystem.CaptureState()` and `DialogueSaveSystem.RestoreState(data)`.
+A contributor that stores nested checkpoints can pass itself as the optional
+excluded contributor to prevent recursive capture and restore. These methods do
+not allocate, read, or write a save slot, and a failed contributor restore rolls
+back to the state captured before the operation.
+
 Stage and audio binders implement `IDialogueSaveContributor`. Register or assign them to `DialogueSaveSystem` so background, visible characters, current BGM, and current voice restore with the dialogue state. Restore uses zero-duration presentation changes and does not replay one-shot SE.
 
 Default presentation components implement `IDialoguePresentationIssueSource`:

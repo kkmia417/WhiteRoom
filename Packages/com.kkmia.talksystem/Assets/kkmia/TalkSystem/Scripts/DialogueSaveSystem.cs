@@ -191,6 +191,82 @@ namespace kkmia.TalkSystem
             return _service.Save(slot, data, resolvedTitle, isAutosave, NowUnix());
         }
 
+        /// <summary>
+        /// Captures dialogue and registered contributor state without writing a
+        /// slot. A contributor can exclude itself when it owns nested snapshots.
+        /// </summary>
+        public DialogueSaveData CaptureState(IDialogueSaveContributor excludedContributor = null)
+        {
+            EnsureService();
+            var mgr = Manager;
+            if (mgr == null)
+            {
+                ReportLocal(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.Save,
+                    -1,
+                    "DialogueManager was not found."));
+                return null;
+            }
+
+            try
+            {
+                ApplyServiceOptions(mgr);
+                var data = mgr.CaptureState();
+                _service.ApplyCapture(data, excludedContributor);
+                return data;
+            }
+            catch (Exception e)
+            {
+                ReportLocal(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.Save,
+                    -1,
+                    "Failed to capture in-memory dialogue state: " + e.Message,
+                    e));
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Restores dialogue and registered contributor state without reading a
+        /// slot. If a contributor fails, the pre-operation state is restored.
+        /// </summary>
+        public bool RestoreState(
+            DialogueSaveData data,
+            IDialogueSaveContributor excludedContributor = null)
+        {
+            if (data == null) return false;
+
+            EnsureService();
+            var mgr = Manager;
+            if (mgr == null)
+            {
+                ReportLocal(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.Load,
+                    -1,
+                    "DialogueManager was not found."));
+                return false;
+            }
+
+            ApplyServiceOptions(mgr);
+            var rollback = CaptureState(excludedContributor);
+            if (rollback == null)
+                return false;
+
+            if (!mgr.RestoreState(data))
+            {
+                mgr.RestoreState(rollback);
+                _service.TryApplyRestore(rollback, excludedContributor);
+                return false;
+            }
+
+            if (_service.TryApplyRestore(data, excludedContributor))
+                return true;
+
+            mgr.RestoreState(rollback);
+            _service.TryApplyRestore(rollback, excludedContributor);
+            return false;
+        }
+
         /// <summary>画面キャプチャ付きで保存する（フレーム終端まで待つためコルーチン）。</summary>
         public DialogueSaveSlot SaveWithThumbnail(int slot, bool isAutosave = false, string title = null)
         {
@@ -245,11 +321,7 @@ namespace kkmia.TalkSystem
             if (saveSlot == null || saveSlot.Data == null)
                 return false;
 
-            if (!mgr.RestoreState(saveSlot.Data))
-                return false;
-
-            _service.ApplyRestore(saveSlot.Data);
-            return true;
+            return RestoreState(saveSlot.Data);
         }
 
         public bool QuickLoad()

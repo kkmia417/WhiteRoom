@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- In-memory `DialogueSaveSystem.CaptureState` / `RestoreState` orchestration for
+  coherent checkpoints across registered save contributors, including optional
+  contributor exclusion for nested snapshots and rollback on restore failure.
 - Package dependency metadata for clean UPM installs on Unity 6000.x, plus local consumer-project install validation and documented Git tag/commit pinning guidance.
 - Full stage/audio save restore: `DialogueStageBinder` and `DialogueAudioBinder` now implement `IDialogueSaveContributor`, so assigning them to `DialogueSaveSystem` persists and restores the background, character slots (with expressions), and current BGM. `DialogueStageState` tracks per-slot expression and exposes `Snapshot`/`RestoreSnapshot`; `DialogueStageDirector` and `DialogueAudioDirector` expose capture/restore of their current state.
 - Pluggable character rendering: `IDialogueCharacterBackend` lets `DialogueStageView` delegate stand-in drawing to Live2D / Spine / prefab models instead of sprites. `DialogueCharacterModel` (Animator + SetActive default) and `ModelDialogueCharacterBackend` (key→model registry with slot anchors) cover the SDK-free path.

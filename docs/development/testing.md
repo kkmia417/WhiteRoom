@@ -41,6 +41,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   the shipped scenario through an ending, restores an in-memory save, validates
   overlay automation suspension, returns to Title, and detects duplicate manager,
   canvas, or event-system instances.
+- `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
+  previous/next scene and choice restore, verifies presentation and Backlog coherence
+  without replaying line events, and reloads reached targets from a save slot.
 - Focused PlayMode tests continue to own Auto, Skip, Rollback, Backlog, manual/Quick/
   Auto Save, thumbnail, Config, collection, ending, and screenshot behavior.
 

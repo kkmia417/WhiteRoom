@@ -79,8 +79,7 @@ namespace kkmia.TalkSystem
             {
                 ApplyCurrentMetadata(data);
 
-                for (var i = 0; i < _contributors.Count; i++)
-                    _contributors[i].Capture(data);
+                ApplyCapture(data);
 
                 ApplyCurrentMetadata(data);
 
@@ -158,14 +157,51 @@ namespace kkmia.TalkSystem
             return Load(DialogueSaveSlotConventions.QuickSaveSlot);
         }
 
-        public void ApplyRestore(DialogueSaveData data)
+        /// <summary>
+        /// Applies registered contributors to an in-memory save snapshot. The
+        /// optional exclusion prevents a contributor that owns nested snapshots
+        /// from capturing itself recursively.
+        /// </summary>
+        public void ApplyCapture(
+            DialogueSaveData data,
+            IDialogueSaveContributor excludedContributor = null)
         {
             if (data == null) return;
+
+            for (var i = 0; i < _contributors.Count; i++)
+            {
+                var contributor = _contributors[i];
+                if (ReferenceEquals(contributor, excludedContributor))
+                    continue;
+                contributor.Capture(data);
+            }
+        }
+
+        public void ApplyRestore(DialogueSaveData data)
+        {
+            TryApplyRestore(data);
+        }
+
+        /// <summary>
+        /// Restores registered contributors from an in-memory save snapshot.
+        /// Returns false after reporting a contributor failure.
+        /// </summary>
+        public bool TryApplyRestore(
+            DialogueSaveData data,
+            IDialogueSaveContributor excludedContributor = null)
+        {
+            if (data == null) return false;
 
             try
             {
                 for (var i = 0; i < _contributors.Count; i++)
-                    _contributors[i].Restore(data);
+                {
+                    var contributor = _contributors[i];
+                    if (ReferenceEquals(contributor, excludedContributor))
+                        continue;
+                    contributor.Restore(data);
+                }
+                return true;
             }
             catch (Exception e)
             {
@@ -174,6 +210,7 @@ namespace kkmia.TalkSystem
                     data.CurrentDialogueId,
                     "Failed to restore dialogue save contributors: " + e.Message,
                     e));
+                return false;
             }
         }
 
