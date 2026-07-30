@@ -214,6 +214,34 @@ namespace kkmia.TalkSystem.Tests
         }
 
         [Test]
+        public void AudioPlayer_SettingsApplyChannelVolumesImmediately()
+        {
+            var root = new GameObject("audio-settings-test");
+            var bgm = root.AddComponent<AudioSource>();
+            var se = root.AddComponent<AudioSource>();
+            var voice = root.AddComponent<AudioSource>();
+            try
+            {
+                var player = root.AddComponent<DialogueAudioPlayer>();
+                var serialized = new SerializedObject(player);
+                serialized.FindProperty("bgmSource").objectReferenceValue = bgm;
+                serialized.FindProperty("seSource").objectReferenceValue = se;
+                serialized.FindProperty("voiceSource").objectReferenceValue = voice;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                var settings = new DialogueSettings { MasterVolume = 0.5f };
+                player.BindSettings(settings);
+                settings.BgmVolume = 0.4f;
+                settings.SeVolume = 0.6f;
+                settings.VoiceVolume = 0.8f;
+
+                Assert.That(bgm.volume, Is.EqualTo(0.2f).Within(0.001f));
+                Assert.That(se.volume, Is.EqualTo(0.3f).Within(0.001f));
+                Assert.That(voice.volume, Is.EqualTo(0.4f).Within(0.001f));
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        [Test]
         public void LipSync_Rms_ComputesRootMeanSquare()
         {
             var samples = new[] { 0.5f, -0.5f, 0.5f, -0.5f };

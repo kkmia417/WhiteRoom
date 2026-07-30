@@ -38,5 +38,24 @@ namespace kkmia.TalkSystem.Tests
                 Object.DestroyImmediate(gameObject);
             }
         }
+
+        [Test]
+        public void Controller_SettingsChangesRefreshPlaybackStateImmediately()
+        {
+            var gameObject = new GameObject("DialoguePlaybackSettings");
+            var controller = gameObject.AddComponent<DialoguePlaybackController>();
+            typeof(DialoguePlaybackController)
+                .GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            var changes = 0;
+            try
+            {
+                controller.StateChanged += _ => changes++;
+                controller.Settings.TextSpeed = 0.9f;
+                controller.Settings.AutoAdvanceDelay = 3f;
+                Assert.That(changes, Is.EqualTo(2));
+            }
+            finally { Object.DestroyImmediate(gameObject); }
+        }
     }
 }

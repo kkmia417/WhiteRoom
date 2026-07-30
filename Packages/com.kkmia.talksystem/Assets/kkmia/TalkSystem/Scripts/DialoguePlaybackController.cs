@@ -49,6 +49,7 @@ namespace kkmia.TalkSystem
                 _settings = new DialogueSettings();
                 _settingsStore = new PlayerPrefsDialogueSettingsStore();
                 _settings.Load(_settingsStore);
+                _settings.Changed += HandleSettingsChanged;
             }
 
             if (_readRegistry == null)
@@ -73,6 +74,12 @@ namespace kkmia.TalkSystem
             Unbind();
         }
 
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= HandleSettingsChanged;
+        }
+
         public void SetMode(DialoguePlaybackMode mode)
         {
             var previous = Mode;
@@ -95,6 +102,18 @@ namespace kkmia.TalkSystem
         public void ToggleSkip()
         {
             SetMode(Mode == DialoguePlaybackMode.Skip ? DialoguePlaybackMode.Normal : DialoguePlaybackMode.Skip);
+        }
+
+        public void RefreshSettings()
+        {
+            ApplyTextSpeed();
+            ApplyCurrentPlan();
+            RaiseStateChanged();
+        }
+
+        private void HandleSettingsChanged()
+        {
+            RefreshSettings();
         }
 
         private void Bind(DialogueManager target)

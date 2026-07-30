@@ -108,12 +108,16 @@ namespace WhiteRoom.Novel.Editor.Tests
         {
             var endingOpens = 0;
             var galleryOpens = 0;
+            var configOpens = 0;
+            var quitOpens = 0;
             var title = new TitleMenuController(
                 null,
                 () => { },
                 () => { },
                 () => endingOpens++,
-                () => galleryOpens++);
+                () => galleryOpens++,
+                () => configOpens++,
+                () => quitOpens++);
             var create = typeof(TitleMenuController).GetMethod(
                 "CreateMenu",
                 BindingFlags.Instance | BindingFlags.NonPublic);
@@ -125,11 +129,17 @@ namespace WhiteRoom.Novel.Editor.Tests
                     .ToDictionary(button => button.name);
                 Assert.That(buttons.ContainsKey("EndingListButton"), Is.True);
                 Assert.That(buttons.ContainsKey("GalleryButton"), Is.True);
+                Assert.That(buttons.ContainsKey("ConfigButton"), Is.True);
+                Assert.That(buttons.ContainsKey("QuitButton"), Is.True);
 
                 buttons["EndingListButton"].onClick.Invoke();
                 buttons["GalleryButton"].onClick.Invoke();
+                buttons["ConfigButton"].onClick.Invoke();
+                buttons["QuitButton"].onClick.Invoke();
                 Assert.That(endingOpens, Is.EqualTo(1));
                 Assert.That(galleryOpens, Is.EqualTo(1));
+                Assert.That(configOpens, Is.EqualTo(1));
+                Assert.That(quitOpens, Is.EqualTo(1));
             }
             finally
             {
