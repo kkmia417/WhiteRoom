@@ -12,6 +12,72 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49c617a761f341389caadf6632bad6a8, type: 3}
   m_Name: WhiteRoomAudioDatabase
   m_EditorClassIdentifier: kkmia.TalkSystem.Runtime::kkmia.TalkSystem.AudioDatabase
-  bgm: []
-  se: []
+  bgm:
+  - audioKey: alarm
+    clip: {fileID: 8300000, guid: 42ea46133cb07c34fbea357d0404aedb, type: 3}
+  - audioKey: alarm_low
+    clip: {fileID: 8300000, guid: 346c1fd70d8db6f45b6ec1c44dba8103, type: 3}
+  - audioKey: corridor_rush
+    clip: {fileID: 8300000, guid: 896d06ef3c3128840b98e8d812523363, type: 3}
+  - audioKey: duct_alarm
+    clip: {fileID: 8300000, guid: cde4e04c4e6de4848abd5f4880dd8d1a, type: 3}
+  - audioKey: duct_tension
+    clip: {fileID: 8300000, guid: 32587e325991d274f91f1cfc3283fa31, type: 3}
+  - audioKey: escape_begin
+    clip: {fileID: 8300000, guid: 3c60efc4e785bc148b537e4d557d2601, type: 3}
+  - audioKey: escape_final
+    clip: {fileID: 8300000, guid: ccff3687453264c42a00a9384811a6c6, type: 3}
+  - audioKey: furnace_rumble
+    clip: {fileID: 8300000, guid: ae6ca08329156e6469adad2f366fcb55, type: 3}
+  - audioKey: quiet_dark
+    clip: {fileID: 8300000, guid: b056be1d11d88064f8c2819e3abc2452, type: 3}
+  - audioKey: stair_descent
+    clip: {fileID: 8300000, guid: aedcc61b1382c6745baf7e37277df70e, type: 3}
+  - audioKey: sterile_low
+    clip: {fileID: 8300000, guid: 3c3f02ffecae1c445803c1f2bbcdd715, type: 3}
+  - audioKey: tense_low
+    clip: {fileID: 8300000, guid: 0b254e4db924aac438adb6caf34bc69f, type: 3}
+  se:
+  - audioKey: body_fall
+    clip: {fileID: 8300000, guid: 2fe0d6488349f7a4b89f42841dbbd16e, type: 3}
+  - audioKey: camera_down
+    clip: {fileID: 8300000, guid: ec741e0d3e3510b419f0d3e5e29f3901, type: 3}
+  - audioKey: camera_focus
+    clip: {fileID: 8300000, guid: 8a1e1da476a25164ba041dfca756dad4, type: 3}
+  - audioKey: distant_door
+    clip: {fileID: 8300000, guid: 63e3646df222494419788d2488ab342a, type: 3}
+  - audioKey: distant_drone
+    clip: {fileID: 8300000, guid: e9a47a7729ba49246ab0e1511d5f4325, type: 3}
+  - audioKey: door_close
+    clip: {fileID: 8300000, guid: 9d2a26b7076b25d47aa239c9f4df0d76, type: 3}
+  - audioKey: door_grind
+    clip: {fileID: 8300000, guid: faa73456fc7cde946ac60ee487b934f3, type: 3}
+  - audioKey: door_open
+    clip: {fileID: 8300000, guid: eaceb37bd947aa241a7b712073691548, type: 3}
+  - audioKey: drone_alert
+    clip: {fileID: 8300000, guid: c110a8d168e00d54892d412601e04e5c, type: 3}
+  - audioKey: footsteps
+    clip: {fileID: 8300000, guid: 1e5b2ff8f9761954eb078433cdb946b5, type: 3}
+  - audioKey: furnace_start
+    clip: {fileID: 8300000, guid: 97d1616b44a9c3b488b988629cca1b48, type: 3}
+  - audioKey: gate_open
+    clip: {fileID: 8300000, guid: 7ac347f2084a3d148aea8944e999054f, type: 3}
+  - audioKey: grab
+    clip: {fileID: 8300000, guid: 91534604b62ff474aa81ea26cfa09d55, type: 3}
+  - audioKey: inject
+    clip: {fileID: 8300000, guid: 7a434a278d1f14d47a71d2f8ffbafe57, type: 3}
+  - audioKey: lock
+    clip: {fileID: 8300000, guid: b2b9ff9e102019140b62a8aa6ac2da2d, type: 3}
+  - audioKey: metal_crash
+    clip: {fileID: 8300000, guid: e13497b78b431b54293a9b8f588bab48, type: 3}
+  - audioKey: screw
+    clip: {fileID: 8300000, guid: 425a0a041a1b17742ad3afec972bc86e, type: 3}
+  - audioKey: spark
+    clip: {fileID: 8300000, guid: 03c270ef7f1f4c74ba521f4fb680a0f2, type: 3}
+  - audioKey: splash
+    clip: {fileID: 8300000, guid: f0b7cf0bb9f45004493005b552394f6d, type: 3}
+  - audioKey: vent_close
+    clip: {fileID: 8300000, guid: b88ceb8dc9243b344b77f8c8b6accd28, type: 3}
+  - audioKey: vent_open
+    clip: {fileID: 8300000, guid: 604c1cc3f59316841bdad668270174ad, type: 3}
   voice: []
