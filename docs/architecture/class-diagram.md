@@ -55,6 +55,7 @@ classDiagram
     class DialoguePresentationIssueLogger
     class RuntimeFieldBinder
     class NovelSaveService
+    class AutosaveCheckpointService
     class DialogueProgressService
     class PlayerNameVariableResolver
     class TitleMenuController
@@ -80,6 +81,7 @@ classDiagram
     NovelGameBootstrap ..> DialoguePresentationFactory : builds stage/audio via
     NovelGameBootstrap ..> NovelUiFactory : ensures font/canvas via
     NovelGameBootstrap *-- NovelSaveService : owns
+    NovelGameBootstrap *-- AutosaveCheckpointService : owns
     NovelGameBootstrap *-- DialogueProgressService : owns
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : owns
     NovelGameBootstrap *-- TitleMenuController : owns
@@ -107,6 +109,9 @@ classDiagram
 
     NovelSaveService --> DialogueManager : reads current line
     NovelSaveService --> DialogueSaveSystem : delegates persistence
+    AutosaveCheckpointService --> DialogueManager : listens story checkpoints
+    AutosaveCheckpointService --> NovelSaveService : requests autosave
+    AutosaveCheckpointService --> DialoguePlaybackController : suspends Auto/Skip
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : listens ProgressMarkerReached
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
@@ -143,6 +148,7 @@ classDiagram
         +LoadDialogue(int slot) bool
         +QuickSave() bool
         +QuickLoad() bool
+        +Autosave(string checkpointTitle) bool
         +ContinueLatest() bool
         +OpenSaveScreen()
         +OpenLoadScreen()
@@ -170,9 +176,21 @@ classDiagram
         +ContinueLatest() bool
         +HasSave(int slot) bool
         +HasContinueSave() bool
+        +GetContinueCandidate() DialogueSaveSlotViewModel
         +GetSlotViewModel(int slot) DialogueSaveSlotViewModel
         +Dispose()
         -BuildSaveTitle(int slot) string
+    }
+
+    class AutosaveCheckpointService {
+        <<sealed>>
+        +PendingCount int
+        +AttachTo(DialogueManager manager)
+        +TryFlush() bool
+        +Dispose()
+        -HandleLineStarted(DialogueEventContext context)
+        -HandleLineCompleted(DialogueEventContext context)
+        -HandleProgressMarkerReached(DialogueProgressEventContext context)
     }
 
     class DialogueProgressService {
@@ -206,21 +224,28 @@ classDiagram
     }
 
     NovelGameBootstrap *-- NovelSaveService
+    NovelGameBootstrap *-- AutosaveCheckpointService
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap ..> PlayerNameVariableResolver : registers on manager
     NovelSaveService ..|> IDisposable
+    AutosaveCheckpointService ..|> IDisposable
+    AutosaveCheckpointService --> NovelSaveService : requests autosave
     DialogueProgressService ..|> IDisposable
     DialogueProgressService ..|> IDialogueConditionEvaluator
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
 ```
 
-Service collaboration is event-based: the bootstrap reacts to
-`NovelSaveService.Saved` / `Loaded` to refresh or hide screens, and
+Service collaboration is event-based: `AutosaveCheckpointService` listens for
+explicit chapter, post-choice, and ending checkpoints and delegates the single-slot
+write to `NovelSaveService`. The bootstrap reacts to `NovelSaveService.Saved` /
+`Loaded` to refresh or hide screens, and
 `DialogueProgressService` persists unlocks through the Talk System
 `DialogueUnlockRegistry` + `DialogueUnlockSaveService` pair when
 `DialogueManager.ProgressMarkerReached` fires. Save-slot policy (versioned
 envelope, quick-save slot, continue candidate) stays inside Talk System per
 [ADR-0008](../adr/0008-versioned-save-compatibility.md).
+The concrete checkpoint and Continue policy is documented in
+[Autosave checkpoints and Continue selection](../development/autosave-checkpoints.md).
 
 ## Setup factories
 

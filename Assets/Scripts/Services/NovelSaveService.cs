@@ -10,7 +10,8 @@ namespace WhiteRoom.Novel
         DirectSave,
         Load,
         QuickSave,
-        QuickLoad
+        QuickLoad,
+        Autosave
     }
 
     public sealed class NovelSaveFeedback
@@ -180,9 +181,55 @@ namespace WhiteRoom.Novel
             }
         }
 
+        /// <summary>
+        /// Replaces the single product autosave slot with a coherent checkpoint.
+        /// Autosaves deliberately omit thumbnails so the narrative and registered
+        /// presentation contributors are committed in one short synchronous write.
+        /// </summary>
+        public bool Autosave(string checkpointTitle)
+        {
+            var slot = DialogueSaveSystem.AutosaveSlot;
+            if (!CanSaveNow)
+            {
+                Publish(NovelSaveFeedbackKind.Autosave, slot, false, "Autosave is not available at this point.");
+                return false;
+            }
+
+            if (!TryBegin(NovelSaveFeedbackKind.Autosave, slot))
+                return false;
+
+            try
+            {
+                var title = string.IsNullOrWhiteSpace(checkpointTitle)
+                    ? BuildSaveTitle(slot)
+                    : checkpointTitle.Trim();
+                var saved = _saveSystem.Save(slot, true, title) != null;
+                if (saved)
+                    Saved?.Invoke();
+
+                Publish(
+                    NovelSaveFeedbackKind.Autosave,
+                    slot,
+                    saved,
+                    saved ? "Autosave complete." : FailureMessage("Autosave failed; dialogue will continue."));
+                return saved;
+            }
+            catch (Exception exception)
+            {
+                var message = "Autosave failed; dialogue will continue. " + exception.Message;
+                Debug.LogWarning("NovelSaveService: " + message);
+                Publish(NovelSaveFeedbackKind.Autosave, slot, false, message);
+                return false;
+            }
+            finally
+            {
+                _operationInProgress = false;
+            }
+        }
+
         public bool ContinueLatest()
         {
-            var candidate = _saveSystem.GetLatestContinueCandidate(true, true, false);
+            var candidate = GetContinueCandidate();
             var loaded = candidate != null && candidate.CanLoad && _saveSystem.Load(candidate.SlotIndex);
             if (loaded)
             {
@@ -200,8 +247,18 @@ namespace WhiteRoom.Novel
 
         public bool HasContinueSave()
         {
-            var candidate = _saveSystem.GetLatestContinueCandidate(true, true, false);
+            var candidate = GetContinueCandidate();
             return candidate != null && candidate.CanLoad;
+        }
+
+        /// <summary>
+        /// Continue uses the newest loadable manual, quick, or autosave. Talk System
+        /// resolves equal-second timestamps by descending slot index, which gives
+        /// manual slots precedence over autosave, then quick save.
+        /// </summary>
+        public DialogueSaveSlotViewModel GetContinueCandidate()
+        {
+            return _saveSystem.GetLatestContinueCandidate(true, true, false);
         }
 
         public DialogueSaveSlotViewModel GetSlotViewModel(int slot)

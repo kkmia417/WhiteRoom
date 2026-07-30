@@ -55,6 +55,7 @@ namespace WhiteRoom.Novel
         private DialogueView _view;
         private DialoguePresentation _presentation;
         private NovelSaveService _saveService;
+        private AutosaveCheckpointService _autosaveCheckpoints;
         private DialogueProgressService _progress;
         private EndingFlowService _endingFlow;
         private EndingResultScreenController _endingResultScreen;
@@ -120,6 +121,7 @@ namespace WhiteRoom.Novel
             SceneManager.sceneLoaded -= HandleSceneLoaded;
 
             _saveService?.Dispose();
+            _autosaveCheckpoints?.Dispose();
             _endingFlow?.Dispose();
             _progress?.Dispose();
             if (_collectionScreen != null)
@@ -144,6 +146,8 @@ namespace WhiteRoom.Novel
 
         private void Update()
         {
+            _autosaveCheckpoints?.TryFlush();
+
             if (IsEndingInputBlocked())
                 return;
 
@@ -427,6 +431,13 @@ namespace WhiteRoom.Novel
 
             var autoAdvanceGate = new DialogueAutoAdvanceGate(_view);
             _saveService = new NovelSaveService(_manager, saveSystem, defaultManualSaveSlot, saveThumbnails);
+            _autosaveCheckpoints = new AutosaveCheckpointService(
+                title => _saveService != null && _saveService.Autosave(title),
+                () => _playbackController != null ? _playbackController.Mode : DialoguePlaybackMode.Normal,
+                mode => _playbackController?.SetMode(mode));
+            // Attach after progress so ending unlock persistence completes before
+            // the final-line autosave is committed.
+            _autosaveCheckpoints.AttachTo(_manager);
             _quickLoadAvailable = _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _backlog = new BacklogController(backlogView, autoAdvanceGate, StopPlaybackAutomation);
             var collectionCatalogAsset = Resources.Load<TextAsset>(collectionCatalogResourcePath);
@@ -515,6 +526,7 @@ namespace WhiteRoom.Novel
 
         private void HandleLoadCompleted()
         {
+            StopPlaybackAutomation();
             _titleMenu.Hide();
             _saveLoadScreen.Close();
         }
