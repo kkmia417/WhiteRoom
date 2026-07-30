@@ -114,8 +114,10 @@ namespace WhiteRoom.Novel
         public Func<bool> CanQuickLoad { get; set; }
         public Func<bool> CanBackSkip { get; set; }
         public Func<bool> CanOpenSystemConfig { get; set; }
+        public Func<bool> CanCaptureScreenshot { get; set; }
         public Func<bool> CanHideMessage { get; set; }
         public Func<bool> CanReturnTitle { get; set; }
+        public string ScreenshotUnavailableReason { get; set; }
         public Func<bool> HasDialogue { get; set; }
         public Func<bool> IsBacklogOpen { get; set; }
         public Func<bool> IsBackSkipActive { get; set; }
@@ -152,7 +154,17 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.FavoriteVoiceList, NovelCommandGroup.Voice, "FAV", "Favorite voices", bindings.OpenFavoriteVoices),
                 Command(NovelCommandId.VoiceReplay, NovelCommandGroup.Voice, "VOICE", "Replay current voice", bindings.ReplayVoice),
                 Command(NovelCommandId.FavoriteVoiceAdd, NovelCommandGroup.Voice, "+FAV", "Add favorite voice", bindings.AddFavoriteVoice),
-                Command(NovelCommandId.Screenshot, NovelCommandGroup.System, "SHOT", "Capture screenshot", bindings.CaptureScreenshot),
+                Command(
+                    NovelCommandId.Screenshot,
+                    NovelCommandGroup.System,
+                    "SHOT",
+                    "Capture screenshot",
+                    bindings.CaptureScreenshot,
+                    bindings.CanCaptureScreenshot,
+                    null,
+                    string.IsNullOrWhiteSpace(bindings.ScreenshotUnavailableReason)
+                        ? "Screenshot capture is unavailable"
+                        : bindings.ScreenshotUnavailableReason),
                 Command(NovelCommandId.HideMessage, NovelCommandGroup.System, "HIDE", "Hide message window", bindings.HideMessage, bindings.CanHideMessage),
                 Command(NovelCommandId.ReturnTitle, NovelCommandGroup.System, "TITLE", "Return to title", bindings.ReturnTitle, bindings.CanReturnTitle)
             };

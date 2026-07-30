@@ -9,6 +9,7 @@ namespace WhiteRoom.Novel
         private const float DisplaySeconds = 2.4f;
 
         private GameObject _root;
+        private RectTransform _rootRect;
         private TMP_Text _label;
         private Image _background;
         private float _hideAt;
@@ -21,7 +22,7 @@ namespace WhiteRoom.Novel
         public void Show(string message, bool succeeded)
         {
             EnsureCreated();
-            _label.text = message ?? string.Empty;
+            SetMessage(message);
             _background.color = succeeded
                 ? new Color(0.10f, 0.30f, 0.20f, 0.96f)
                 : new Color(0.42f, 0.12f, 0.10f, 0.96f);
@@ -31,7 +32,7 @@ namespace WhiteRoom.Novel
         public void ShowInfo(string message)
         {
             EnsureCreated();
-            _label.text = message ?? string.Empty;
+            SetMessage(message);
             _background.color = new Color(0.16f, 0.20f, 0.24f, 0.96f);
             Activate();
         }
@@ -82,12 +83,12 @@ namespace WhiteRoom.Novel
                 typeof(NovelNotificationDriver));
             _root.transform.SetParent(canvas.transform, false);
 
-            var rect = (RectTransform)_root.transform;
-            rect.anchorMin = new Vector2(0.5f, 1f);
-            rect.anchorMax = new Vector2(0.5f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -28f);
-            rect.sizeDelta = new Vector2(520f, 46f);
+            _rootRect = (RectTransform)_root.transform;
+            _rootRect.anchorMin = new Vector2(0.5f, 1f);
+            _rootRect.anchorMax = new Vector2(0.5f, 1f);
+            _rootRect.pivot = new Vector2(0.5f, 1f);
+            _rootRect.anchoredPosition = new Vector2(0f, -28f);
+            _rootRect.sizeDelta = new Vector2(520f, 46f);
 
             _background = _root.GetComponent<Image>();
             _background.raycastTarget = false;
@@ -103,6 +104,16 @@ namespace WhiteRoom.Novel
             _label.raycastTarget = false;
             _root.GetComponent<NovelNotificationDriver>().Configure(this);
             _root.SetActive(false);
+        }
+
+        private void SetMessage(string message)
+        {
+            var value = message ?? string.Empty;
+            _label.text = value;
+            var multiline = value.IndexOf('\n') >= 0;
+            _label.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+            if (_rootRect != null)
+                _rootRect.sizeDelta = multiline ? new Vector2(780f, 76f) : new Vector2(520f, 46f);
         }
     }
 

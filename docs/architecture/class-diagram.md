@@ -59,6 +59,8 @@ classDiagram
     class DialogueProgressService
     class GameplayOverlayCoordinator
     class TitleReturnService
+    class ScreenshotCaptureService
+    class FileScreenshotStorage
     class PlayerNameVariableResolver
     class TitleMenuController
     class SaveLoadScreenController
@@ -66,6 +68,7 @@ classDiagram
     class ConfigScreenController
     class MessageWindowVisibilityController
     class TitleReturnConfirmationController
+    class ScreenshotCaptureUiController
     class DialogueAutoAdvanceGate
     class NovelUiFactory
     class UiButtonStyle
@@ -90,6 +93,7 @@ classDiagram
     NovelGameBootstrap *-- DialogueProgressService : owns
     NovelGameBootstrap *-- GameplayOverlayCoordinator : owns
     NovelGameBootstrap *-- TitleReturnService : owns
+    NovelGameBootstrap *-- ScreenshotCaptureService : owns
     NovelGameBootstrap *-- DialoguePresentationIssueLogger : owns
     NovelGameBootstrap *-- TitleMenuController : owns
     NovelGameBootstrap *-- SaveLoadScreenController : owns
@@ -97,6 +101,7 @@ classDiagram
     NovelGameBootstrap *-- ConfigScreenController : owns
     NovelGameBootstrap *-- MessageWindowVisibilityController : owns
     NovelGameBootstrap *-- TitleReturnConfirmationController : owns
+    NovelGameBootstrap *-- ScreenshotCaptureUiController : owns
     NovelGameBootstrap ..> PlayerNameVariableResolver : registers
     NovelGameBootstrap --> DialogueManager : drives
     NovelGameBootstrap --> DialogueView : holds
@@ -125,6 +130,7 @@ classDiagram
     DialogueProgressService ..|> IDialogueConditionEvaluator
     DialogueProgressService --> DialogueManager : listens ProgressMarkerReached
     TitleReturnService --> DialogueManager : tracks dirty progress via bootstrap
+    ScreenshotCaptureService --> FileScreenshotStorage : writes full PNG via
     PlayerNameVariableResolver ..|> IDialogueVariableResolver
 
     TitleMenuController --> NovelSaveService : queries/loads
@@ -136,6 +142,7 @@ classDiagram
     BacklogController --> DialogueAutoAdvanceGate : suspends
     MessageWindowVisibilityController --> DialogueView : hides narrative UI
     TitleReturnConfirmationController --> TitleReturnService : confirms transition
+    ScreenshotCaptureUiController --> NovelCommandBarController : hides capture UI
     DialogueAutoAdvanceGate --> DialogueView : gates auto-advance
     NovelUiFactory ..> UiButtonStyle : styles buttons with
 ```
@@ -175,6 +182,7 @@ classDiagram
         +OpenConfig()
         +HideMessageWindow()
         +RequestReturnToTitle() bool
+        +RequestScreenshot() bool
         -BuildRuntime()
         -HandleDialogueEvent(DialogueEventContext context)
         -HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -247,6 +255,20 @@ classDiagram
         +NotifySceneLoaded()
     }
 
+    class ScreenshotCaptureService {
+        <<sealed>>
+        +IsAvailable bool
+        +IsBusy bool
+        +TryBegin(out IEnumerator captureRoutine) bool
+    }
+
+    class FileScreenshotStorage {
+        <<sealed>>
+        +DirectoryPath string
+        +Exists(string fileName) bool
+        +WritePng(string fileName, byte[] pngBytes)
+    }
+
     class IDialogueConditionEvaluator {
         <<interface>>
         +Evaluate(string conditionKey, DialogueData data) bool
@@ -264,6 +286,8 @@ classDiagram
     NovelGameBootstrap *-- DialogueProgressService
     NovelGameBootstrap *-- GameplayOverlayCoordinator
     NovelGameBootstrap *-- TitleReturnService
+    NovelGameBootstrap *-- ScreenshotCaptureService
+    ScreenshotCaptureService --> FileScreenshotStorage
     NovelGameBootstrap ..> PlayerNameVariableResolver : registers on manager
     NovelSaveService ..|> IDisposable
     AutosaveCheckpointService ..|> IDisposable
@@ -288,6 +312,8 @@ Thumbnail sidecar capture and UI lifecycle are documented in
 [Save thumbnails](../development/save-thumbnails.md).
 In-game Config, message visibility, and Return-to-Title lifecycle are documented in
 [In-game system UI](../development/ingame-system-ui.md).
+Player capture and platform-owned file storage are documented in
+[Player screenshots](../development/screenshots.md).
 
 ## Setup factories
 
@@ -425,6 +451,13 @@ classDiagram
         +Cancel()
     }
 
+    class ScreenshotCaptureUiController {
+        <<sealed>>
+        +IsCaptureUiHidden bool
+        +HideForCapture()
+        +RestoreAfterCapture()
+    }
+
     class NovelUiFactory {
         <<static>>
         +CanvasName string
@@ -447,6 +480,7 @@ classDiagram
 
     class NovelSaveService
     class TitleReturnService
+    class NovelCommandBarController
     class DialogueView["TS: DialogueView"]
     class DialogueBacklogView["TS: DialogueBacklogView"]
 
@@ -458,6 +492,7 @@ classDiagram
     DialogueAutoAdvanceGate --> DialogueView
     MessageWindowVisibilityController --> DialogueView
     TitleReturnConfirmationController --> TitleReturnService
+    ScreenshotCaptureUiController --> NovelCommandBarController
     TitleMenuController ..> NovelUiFactory
     SaveLoadScreenController ..> NovelUiFactory
     NovelUiFactory ..> UiButtonStyle
@@ -481,9 +516,10 @@ can move them without re-deciding boundaries.
 | `DialoguePresentation`, `DialoguePresentationIssueLogger` | `WhiteRoom.Presentation` |
 | `NovelSaveService` | `WhiteRoom.Persistence` (application face) |
 | `GameplayOverlayCoordinator`, `TitleReturnService` | `WhiteRoom.Application` |
+| `ScreenshotCaptureService`, `FileScreenshotStorage` | `WhiteRoom.Platform` (capture/storage port and local adapter) |
 | `DialogueProgressService` | `WhiteRoom.Narrative` |
 | `PlayerNameVariableResolver` | `WhiteRoom.Narrative` |
-| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController` | `WhiteRoom.Presentation` |
+| `TitleMenuController`, `SaveLoadScreenController`, `BacklogController`, `DialogueAutoAdvanceGate`, `ConfigScreenController`, `MessageWindowVisibilityController`, `TitleReturnConfirmationController`, `ScreenshotCaptureUiController` | `WhiteRoom.Presentation` |
 | `NovelUiFactory`, `UiButtonStyle` | `WhiteRoom.Presentation` (until prefab-driven UI replaces them) |
 
 ## Design rules this diagram encodes
