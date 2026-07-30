@@ -26,6 +26,13 @@ Windows and macOS setup, file-naming rules, and line-ending troubleshooting are
 documented in the
 [cross-platform development guide](docs/development/cross-platform-setup.md).
 
+## Current release media scope
+
+The current release intentionally ships without character voice recordings.
+The CSV `Voice` column and runtime support remain reserved for a later release;
+see the [voice support policy](docs/assets/voice.md) for interruption, restore,
+auto-advance, credits, and reconsideration rules.
+
 ## Codex Harness
 
 This repository includes Harness for Codex skills under `.agents/skills`.
