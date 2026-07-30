@@ -107,7 +107,11 @@ namespace kkmia.TalkSystem
 
         public void SaveThumbnail(int slot, byte[] pngBytes)
         {
-            if (pngBytes == null || pngBytes.Length == 0) return;
+            if (pngBytes == null || pngBytes.Length == 0)
+            {
+                DeleteWithBackup(ThumbnailPath(slot));
+                return;
+            }
             EnsureDirectory();
             AtomicWriteAllBytes(ThumbnailPath(slot), pngBytes);
         }

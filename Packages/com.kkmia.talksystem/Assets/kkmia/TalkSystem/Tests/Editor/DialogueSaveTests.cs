@@ -47,7 +47,10 @@ namespace kkmia.TalkSystem.Tests
 
             public void SaveThumbnail(int slot, byte[] pngBytes)
             {
-                Thumbs[slot] = pngBytes;
+                if (pngBytes == null || pngBytes.Length == 0)
+                    Thumbs.Remove(slot);
+                else
+                    Thumbs[slot] = pngBytes;
             }
         }
 
@@ -88,6 +91,18 @@ namespace kkmia.TalkSystem.Tests
             public IEnumerable<int> ListSlots() { return new List<int>(); }
             public byte[] LoadThumbnail(int slot) { return null; }
             public void SaveThumbnail(int slot, byte[] pngBytes) { }
+        }
+
+        private sealed class ThrowingThumbnailStorage : IDialogueSaveStorage
+        {
+            private readonly Dictionary<int, DialogueSaveSlot> _slots = new Dictionary<int, DialogueSaveSlot>();
+            public bool TryLoad(int slot, out DialogueSaveSlot data) { return _slots.TryGetValue(slot, out data); }
+            public void Save(DialogueSaveSlot slot) { _slots[slot.SlotIndex] = slot; }
+            public void Delete(int slot) { _slots.Remove(slot); }
+            public bool Exists(int slot) { return _slots.ContainsKey(slot); }
+            public IEnumerable<int> ListSlots() { return _slots.Keys; }
+            public byte[] LoadThumbnail(int slot) { return null; }
+            public void SaveThumbnail(int slot, byte[] pngBytes) { throw new IOException("thumbnail disk full"); }
         }
 
         private sealed class LegacyDataMigration : IDialogueSaveDataMigration
@@ -286,6 +301,23 @@ namespace kkmia.TalkSystem.Tests
         }
 
         [Test]
+        public void Service_ThumbnailFailure_DoesNotInvalidateSuccessfulSaveData()
+        {
+            var service = new DialogueSaveService(new ThrowingThumbnailStorage());
+            var slot = service.Save(1, new DialogueSaveData { CurrentDialogueId = 8 }, "saved", false, 10);
+            Assert.IsNotNull(slot);
+
+            service.SaveThumbnail(1, new byte[] { 1, 2, 3 });
+            var thumbnailFailure = service.LastResult;
+
+            Assert.IsTrue(thumbnailFailure.Failed);
+            Assert.AreEqual(DialogueSaveOperation.SaveThumbnail, thumbnailFailure.Operation);
+            var loaded = service.Load(1);
+            Assert.IsNotNull(loaded);
+            Assert.AreEqual(8, loaded.Data.CurrentDialogueId);
+        }
+
+        [Test]
         public void Service_LoadThumbnail_MissingThumbnailReturnsNullWithoutFailure()
         {
             var service = new DialogueSaveService(new MemoryStorage());
@@ -296,6 +328,41 @@ namespace kkmia.TalkSystem.Tests
             Assert.IsNotNull(service.LastResult);
             Assert.IsFalse(service.LastResult.Failed);
             Assert.AreEqual(DialogueSaveOperation.LoadThumbnail, service.LastResult.Operation);
+        }
+
+        [Test]
+        public void Service_SaveThumbnail_EmptyPayloadClearsPreviousSidecar()
+        {
+            var storage = new MemoryStorage();
+            var service = new DialogueSaveService(storage);
+            service.SaveThumbnail(3, new byte[] { 1, 2, 3 });
+            Assert.IsNotNull(service.LoadThumbnail(3));
+
+            service.SaveThumbnail(3, null);
+
+            Assert.IsNull(service.LoadThumbnail(3));
+            Assert.IsFalse(service.LastResult.Failed);
+        }
+
+        [Test]
+        public void FileStorage_SaveThumbnail_EmptyPayloadRemovesFileAndBackup()
+        {
+            var directory = CreateTempDirectory();
+            try
+            {
+                var storage = new FileDialogueSaveStorage(directory);
+                storage.SaveThumbnail(7, new byte[] { 1, 2, 3 });
+                Assert.IsNotNull(storage.LoadThumbnail(7));
+
+                storage.SaveThumbnail(7, Array.Empty<byte>());
+
+                Assert.IsNull(storage.LoadThumbnail(7));
+                Assert.IsFalse(File.Exists(Path.Combine(directory, "slot_7.png.bak")));
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
         }
 
         [Test]
@@ -360,14 +427,18 @@ namespace kkmia.TalkSystem.Tests
                 var service = new DialogueSaveService(storage);
                 service.Save(1, new DialogueSaveData { CurrentDialogueId = 10 }, "first", false, 1);
                 service.Save(1, new DialogueSaveData { CurrentDialogueId = 20 }, "second", false, 2);
+                service.SaveThumbnail(1, new byte[] { 1, 2, 3 });
 
                 var slotPath = Path.Combine(directory, "slot_1.json");
+                var thumbnailPath = Path.Combine(directory, "slot_1.png");
                 Assert.IsTrue(File.Exists(slotPath + ".bak"));
+                Assert.IsTrue(File.Exists(thumbnailPath));
 
                 service.Delete(1);
 
                 Assert.IsFalse(File.Exists(slotPath));
                 Assert.IsFalse(File.Exists(slotPath + ".bak"));
+                Assert.IsFalse(File.Exists(thumbnailPath));
                 Assert.IsNull(service.Load(1));
             }
             finally

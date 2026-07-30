@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using kkmia.TalkSystem;
 using TMPro;
 using UnityEngine;
@@ -38,6 +39,7 @@ namespace WhiteRoom.Novel
         private bool _modeIsSave = true;
         private bool _titleMenuVisible;
         private bool _confirmationIsDirectSave;
+        private bool _captureWasOpen;
         private int _confirmationSlot = -1;
         private int _currentPage;
 
@@ -60,7 +62,9 @@ namespace WhiteRoom.Novel
         public bool IsOpen => _root != null && _root.activeSelf;
         public bool IsConfirmingOverwrite => _confirmationRoot != null && _confirmationRoot.activeSelf;
         public int CurrentPage => _currentPage;
-        public int PageCount => Mathf.Max(1, Mathf.CeilToInt(_manualSlotCount / (float)PageSize));
+        public int PageCount => Mathf.Max(1, Mathf.CeilToInt(
+            (_modeIsSave ? _manualSlotCount : _manualSlotCount + 2) / (float)PageSize));
+        public int LoadedThumbnailTextureCount => _rows.Count(row => row.Texture != null);
 
         public void EnsureLauncher()
         {
@@ -141,12 +145,49 @@ namespace WhiteRoom.Novel
 
         public void Close()
         {
+            _captureWasOpen = false;
             HideOverwriteConfirmation();
             if (_root != null)
                 _root.SetActive(false);
 
             _autoAdvanceGate.Resume(this);
             VisibilityChanged?.Invoke(false);
+        }
+
+        public void SetCaptureHidden(bool hidden)
+        {
+            if (_root == null)
+                return;
+
+            if (hidden)
+            {
+                _captureWasOpen = _root.activeSelf;
+                _root.SetActive(false);
+            }
+            else if (_captureWasOpen)
+            {
+                _root.SetActive(true);
+                _root.transform.SetAsLastSibling();
+                _captureWasOpen = false;
+            }
+        }
+
+        public string GetThumbnailState(int slot)
+        {
+            for (var index = 0; index < _rows.Count; index++)
+            {
+                if (_rows[index].Slot == slot)
+                    return _rows[index].ThumbnailState;
+            }
+
+            return string.Empty;
+        }
+
+        public void Dispose()
+        {
+            for (var index = 0; index < _rows.Count; index++)
+                ReleaseThumbnail(_rows[index]);
+            _rows.Clear();
         }
 
         public void HandleCancel()
@@ -193,12 +234,16 @@ namespace WhiteRoom.Novel
             for (var i = 0; i < _rows.Count; i++)
             {
                 var slotOffset = _currentPage * PageSize + i;
-                var active = slotOffset < _manualSlotCount;
+                var slotCount = _modeIsSave ? _manualSlotCount : _manualSlotCount + 2;
+                var active = slotOffset < slotCount;
                 _rows[i].Root.SetActive(active);
                 if (!active)
+                {
+                    _rows[i].Slot = int.MinValue;
                     continue;
+                }
 
-                var slot = DialogueSaveSlotConventions.FirstManualSlot + slotOffset;
+                var slot = ResolveSlotIndex(slotOffset);
                 RefreshRow(_rows[i], _saveService.GetSlotViewModel(slot), canSave);
             }
         }
@@ -210,6 +255,7 @@ namespace WhiteRoom.Novel
                 _root = CreateScreen();
 
             _modeIsSave = saveMode;
+            _currentPage = Mathf.Clamp(_currentPage, 0, PageCount - 1);
             HideOverwriteConfirmation();
             Refresh();
             _root.SetActive(true);
@@ -231,7 +277,9 @@ namespace WhiteRoom.Novel
                 return;
 
             var slot = viewModel.SlotIndex;
-            row.SlotLabel.text = $"Slot {slot}";
+            row.Slot = slot;
+            row.Root.name = "SaveSlotRow_" + slot;
+            row.SlotLabel.text = FormatSlotLabel(viewModel);
             row.TitleLabel.text = viewModel.HasError
                 ? "Unavailable Slot"
                 : viewModel.IsEmpty ? "Empty Slot" : FormatSaveTitle(viewModel.Title);
@@ -246,6 +294,7 @@ namespace WhiteRoom.Novel
                 : viewModel.IsEmpty
                     ? new Color(0.07f, 0.085f, 0.095f, 0.96f)
                     : new Color(0.08f, 0.095f, 0.105f, 0.96f);
+            ApplyThumbnail(row, viewModel);
         }
 
         private void HandleSlotAction(int slot, DialogueSaveSlotViewModel viewModel)
@@ -443,10 +492,33 @@ namespace WhiteRoom.Novel
             slotLabel.alignment = TextAlignmentOptions.MidlineLeft;
             slotLabel.textWrappingMode = TextWrappingModes.NoWrap;
 
+            var thumbnailObject = new GameObject("Thumbnail", typeof(RectTransform), typeof(Image));
+            thumbnailObject.transform.SetParent(rowObject.transform, false);
+            var thumbnailRect = (RectTransform)thumbnailObject.transform;
+            thumbnailRect.anchorMin = new Vector2(0f, 0.5f);
+            thumbnailRect.anchorMax = new Vector2(0f, 0.5f);
+            thumbnailRect.pivot = new Vector2(0.5f, 0.5f);
+            thumbnailRect.anchoredPosition = new Vector2(182f, 0f);
+            thumbnailRect.sizeDelta = new Vector2(112f, 63f);
+            var thumbnailImage = thumbnailObject.GetComponent<Image>();
+            thumbnailImage.preserveAspect = true;
+            thumbnailImage.raycastTarget = false;
+
+            var thumbnailPlaceholder = NovelUiFactory.CreateText(
+                "Placeholder",
+                thumbnailObject.transform,
+                new Vector2(4f, 4f),
+                new Vector2(-4f, -4f),
+                12f,
+                FontStyles.Bold);
+            thumbnailPlaceholder.alignment = TextAlignmentOptions.Center;
+            thumbnailPlaceholder.textWrappingMode = TextWrappingModes.NoWrap;
+            thumbnailPlaceholder.raycastTarget = false;
+
             var titleLabel = NovelUiFactory.CreateText(
                 "Title",
                 rowObject.transform,
-                new Vector2(150f, -32f),
+                new Vector2(248f, -32f),
                 new Vector2(-170f, 8f),
                 20f,
                 FontStyles.Bold);
@@ -456,7 +528,7 @@ namespace WhiteRoom.Novel
             var metaLabel = NovelUiFactory.CreateText(
                 "Meta",
                 rowObject.transform,
-                new Vector2(150f, 8f),
+                new Vector2(248f, 8f),
                 new Vector2(-170f, -38f),
                 17f,
                 FontStyles.Normal);
@@ -482,6 +554,8 @@ namespace WhiteRoom.Novel
                 Root = rowObject,
                 Background = background,
                 SlotLabel = slotLabel,
+                ThumbnailImage = thumbnailImage,
+                ThumbnailPlaceholder = thumbnailPlaceholder,
                 TitleLabel = titleLabel,
                 MetaLabel = metaLabel,
                 ActionButton = actionButton,
@@ -568,6 +642,102 @@ namespace WhiteRoom.Novel
             return title.Length > 46 ? title.Substring(0, 46) + "..." : title;
         }
 
+        private int ResolveSlotIndex(int offset)
+        {
+            if (_modeIsSave)
+                return DialogueSaveSlotConventions.FirstManualSlot + offset;
+            if (offset == 0)
+                return DialogueSaveSystem.AutosaveSlot;
+            if (offset == 1)
+                return DialogueSaveSystem.QuickSaveSlot;
+            return DialogueSaveSlotConventions.FirstManualSlot + offset - 2;
+        }
+
+        private static string FormatSlotLabel(DialogueSaveSlotViewModel viewModel)
+        {
+            switch (viewModel.Category)
+            {
+                case DialogueSaveSlotCategory.Autosave:
+                    return "Auto";
+                case DialogueSaveSlotCategory.QuickSave:
+                    return "Quick";
+                default:
+                    return "Slot " + viewModel.SlotIndex;
+            }
+        }
+
+        private static void ApplyThumbnail(SlotRow row, DialogueSaveSlotViewModel viewModel)
+        {
+            if (viewModel.HasThumbnail && viewModel.ThumbnailPngBytes != null)
+            {
+                if (ReferenceEquals(row.ThumbnailBytes, viewModel.ThumbnailPngBytes) && row.Texture != null)
+                    return;
+
+                ReleaseThumbnail(row);
+                var texture = new Texture2D(2, 2, TextureFormat.RGB24, false);
+                if (texture.LoadImage(viewModel.ThumbnailPngBytes, true))
+                {
+                    row.Texture = texture;
+                    row.Sprite = Sprite.Create(
+                        texture,
+                        new Rect(0f, 0f, texture.width, texture.height),
+                        new Vector2(0.5f, 0.5f),
+                        100f);
+                    row.ThumbnailBytes = viewModel.ThumbnailPngBytes;
+                    row.ThumbnailImage.sprite = row.Sprite;
+                    row.ThumbnailImage.color = Color.white;
+                    row.ThumbnailPlaceholder.text = string.Empty;
+                    row.ThumbnailState = "Image";
+                    return;
+                }
+
+                DestroyObject(texture);
+                SetPlaceholder(row, "IMAGE ERROR", "Corrupt");
+                return;
+            }
+
+            ReleaseThumbnail(row);
+            if (viewModel.HasError)
+                SetPlaceholder(row, "UNAVAILABLE", "Unavailable");
+            else if (viewModel.IsEmpty)
+                SetPlaceholder(row, "EMPTY", "Empty");
+            else
+                SetPlaceholder(row, "NO IMAGE", "Missing");
+        }
+
+        private static void SetPlaceholder(SlotRow row, string label, string state)
+        {
+            row.ThumbnailImage.sprite = null;
+            row.ThumbnailImage.color = state == "Corrupt"
+                ? new Color(0.28f, 0.09f, 0.08f, 1f)
+                : new Color(0.10f, 0.12f, 0.13f, 1f);
+            row.ThumbnailPlaceholder.text = label;
+            row.ThumbnailState = state;
+        }
+
+        private static void ReleaseThumbnail(SlotRow row)
+        {
+            if (row == null)
+                return;
+            if (row.ThumbnailImage != null)
+                row.ThumbnailImage.sprite = null;
+            DestroyObject(row.Sprite);
+            DestroyObject(row.Texture);
+            row.Sprite = null;
+            row.Texture = null;
+            row.ThumbnailBytes = null;
+        }
+
+        private static void DestroyObject(UnityEngine.Object target)
+        {
+            if (target == null)
+                return;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(target);
+            else
+                UnityEngine.Object.DestroyImmediate(target);
+        }
+
         private static string FormatSaveMeta(DialogueSaveSlotViewModel viewModel)
         {
             if (viewModel == null)
@@ -585,9 +755,16 @@ namespace WhiteRoom.Novel
 
         private sealed class SlotRow
         {
+            public int Slot = int.MinValue;
             public GameObject Root;
             public Image Background;
             public TMP_Text SlotLabel;
+            public Image ThumbnailImage;
+            public TMP_Text ThumbnailPlaceholder;
+            public Texture2D Texture;
+            public Sprite Sprite;
+            public byte[] ThumbnailBytes;
+            public string ThumbnailState = string.Empty;
             public TMP_Text TitleLabel;
             public TMP_Text MetaLabel;
             public Button ActionButton;

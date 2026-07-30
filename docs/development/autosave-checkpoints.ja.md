@@ -2,6 +2,8 @@
 
 English canonical file: [English](autosave-checkpoints.md)
 
+Thumbnail captureの詳細: [Save thumbnail](save-thumbnails.ja.md)
+
 WhiteRoomはTalk Systemのslot `0`を単一のAutosave専用slotとして使います。Autosave成功時は
 常にこのslotを置き換えます。複数世代のrotationは対象外です。
 

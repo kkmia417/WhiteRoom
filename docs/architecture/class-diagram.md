@@ -169,6 +169,7 @@ classDiagram
         +event Action Saved
         +event Action Loaded
         +CanSaveNow bool
+        +IsBusy bool
         +Save(int slot) bool
         +Load(int slot) bool
         +QuickSave() bool
@@ -246,6 +247,8 @@ envelope, quick-save slot, continue candidate) stays inside Talk System per
 [ADR-0008](../adr/0008-versioned-save-compatibility.md).
 The concrete checkpoint and Continue policy is documented in
 [Autosave checkpoints and Continue selection](../development/autosave-checkpoints.md).
+Thumbnail sidecar capture and UI lifecycle are documented in
+[Save thumbnails](../development/save-thumbnails.md).
 
 ## Setup factories
 
@@ -338,6 +341,9 @@ classDiagram
         +OpenLoad()
         +Close()
         +Refresh()
+        +SetCaptureHidden(bool hidden)
+        +Dispose()
+        +LoadedThumbnailTextureCount int
         -CreateScreen() GameObject
         -HandleSlotAction(int slot)
     }
