@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using kkmia.TalkSystem;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ namespace WhiteRoom.Novel
         Load,
         QuickSave,
         QuickLoad,
-        Autosave
+        Autosave,
+        Thumbnail
     }
 
     public sealed class NovelSaveFeedback
@@ -42,6 +44,8 @@ namespace WhiteRoom.Novel
         private readonly int _defaultManualSlot;
         private readonly bool _saveThumbnails;
         private readonly NovelDirectSaveTarget _directSaveTarget;
+        private readonly Dictionary<int, DialogueSaveSlotViewModel> _slotCache =
+            new Dictionary<int, DialogueSaveSlotViewModel>();
         private bool _operationInProgress;
 
         public NovelSaveService(
@@ -59,6 +63,7 @@ namespace WhiteRoom.Novel
                 preferenceStore ?? new PlayerPrefsNovelSavePreferenceStore());
 
             _saveSystem.OperationFailed += HandleOperationFailed;
+            _saveSystem.ThumbnailCaptureCompleted += HandleThumbnailCaptureCompleted;
         }
 
         public event Action Saved;
@@ -66,7 +71,8 @@ namespace WhiteRoom.Novel
         public event Action<NovelSaveFeedback> Feedback;
 
         public bool CanSaveNow => _manager != null && _manager.CurrentData != null;
-        public bool IsBusy => _operationInProgress;
+        public bool IsBusy => _operationInProgress ||
+                              (_saveThumbnails && _saveSystem != null && _saveSystem.IsThumbnailCaptureInProgress);
         public bool HasDirectSaveTarget => _directSaveTarget.HasValue;
         public int DirectSaveSlot => _directSaveTarget.Slot;
 
@@ -133,8 +139,7 @@ namespace WhiteRoom.Novel
                 bool saved;
                 if (_saveThumbnails)
                 {
-                    _saveSystem.QuickSaveWithThumbnail(BuildSaveTitle(DialogueSaveSystem.QuickSaveSlot));
-                    saved = _saveSystem.LastOperationResult == null || _saveSystem.LastOperationResult.Succeeded;
+                    saved = _saveSystem.QuickSaveWithThumbnail(BuildSaveTitle(DialogueSaveSystem.QuickSaveSlot)) != null;
                 }
                 else
                 {
@@ -142,7 +147,10 @@ namespace WhiteRoom.Novel
                 }
 
                 if (saved)
+                {
+                    InvalidateSlot(DialogueSaveSystem.QuickSaveSlot);
                     Saved?.Invoke();
+                }
 
                 Publish(
                     NovelSaveFeedbackKind.QuickSave,
@@ -183,8 +191,8 @@ namespace WhiteRoom.Novel
 
         /// <summary>
         /// Replaces the single product autosave slot with a coherent checkpoint.
-        /// Autosaves deliberately omit thumbnails so the narrative and registered
-        /// presentation contributors are committed in one short synchronous write.
+        /// Narrative and registered presentation contributors commit synchronously;
+        /// the optional thumbnail follows as a failure-isolated sidecar capture.
         /// </summary>
         public bool Autosave(string checkpointTitle)
         {
@@ -203,9 +211,14 @@ namespace WhiteRoom.Novel
                 var title = string.IsNullOrWhiteSpace(checkpointTitle)
                     ? BuildSaveTitle(slot)
                     : checkpointTitle.Trim();
-                var saved = _saveSystem.Save(slot, true, title) != null;
+                var saved = _saveThumbnails
+                    ? SaveWithThumbnail(slot, true, title) != null
+                    : _saveSystem.Save(slot, true, title) != null;
                 if (saved)
+                {
+                    InvalidateSlot(slot);
                     Saved?.Invoke();
+                }
 
                 Publish(
                     NovelSaveFeedbackKind.Autosave,
@@ -263,20 +276,28 @@ namespace WhiteRoom.Novel
 
         public DialogueSaveSlotViewModel GetSlotViewModel(int slot)
         {
-            return _saveSystem.GetSlotViewModel(slot, false);
+            DialogueSaveSlotViewModel cached;
+            if (_slotCache.TryGetValue(slot, out cached))
+                return cached;
+
+            var viewModel = _saveSystem.GetSlotViewModel(slot, _saveThumbnails);
+            _slotCache[slot] = viewModel;
+            return viewModel;
         }
 
         public void Dispose()
         {
             if (_saveSystem != null)
+            {
                 _saveSystem.OperationFailed -= HandleOperationFailed;
+                _saveSystem.ThumbnailCaptureCompleted -= HandleThumbnailCaptureCompleted;
+            }
+            _slotCache.Clear();
         }
 
         private DialogueSaveSlot SaveWithThumbnail(int slot, bool isAutosave, string title)
         {
-            _saveSystem.SaveWithThumbnail(slot, isAutosave, title);
-            var result = _saveSystem.LastOperationResult;
-            return result != null && result.Failed ? null : _saveSystem.Peek(slot);
+            return _saveSystem.SaveWithThumbnail(slot, isAutosave, title);
         }
 
         private bool SaveInternal(int slot, NovelSaveFeedbackKind kind)
@@ -299,6 +320,7 @@ namespace WhiteRoom.Novel
 
                 if (saved)
                 {
+                    InvalidateSlot(slot);
                     RememberManualSlot(slot);
                     Saved?.Invoke();
                 }
@@ -315,7 +337,7 @@ namespace WhiteRoom.Novel
 
         private bool TryBegin(NovelSaveFeedbackKind kind, int slot)
         {
-            if (_operationInProgress)
+            if (IsBusy)
             {
                 Publish(kind, slot, false, "Another save operation is in progress.");
                 return false;
@@ -364,6 +386,29 @@ namespace WhiteRoom.Novel
                 return;
 
             Debug.LogWarning($"NovelSaveService: dialogue save {result.Operation} failed for slot {result.SlotIndex}: {result.Message}");
+        }
+
+        private void HandleThumbnailCaptureCompleted(int slot, bool succeeded, string message)
+        {
+            InvalidateSlot(slot);
+            // Refresh slot consumers after either outcome. A failed sidecar capture
+            // must replace any previously displayed thumbnail with the placeholder.
+            Saved?.Invoke();
+            if (succeeded)
+                return;
+
+            Publish(
+                NovelSaveFeedbackKind.Thumbnail,
+                slot,
+                false,
+                string.IsNullOrWhiteSpace(message)
+                    ? "Save completed, but its thumbnail could not be captured."
+                    : "Save completed, but its thumbnail could not be captured. " + message);
+        }
+
+        private void InvalidateSlot(int slot)
+        {
+            _slotCache.Remove(slot);
         }
     }
 }

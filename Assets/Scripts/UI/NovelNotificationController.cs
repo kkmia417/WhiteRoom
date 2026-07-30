@@ -12,6 +12,8 @@ namespace WhiteRoom.Novel
         private TMP_Text _label;
         private Image _background;
         private float _hideAt;
+        private bool _captureHidden;
+        private bool _restoreAfterCapture;
 
         public bool IsVisible => _root != null && _root.activeSelf;
         public string CurrentMessage => _label != null ? _label.text : string.Empty;
@@ -40,10 +42,30 @@ namespace WhiteRoom.Novel
                 _root.SetActive(false);
         }
 
+        public void SetCaptureHidden(bool hidden)
+        {
+            _captureHidden = hidden;
+            if (hidden)
+            {
+                _restoreAfterCapture = IsVisible;
+                if (_root != null)
+                    _root.SetActive(false);
+                return;
+            }
+
+            if (_restoreAfterCapture && _root != null && Time.unscaledTime < _hideAt)
+            {
+                _root.SetActive(true);
+                _root.transform.SetAsLastSibling();
+            }
+            _restoreAfterCapture = false;
+        }
+
         private void Activate()
         {
             _hideAt = Time.unscaledTime + DisplaySeconds;
-            _root.SetActive(true);
+            _restoreAfterCapture = _captureHidden;
+            _root.SetActive(!_captureHidden);
             _root.transform.SetAsLastSibling();
         }
 

@@ -167,6 +167,7 @@ classDiagram
         +event Action Saved
         +event Action Loaded
         +CanSaveNow bool
+        +IsBusy bool
         +Save(int slot) bool
         +Load(int slot) bool
         +QuickSave() bool
@@ -243,6 +244,8 @@ Talk System の `DialogueUnlockRegistry` + `DialogueUnlockSaveService` の
 Talk System 側に留まる。
 具体的なcheckpointとContinue規則は
 [Autosave checkpointとContinue選択](../development/autosave-checkpoints.ja.md)に記載する。
+Thumbnail sidecar captureとUI lifecycleは
+[Save thumbnail](../development/save-thumbnails.ja.md)に記載する。
 
 ## Setup ファクトリ
 
@@ -337,6 +340,9 @@ classDiagram
         +OpenLoad()
         +Close()
         +Refresh()
+        +SetCaptureHidden(bool hidden)
+        +Dispose()
+        +LoadedThumbnailTextureCount int
         -CreateScreen() GameObject
         -HandleSlotAction(int slot)
     }

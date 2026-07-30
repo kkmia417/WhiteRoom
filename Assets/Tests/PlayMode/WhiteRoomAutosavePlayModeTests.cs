@@ -47,6 +47,7 @@ namespace WhiteRoom.Novel.PlayModeTests
                         return false; // A failed write must not stop the story.
                     }),
                     null,
+                    null,
                     null
                 });
                 Invoke(service, "AttachTo", manager);

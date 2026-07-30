@@ -28,20 +28,24 @@ namespace WhiteRoom.Novel
         private readonly Func<string, bool> _saveCheckpoint;
         private readonly Func<DialoguePlaybackMode> _getPlaybackMode;
         private readonly Action<DialoguePlaybackMode> _setPlaybackMode;
+        private readonly Func<bool> _isThumbnailCaptureInProgress;
         private readonly List<PendingCheckpoint> _pending = new List<PendingCheckpoint>();
         private readonly HashSet<string> _queuedOrWritten = new HashSet<string>(StringComparer.Ordinal);
 
         private DialogueManager _manager;
         private bool _awaitingPostChoiceLine;
+        private DialoguePlaybackMode? _deferredPlaybackMode;
 
         public AutosaveCheckpointService(
             Func<string, bool> saveCheckpoint,
             Func<DialoguePlaybackMode> getPlaybackMode = null,
-            Action<DialoguePlaybackMode> setPlaybackMode = null)
+            Action<DialoguePlaybackMode> setPlaybackMode = null,
+            Func<bool> isThumbnailCaptureInProgress = null)
         {
             _saveCheckpoint = saveCheckpoint ?? throw new ArgumentNullException(nameof(saveCheckpoint));
             _getPlaybackMode = getPlaybackMode;
             _setPlaybackMode = setPlaybackMode;
+            _isThumbnailCaptureInProgress = isThumbnailCaptureInProgress;
         }
 
         public int PendingCount => _pending.Count;
@@ -72,6 +76,16 @@ namespace WhiteRoom.Novel
         public bool TryFlush(DialogueSessionState state, bool hasChoices)
         {
             return TryFlush(state, hasChoices, true);
+        }
+
+        public void NotifyThumbnailCaptureCompleted()
+        {
+            if (!_deferredPlaybackMode.HasValue || _setPlaybackMode == null)
+                return;
+
+            var mode = _deferredPlaybackMode.Value;
+            _deferredPlaybackMode = null;
+            _setPlaybackMode(mode);
         }
 
         public void Dispose()
@@ -167,7 +181,12 @@ namespace WhiteRoom.Novel
             finally
             {
                 if (restorePlayback && _setPlaybackMode != null && previousMode != DialoguePlaybackMode.Normal)
-                    _setPlaybackMode(previousMode);
+                {
+                    if (_isThumbnailCaptureInProgress != null && _isThumbnailCaptureInProgress())
+                        _deferredPlaybackMode = previousMode;
+                    else
+                        _setPlaybackMode(previousMode);
+                }
             }
 
             return saved;

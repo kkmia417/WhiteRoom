@@ -47,13 +47,14 @@ namespace WhiteRoom.Novel
         [SerializeField] private int manualSaveSlotCount = 6;
         [SerializeField] private bool showCommandBar = true;
         [SerializeField] private bool showSaveLoadLauncher = true;
-        [SerializeField] private bool saveThumbnails;
+        [SerializeField] private bool saveThumbnails = true;
         [SerializeField] private string saveContentVersion = "r00_escape_talksystem";
         [SerializeField] private string saveProductChannel = string.Empty;
 
         private DialogueManager _manager;
         private DialogueView _view;
         private DialoguePresentation _presentation;
+        private DialogueSaveSystem _saveSystem;
         private NovelSaveService _saveService;
         private AutosaveCheckpointService _autosaveCheckpoints;
         private DialogueProgressService _progress;
@@ -73,6 +74,8 @@ namespace WhiteRoom.Novel
         private DialoguePlaybackController _playbackController;
         private DialogueBackSkipController _backSkip;
         private bool _quickLoadAvailable;
+        private DialoguePlaybackMode? _thumbnailPlaybackMode;
+        private bool _thumbnailKeyboardWasEnabled;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -120,6 +123,12 @@ namespace WhiteRoom.Novel
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
 
+            if (_saveSystem != null)
+            {
+                _saveSystem.ThumbnailCaptureStarted -= HandleThumbnailCaptureStarted;
+                _saveSystem.ThumbnailCaptureCompleted -= HandleThumbnailCaptureCompleted;
+            }
+
             _saveService?.Dispose();
             _autosaveCheckpoints?.Dispose();
             _endingFlow?.Dispose();
@@ -132,6 +141,7 @@ namespace WhiteRoom.Novel
                 _quitConfirmation.VisibilityChanged -= HandleTitleSubScreenVisibilityChanged;
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
+            _saveLoadScreen?.Dispose();
             if (_playbackController != null)
                 _playbackController.StateChanged -= HandlePlaybackStateChanged;
 
@@ -353,6 +363,7 @@ namespace WhiteRoom.Novel
 
             _manager = DialogueRuntimeFactory.EnsureManager();
             var saveSystem = DialogueRuntimeFactory.EnsureSaveSystem(_manager, saveContentVersion, saveProductChannel);
+            _saveSystem = saveSystem;
             var playbackController = DialogueRuntimeFactory.EnsurePlaybackController(_manager);
             _playbackController = playbackController;
             _settingsStore = new VersionedDialogueSettingsStore();
@@ -434,7 +445,8 @@ namespace WhiteRoom.Novel
             _autosaveCheckpoints = new AutosaveCheckpointService(
                 title => _saveService != null && _saveService.Autosave(title),
                 () => _playbackController != null ? _playbackController.Mode : DialoguePlaybackMode.Normal,
-                mode => _playbackController?.SetMode(mode));
+                mode => _playbackController?.SetMode(mode),
+                () => _saveSystem != null && _saveSystem.IsThumbnailCaptureInProgress);
             // Attach after progress so ending unlock persistence completes before
             // the final-line autosave is committed.
             _autosaveCheckpoints.AttachTo(_manager);
@@ -473,6 +485,9 @@ namespace WhiteRoom.Novel
             _commandBar = CreateCommandBar(playbackController);
             _commandBar.EnsureCreated();
             _commandBar.SetSceneVisible(ShouldShowCommandBar());
+
+            saveSystem.ThumbnailCaptureStarted += HandleThumbnailCaptureStarted;
+            saveSystem.ThumbnailCaptureCompleted += HandleThumbnailCaptureCompleted;
 
             _saveService.Saved += HandleSaveCompleted;
             _saveService.Loaded += HandleLoadCompleted;
@@ -535,6 +550,43 @@ namespace WhiteRoom.Novel
         {
             if (feedback != null)
                 _notifications?.Show(feedback.Message, feedback.Succeeded);
+        }
+
+        private void HandleThumbnailCaptureStarted(int slot)
+        {
+            _saveLoadScreen?.SetCaptureHidden(true);
+            _notifications?.SetCaptureHidden(true);
+
+            _thumbnailPlaybackMode = null;
+            if (_playbackController != null && _playbackController.Mode != DialoguePlaybackMode.Normal)
+            {
+                _thumbnailPlaybackMode = _playbackController.Mode;
+                _playbackController.SetMode(DialoguePlaybackMode.Normal);
+            }
+
+            if (_dialogueKeyboardInput != null)
+            {
+                _thumbnailKeyboardWasEnabled = _dialogueKeyboardInput.enabled;
+                _dialogueKeyboardInput.enabled = false;
+            }
+            _commandBar?.SetInputBlocked(true);
+        }
+
+        private void HandleThumbnailCaptureCompleted(int slot, bool succeeded, string message)
+        {
+            _saveLoadScreen?.SetCaptureHidden(false);
+            _notifications?.SetCaptureHidden(false);
+            _autosaveCheckpoints?.NotifyThumbnailCaptureCompleted();
+
+            if (_thumbnailPlaybackMode.HasValue && _playbackController != null)
+                _playbackController.SetMode(_thumbnailPlaybackMode.Value);
+            _thumbnailPlaybackMode = null;
+
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = _thumbnailKeyboardWasEnabled
+                                                 && !IsEndingInputBlocked()
+                                                 && (_saveLoadScreen == null || !_saveLoadScreen.IsOpen);
+            _commandBar?.SetInputBlocked(IsEndingInputBlocked() || (_saveLoadScreen != null && _saveLoadScreen.IsOpen));
         }
 
         private void HandlePlaybackStateChanged(DialoguePlaybackState state)

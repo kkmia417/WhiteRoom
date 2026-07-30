@@ -2,6 +2,8 @@
 
 Japanese counterpart: [日本語版](autosave-checkpoints.ja.md)
 
+Thumbnail capture details: [Save thumbnails](save-thumbnails.md)
+
 WhiteRoom uses one reserved autosave slot: Talk System slot `0`. Every successful
 autosave replaces that slot; autosave rotation is intentionally out of scope.
 

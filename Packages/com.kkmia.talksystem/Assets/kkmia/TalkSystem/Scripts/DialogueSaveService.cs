@@ -269,24 +269,24 @@ namespace kkmia.TalkSystem
 
         public void SaveThumbnail(int slot, byte[] pngBytes)
         {
-            if (pngBytes != null && pngBytes.Length > 0)
-            {
-                if (!EnsureStorage(DialogueSaveOperation.SaveThumbnail, slot))
-                    return;
+            if (!EnsureStorage(DialogueSaveOperation.SaveThumbnail, slot))
+                return;
 
-                try
-                {
-                    _storage.SaveThumbnail(slot, pngBytes);
-                    Report(DialogueSaveOperationResult.Success(DialogueSaveOperation.SaveThumbnail, slot));
-                }
-                catch (Exception e)
-                {
-                    Report(DialogueSaveOperationResult.Failure(
-                        DialogueSaveOperation.SaveThumbnail,
-                        slot,
-                        "Failed to save dialogue thumbnail " + slot + ": " + e.Message,
-                        e));
-                }
+            try
+            {
+                // Null/empty is the storage-neutral delete contract. Clearing the
+                // previous sidecar before a new asynchronous capture prevents a
+                // failed overwrite from displaying a stale image.
+                _storage.SaveThumbnail(slot, pngBytes);
+                Report(DialogueSaveOperationResult.Success(DialogueSaveOperation.SaveThumbnail, slot));
+            }
+            catch (Exception e)
+            {
+                Report(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.SaveThumbnail,
+                    slot,
+                    "Failed to save dialogue thumbnail " + slot + ": " + e.Message,
+                    e));
             }
         }
 

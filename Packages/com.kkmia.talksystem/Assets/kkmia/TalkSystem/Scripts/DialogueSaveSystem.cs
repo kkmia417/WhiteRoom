@@ -15,6 +15,9 @@ namespace kkmia.TalkSystem
         /// <summary>オートセーブ専用スロット番号。</summary>
         public const int AutosaveSlot = DialogueSaveSlotConventions.AutosaveSlot;
         public const int QuickSaveSlot = DialogueSaveSlotConventions.QuickSaveSlot;
+        public const int ThumbnailWidth = 320;
+        public const int ThumbnailHeight = 180;
+        public const int MaximumThumbnailBytes = 512 * 1024;
 
         [Tooltip("未設定なら DialogueManager.Instance を使う。")]
         [SerializeField] private DialogueManager manager;
@@ -49,6 +52,8 @@ namespace kkmia.TalkSystem
         private readonly List<IDialogueSaveDataMigration> _dataMigrations = new List<IDialogueSaveDataMigration>();
         private readonly List<IDialogueSaveSlotMigration> _slotMigrations = new List<IDialogueSaveSlotMigration>();
         private DialogueSaveOperationResult _lastOperationResult;
+        private bool _thumbnailCaptureInProgress;
+        private Func<Texture2D> _thumbnailCaptureProvider;
 
         public DialogueSaveService Service
         {
@@ -62,6 +67,13 @@ namespace kkmia.TalkSystem
 
         public event Action<DialogueSaveOperationResult> OperationCompleted;
         public event Action<DialogueSaveOperationResult> OperationFailed;
+        public event Action<int> ThumbnailCaptureStarted;
+        public event Action<int, bool, string> ThumbnailCaptureCompleted;
+
+        public bool IsThumbnailCaptureInProgress
+        {
+            get { return _thumbnailCaptureInProgress; }
+        }
 
         private void Awake()
         {
@@ -72,6 +84,12 @@ namespace kkmia.TalkSystem
         {
             _configuredStorage = storage;
             RebuildService();
+        }
+
+        /// <summary>Overrides screen capture for platform adapters and deterministic tests.</summary>
+        public void SetThumbnailCaptureProvider(Func<Texture2D> provider)
+        {
+            _thumbnailCaptureProvider = provider;
         }
 
         public void ConfigureFileStorageRoot(string directory)
@@ -174,10 +192,28 @@ namespace kkmia.TalkSystem
         }
 
         /// <summary>画面キャプチャ付きで保存する（フレーム終端まで待つためコルーチン）。</summary>
-        public void SaveWithThumbnail(int slot, bool isAutosave = false, string title = null)
+        public DialogueSaveSlot SaveWithThumbnail(int slot, bool isAutosave = false, string title = null)
         {
-            if (Save(slot, isAutosave, title) != null)
-                StartCoroutine(CaptureThumbnail(slot));
+            if (_thumbnailCaptureInProgress)
+            {
+                ReportLocal(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.SaveThumbnail,
+                    slot,
+                    "Another thumbnail capture is already in progress."));
+                return null;
+            }
+
+            var saved = Save(slot, isAutosave, title);
+            if (saved == null)
+                return null;
+
+            EnsureService();
+            _service.SaveThumbnail(slot, null);
+            _thumbnailCaptureInProgress = true;
+            if (ThumbnailCaptureStarted != null)
+                ThumbnailCaptureStarted(slot);
+            StartCoroutine(CaptureThumbnail(slot));
+            return saved;
         }
 
         public DialogueSaveSlot QuickSave(string title = null)
@@ -185,9 +221,9 @@ namespace kkmia.TalkSystem
             return Save(QuickSaveSlot, false, title);
         }
 
-        public void QuickSaveWithThumbnail(string title = null)
+        public DialogueSaveSlot QuickSaveWithThumbnail(string title = null)
         {
-            SaveWithThumbnail(QuickSaveSlot, false, title);
+            return SaveWithThumbnail(QuickSaveSlot, false, title);
         }
 
         /// <summary>指定スロットを読み込み、会話本体と演出系を復元する。</summary>
@@ -285,25 +321,60 @@ namespace kkmia.TalkSystem
             if (bytes == null || bytes.Length == 0) return null;
 
             var texture = new Texture2D(2, 2);
-            return texture.LoadImage(bytes) ? texture : null;
+            if (texture.LoadImage(bytes))
+                return texture;
+
+            Destroy(texture);
+            return null;
         }
 
         private IEnumerator CaptureThumbnail(int slot)
         {
-            yield return new WaitForEndOfFrame();
+            // WaitForEndOfFrame is never resumed by Unity's headless batch runner.
+            // A regular frame boundary preserves ordering there and keeps capture
+            // testable; interactive players use the rendered frame end.
+            if (Application.isBatchMode)
+                yield return null;
+            else
+                yield return new WaitForEndOfFrame();
 
             Texture2D screenshot = null;
+            var succeeded = false;
+            var message = string.Empty;
             try
             {
-                screenshot = ScreenCapture.CaptureScreenshotAsTexture();
-                var png = screenshot.EncodeToPNG();
+                screenshot = _thumbnailCaptureProvider != null
+                    ? _thumbnailCaptureProvider()
+                    : ScreenCapture.CaptureScreenshotAsTexture();
+                var png = DialogueThumbnailEncoder.EncodePng(
+                    screenshot,
+                    ThumbnailWidth,
+                    ThumbnailHeight,
+                    MaximumThumbnailBytes);
                 if (_service != null)
+                {
                     _service.SaveThumbnail(slot, png);
+                    var result = _service.LastResult;
+                    succeeded = result == null || result.Succeeded;
+                    message = result != null ? result.Message : string.Empty;
+                }
+            }
+            catch (Exception exception)
+            {
+                message = "Thumbnail capture failed: " + exception.Message;
+                ReportLocal(DialogueSaveOperationResult.Failure(
+                    DialogueSaveOperation.SaveThumbnail,
+                    slot,
+                    message,
+                    exception));
             }
             finally
             {
                 if (screenshot != null)
                     Destroy(screenshot);
+                _thumbnailCaptureInProgress = false;
+                if (ThumbnailCaptureCompleted != null)
+                    ThumbnailCaptureCompleted(slot, succeeded, message);
             }
         }
 
