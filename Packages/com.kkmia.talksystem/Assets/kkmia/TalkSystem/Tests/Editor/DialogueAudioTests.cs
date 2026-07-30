@@ -170,6 +170,50 @@ namespace kkmia.TalkSystem.Tests
         }
 
         [Test]
+        public void AudioPlayer_ResetPlayback_ClearsEveryChannelImmediately()
+        {
+            var root = new GameObject("audio-reset-test");
+            var bgm = root.AddComponent<AudioSource>();
+            var seObject = new GameObject("se", typeof(AudioSource));
+            var voiceObject = new GameObject("voice", typeof(AudioSource));
+            var clip = AudioClip.Create("reset-clip", 16, 1, 8000, false);
+            try
+            {
+                var se = seObject.GetComponent<AudioSource>();
+                var voice = voiceObject.GetComponent<AudioSource>();
+                var player = root.AddComponent<DialogueAudioPlayer>();
+                var serialized = new SerializedObject(player);
+                serialized.FindProperty("bgmSource").objectReferenceValue = bgm;
+                serialized.FindProperty("seSource").objectReferenceValue = se;
+                serialized.FindProperty("voiceSource").objectReferenceValue = voice;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                foreach (var source in new[] { bgm, se, voice })
+                {
+                    source.clip = clip;
+                    source.loop = true;
+                    source.volume = 0.25f;
+                }
+
+                player.ResetPlayback();
+
+                foreach (var source in new[] { bgm, se, voice })
+                {
+                    Assert.That(source.clip, Is.Null);
+                    Assert.That(source.loop, Is.False);
+                    Assert.That(source.volume, Is.EqualTo(1f));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(clip);
+                Object.DestroyImmediate(voiceObject);
+                Object.DestroyImmediate(seObject);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void LipSync_Rms_ComputesRootMeanSquare()
         {
             var samples = new[] { 0.5f, -0.5f, 0.5f, -0.5f };

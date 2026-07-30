@@ -130,8 +130,35 @@ namespace kkmia.TalkSystem
         public void StopAll()
         {
             StopVoice();
+            if (seSource != null)
+                seSource.Stop();
             if (bgmSource != null)
                 FadeBgm(0f, defaultFadeDuration, stopAtEnd: true);
+        }
+
+        /// <summary>Immediately returns every channel to a clean cross-scene baseline.</summary>
+        public void ResetPlayback()
+        {
+            if (_bgmFade != null)
+            {
+                StopCoroutine(_bgmFade);
+                _bgmFade = null;
+            }
+
+            ResetSource(bgmSource);
+            ResetSource(seSource);
+            ResetSource(voiceSource);
+        }
+
+        private static void ResetSource(AudioSource source)
+        {
+            if (source == null)
+                return;
+
+            source.Stop();
+            source.clip = null;
+            source.loop = false;
+            source.volume = 1f;
         }
 
         private void RaiseIssue(DialoguePresentationIssueKind kind, string key, string message)

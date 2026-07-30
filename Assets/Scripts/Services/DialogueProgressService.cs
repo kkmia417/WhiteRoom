@@ -63,6 +63,15 @@ namespace WhiteRoom.Novel
             return _unlockRegistry.ListUnlockedIds(category);
         }
 
+        /// <summary>
+        /// Synchronously persists the current unlock registry. Ending transitions use
+        /// the result as a gate so Title is never loaded ahead of durable progress.
+        /// </summary>
+        public bool FlushUnlocks()
+        {
+            return !_unlockProgressMarkers || SaveUnlocks();
+        }
+
         public void Dispose()
         {
             _unlockRegistry.Unlocked -= HandleUnlocked;
@@ -151,10 +160,12 @@ namespace WhiteRoom.Novel
             Debug.Log($"DialogueProgressService: unlocked '{context.Entry.Id}'.");
         }
 
-        private void SaveUnlocks()
+        private bool SaveUnlocks()
         {
-            if (!_unlockSaveService.Save(_unlockRegistry))
+            var saved = _unlockSaveService.Save(_unlockRegistry);
+            if (!saved)
                 Debug.LogWarning($"DialogueProgressService: {_unlockSaveService.LastError}");
+            return saved;
         }
     }
 }
