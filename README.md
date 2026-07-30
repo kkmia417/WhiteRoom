@@ -22,6 +22,17 @@ python scripts/validate_governance.py --root .
 python -m unittest discover -s scripts/tests -p "test_*.py"
 ```
 
+Run the WhiteRoom EditMode and PlayMode suites with Unity `6000.3.7f1`:
+
+```powershell
+.\scripts\run_unity_tests.ps1
+```
+
+The scenario baseline, 14-ending route matrix, product journey test, result paths,
+and CI runner contract are documented in the
+[test and route-coverage guide](docs/development/testing.md)
+([日本語版](docs/development/testing.ja.md)).
+
 Windows and macOS setup, file-naming rules, and line-ending troubleshooting are
 documented in the
 [cross-platform development guide](docs/development/cross-platform-setup.md).

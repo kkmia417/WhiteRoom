@@ -1,0 +1,39 @@
+name: Unity Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/unity-tests.yml"
+      - "Assets/**"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - "scripts/run_unity_tests.ps1"
+
+permissions:
+  contents: read
+
+jobs:
+  unity-tests:
+    if: ${{ vars.UNITY_CI_ENABLED == 'true' }}
+    runs-on:
+      - self-hosted
+      - windows
+      - unity-6000.3.7f1
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Run EditMode and PlayMode tests
+        shell: pwsh
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: .\scripts\run_unity_tests.ps1 -ResultsDirectory TestResults
+      - name: Upload Unity XML and Editor logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unity-test-results-${{ github.run_attempt }}
+          path: TestResults/
+          if-no-files-found: error
+          retention-days: 14

@@ -20,7 +20,9 @@ on:
       - "CONTRIBUTING.md"
       - "README.md"
       - "Assets/Scripts/**"
+      - "Assets/Tests/**"
       - "Packages/com.kkmia.talksystem/**"
+      - "ProjectSettings/**"
 
 permissions:
   contents: read
