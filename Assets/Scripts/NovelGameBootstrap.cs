@@ -29,6 +29,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private NovelUiConfiguration novelUiConfiguration;
         [SerializeField] private DialogueView dialogueViewPrefab;
         [SerializeField] private DialogueBacklogView dialogueBacklogViewPrefab;
+        [SerializeField] private NovelPresentationConfiguration novelPresentationConfiguration;
         [SerializeField] private BackgroundDatabase backgroundDatabase;
         [SerializeField] private CharacterExpressionDatabase characterDatabase;
         [SerializeField] private AudioDatabase audioDatabase;
@@ -285,9 +286,36 @@ namespace WhiteRoom.Novel
                 pointerStopper = _view.gameObject.AddComponent<DialogueBackSkipPointerStopper>();
             pointerStopper.Configure(_backSkip);
 
-            var presentation = DialoguePresentationFactory.Ensure(backgroundDatabase, characterDatabase, audioDatabase);
+            var presentationConfiguration = novelPresentationConfiguration != null
+                ? novelPresentationConfiguration
+                : NovelPresentationConfiguration.LoadDefault();
+            var resolvedBackgroundDatabase = backgroundDatabase != null
+                ? backgroundDatabase
+                : presentationConfiguration != null ? presentationConfiguration.BackgroundDatabase : null;
+            var resolvedCharacterDatabase = characterDatabase != null
+                ? characterDatabase
+                : presentationConfiguration != null ? presentationConfiguration.CharacterDatabase : null;
+            var resolvedAudioDatabase = audioDatabase != null
+                ? audioDatabase
+                : presentationConfiguration != null ? presentationConfiguration.AudioDatabase : null;
+
+            if (resolvedBackgroundDatabase == null || resolvedCharacterDatabase == null || resolvedAudioDatabase == null)
+            {
+                Debug.LogError(
+                    "NovelGameBootstrap: presentation configuration is missing or incomplete; " +
+                    "unresolved cues will use no-op fallbacks. " +
+                    $"Check Resources/{NovelPresentationConfiguration.DefaultResourcePath}.");
+            }
+
+            var presentation = DialoguePresentationFactory.Ensure(
+                resolvedBackgroundDatabase,
+                resolvedCharacterDatabase,
+                resolvedAudioDatabase);
             presentation.RegisterSaveContributors(saveSystem);
-            _presentationIssueLogger = new DialoguePresentationIssueLogger();
+            _presentationIssueLogger = new DialoguePresentationIssueLogger(
+                () => _manager != null && _manager.CurrentData != null
+                    ? (int?)_manager.CurrentData.Id
+                    : null);
             _presentationIssueLogger.Watch(presentation.StageView);
             _presentationIssueLogger.Watch(presentation.AudioPlayer);
 

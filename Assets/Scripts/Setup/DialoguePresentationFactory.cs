@@ -109,7 +109,8 @@ namespace WhiteRoom.Novel
             }
 
             var audioObject = new GameObject("DialogueAudio", typeof(DialogueAudioPlayer));
-            Object.DontDestroyOnLoad(audioObject);
+            if (Application.isPlaying)
+                Object.DontDestroyOnLoad(audioObject);
 
             var player = audioObject.GetComponent<DialogueAudioPlayer>();
             RuntimeFieldBinder.SetPrivateField(player, "audioDatabase", audioDatabase);
