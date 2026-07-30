@@ -75,6 +75,9 @@ mono_crash.*
 *.apk
 *.aab
 *.unitypackage
+
+# Test output
+/TestResults/
 *.unitypackage.meta
 *.app
 

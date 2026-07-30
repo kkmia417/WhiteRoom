@@ -1,0 +1,19 @@
+{
+  "startId": 1,
+  "routes": [
+    { "endingKey": "bad_too_good", "choiceTargets": [100] },
+    { "endingKey": "bad_sleep_room", "choiceTargets": [120, 126] },
+    { "endingKey": "bad_kind_cage", "choiceTargets": [20, 160, 170, 180] },
+    { "endingKey": "normal_white_hand", "choiceTargets": [20, 160, 170, 190] },
+    { "endingKey": "normal_drain_alone", "choiceTargets": [20, 35, 200, 210] },
+    { "endingKey": "bad_no_return", "choiceTargets": [20, 35, 200, 220] },
+    { "endingKey": "bad_eleven_seconds", "choiceTargets": [20, 35, 50, 60, 320] },
+    { "endingKey": "bad_too_fast", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 520] },
+    { "endingKey": "bad_white_target", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 560] },
+    { "endingKey": "end_regular_escape", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 540, 620, 700] },
+    { "endingKey": "end_true_name", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 540, 620, 710] },
+    { "endingKey": "end_hidden_underground_child", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 580, 590, 830, 860] },
+    { "endingKey": "end_regular_with_battery", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 580, 590, 830, 870] },
+    { "endingKey": "end_true_name_plus", "choiceTargets": [20, 35, 50, 60, 310, 360, 440, 580, 590, 830, 880] }
+  ]
+}
