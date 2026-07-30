@@ -45,7 +45,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.
 - Focused PlayMode tests continue to own Auto, Skip, Rollback, Backlog, manual/Quick/
-  Auto Save, thumbnail, Config, collection, ending, and screenshot behavior.
+  Auto Save, thumbnail, Config, collection, favorite-voice replay/list lifecycle,
+  ending, and screenshot behavior. Favorite-voice EditMode tests separately own
+  stable identity, ordering, migration, deduplication, and missing-data policy.
 
 Save fixtures always inject memory storage or a unique temporary directory. They must
 not read from or write to a developer's real save slots.

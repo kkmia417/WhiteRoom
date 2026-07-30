@@ -128,6 +128,9 @@ namespace WhiteRoom.Novel
         public Func<bool> CanPreviousScene { get; set; }
         public Func<bool> CanNextScene { get; set; }
         public Func<bool> CanNextChoice { get; set; }
+        public Func<bool> CanOpenFavoriteVoices { get; set; }
+        public Func<bool> CanReplayVoice { get; set; }
+        public Func<bool> CanAddFavoriteVoice { get; set; }
         public Func<bool> CanOpenSystemConfig { get; set; }
         public Func<bool> CanCaptureScreenshot { get; set; }
         public Func<bool> CanHideMessage { get; set; }
@@ -137,6 +140,9 @@ namespace WhiteRoom.Novel
         public Func<string> PreviousSceneUnavailableReason { get; set; }
         public Func<string> NextSceneUnavailableReason { get; set; }
         public Func<string> NextChoiceUnavailableReason { get; set; }
+        public Func<string> FavoriteVoiceListUnavailableReason { get; set; }
+        public Func<string> VoiceReplayUnavailableReason { get; set; }
+        public Func<string> FavoriteVoiceAddUnavailableReason { get; set; }
         public Func<bool> HasDialogue { get; set; }
         public Func<bool> IsBacklogOpen { get; set; }
         public Func<bool> IsBackSkipActive { get; set; }
@@ -170,9 +176,9 @@ namespace WhiteRoom.Novel
                 Command(NovelCommandId.NextScene, NovelCommandGroup.ForwardNavigation, "S>", "Next scene", bindings.NextScene, bindings.CanNextScene, null, "No next reached scene", bindings.NextSceneUnavailableReason),
                 Command(NovelCommandId.NextChoice, NovelCommandGroup.ForwardNavigation, "C>", "Next choice", bindings.NextChoice, bindings.CanNextChoice, null, "No next reached choice", bindings.NextChoiceUnavailableReason),
                 Command(NovelCommandId.Flowchart, NovelCommandGroup.Flowchart, "FLOW", "Flowchart", bindings.OpenFlowchart),
-                Command(NovelCommandId.FavoriteVoiceList, NovelCommandGroup.Voice, "FAV", "Favorite voices", bindings.OpenFavoriteVoices),
-                Command(NovelCommandId.VoiceReplay, NovelCommandGroup.Voice, "VOICE", "Replay current voice", bindings.ReplayVoice),
-                Command(NovelCommandId.FavoriteVoiceAdd, NovelCommandGroup.Voice, "+FAV", "Add favorite voice", bindings.AddFavoriteVoice),
+                Command(NovelCommandId.FavoriteVoiceList, NovelCommandGroup.Voice, "FAV", "Favorite voices", bindings.OpenFavoriteVoices, bindings.CanOpenFavoriteVoices, null, "No favorite voices", bindings.FavoriteVoiceListUnavailableReason),
+                Command(NovelCommandId.VoiceReplay, NovelCommandGroup.Voice, "VOICE", "Replay current voice", bindings.ReplayVoice, bindings.CanReplayVoice, null, "Current voice is unavailable", bindings.VoiceReplayUnavailableReason),
+                Command(NovelCommandId.FavoriteVoiceAdd, NovelCommandGroup.Voice, "+FAV", "Add favorite voice", bindings.AddFavoriteVoice, bindings.CanAddFavoriteVoice, null, "Current voice is unavailable", bindings.FavoriteVoiceAddUnavailableReason),
                 Command(
                     NovelCommandId.Screenshot,
                     NovelCommandGroup.System,

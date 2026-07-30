@@ -64,6 +64,8 @@ namespace WhiteRoom.Novel
         private EndingFlowService _endingFlow;
         private EndingResultScreenController _endingResultScreen;
         private CollectionScreenController _collectionScreen;
+        private FavoriteVoiceService _favoriteVoices;
+        private FavoriteVoiceScreenController _favoriteVoiceScreen;
         private ConfigScreenController _configScreen;
         private QuitConfirmationController _quitConfirmation;
         private TitleReturnService _titleReturnService;
@@ -83,6 +85,7 @@ namespace WhiteRoom.Novel
         private DialoguePlaybackController _playbackController;
         private DialogueBackSkipController _backSkip;
         private DialogueBoundaryNavigationService _boundaryNavigation;
+        private AudioDatabase _resolvedAudioDatabase;
         private bool _quickLoadAvailable;
         private DialoguePlaybackMode? _thumbnailPlaybackMode;
         private bool _thumbnailKeyboardWasEnabled;
@@ -152,6 +155,8 @@ namespace WhiteRoom.Novel
             _progress?.Dispose();
             if (_collectionScreen != null)
                 _collectionScreen.VisibilityChanged -= HandleCollectionVisibilityChanged;
+            if (_favoriteVoiceScreen != null)
+                _favoriteVoiceScreen.VisibilityChanged -= HandleFavoriteVoiceVisibilityChanged;
             if (_configScreen != null)
                 _configScreen.VisibilityChanged -= HandleConfigVisibilityChanged;
             if (_quitConfirmation != null)
@@ -459,6 +464,7 @@ namespace WhiteRoom.Novel
             var resolvedAudioDatabase = audioDatabase != null
                 ? audioDatabase
                 : presentationConfiguration != null ? presentationConfiguration.AudioDatabase : null;
+            _resolvedAudioDatabase = resolvedAudioDatabase;
 
             if (resolvedBackgroundDatabase == null || resolvedCharacterDatabase == null || resolvedAudioDatabase == null)
             {
@@ -609,6 +615,21 @@ namespace WhiteRoom.Novel
                 Debug.LogWarning);
             _saveSystem.RegisterContributor(_boundaryNavigation);
             _boundaryNavigation.Attach();
+            _favoriteVoices = new FavoriteVoiceService(
+                () => _manager != null ? _manager.CurrentData : null,
+                id => _manager != null && _manager.Repository != null ? _manager.Repository.Get(id) : null,
+                key =>
+                {
+                    AudioClip clip;
+                    return _resolvedAudioDatabase != null && _resolvedAudioDatabase.TryGetVoice(key, out clip);
+                },
+                _presentation != null ? _presentation.AudioPlayer : null,
+                null,
+                Debug.LogWarning);
+            _favoriteVoiceScreen = new FavoriteVoiceScreenController(
+                _favoriteVoices,
+                HandleFavoriteVoiceFeedback);
+            _favoriteVoiceScreen.VisibilityChanged += HandleFavoriteVoiceVisibilityChanged;
             _commandBar?.Refresh();
 
             if (ShouldShowTitleMenu())
@@ -637,6 +658,7 @@ namespace WhiteRoom.Novel
             StopPlaybackAutomation();
             _titleMenu.Hide();
             _saveLoadScreen.Close();
+            _favoriteVoiceScreen?.Close();
         }
 
         private void HandleSaveFeedback(NovelSaveFeedback feedback)
@@ -734,6 +756,30 @@ namespace WhiteRoom.Novel
                 _dialogueKeyboardInput.enabled = !visible;
         }
 
+        private void HandleFavoriteVoiceVisibilityChanged(bool visible)
+        {
+            if (visible)
+            {
+                _backlog?.Close();
+                _saveLoadScreen?.Close();
+                _collectionScreen?.Close();
+                _configScreen?.Close();
+                _gameplayOverlay?.Suspend();
+            }
+            else
+            {
+                ResumeGameplayAfterSystemOverlay();
+            }
+        }
+
+        private void HandleFavoriteVoiceFeedback(FavoriteVoiceResult result)
+        {
+            if (result == null)
+                return;
+            _notifications?.Show(result.Message, result.Succeeded);
+            _commandBar?.Refresh();
+        }
+
         private void HandleTitleSubScreenVisibilityChanged(bool visible)
         {
             if (visible)
@@ -824,6 +870,7 @@ namespace WhiteRoom.Novel
             _titleReturnConfirmation?.Reset();
             _titleReturnService?.NotifySceneLoaded();
             _endingResultScreen?.Hide();
+            _favoriteVoiceScreen?.Close();
             StopPlaybackAutomation();
             if (ShouldShowTitleMenu(scene.name))
                 _titleMenu.Show();
@@ -885,6 +932,9 @@ namespace WhiteRoom.Novel
                 NextChoice = () => JumpBoundary(
                     DialogueBoundaryKind.Choice,
                     DialogueBoundaryDirection.Next),
+                OpenFavoriteVoices = OpenFavoriteVoices,
+                ReplayVoice = ReplayCurrentVoice,
+                AddFavoriteVoice = AddCurrentFavoriteVoice,
                 CaptureScreenshot = () => RequestScreenshot(),
                 HideMessage = HideMessageWindow,
                 ReturnTitle = () => RequestReturnToTitle(),
@@ -907,6 +957,15 @@ namespace WhiteRoom.Novel
                 CanNextChoice = () => CanJumpBoundary(
                     DialogueBoundaryKind.Choice,
                     DialogueBoundaryDirection.Next),
+                CanOpenFavoriteVoices = () => !IsEndingInputBlocked()
+                                                && _favoriteVoices != null
+                                                && _favoriteVoices.HasFavorites,
+                CanReplayVoice = () => !IsEndingInputBlocked()
+                                        && _favoriteVoices != null
+                                        && _favoriteVoices.CanUseCurrentVoice,
+                CanAddFavoriteVoice = () => !IsEndingInputBlocked()
+                                             && _favoriteVoices != null
+                                             && _favoriteVoices.CanUseCurrentVoice,
                 CanOpenSystemConfig = () => !IsEndingInputBlocked(),
                 CanCaptureScreenshot = () => _screenshotService != null
                                              && _screenshotService.IsAvailable
@@ -929,6 +988,11 @@ namespace WhiteRoom.Novel
                 NextChoiceUnavailableReason = () => BoundaryUnavailableReason(
                     DialogueBoundaryKind.Choice,
                     DialogueBoundaryDirection.Next),
+                FavoriteVoiceListUnavailableReason = () => _favoriteVoices == null
+                    ? "Favorite voices are not ready"
+                    : _favoriteVoices.HasFavorites ? string.Empty : "No favorite voices",
+                VoiceReplayUnavailableReason = CurrentVoiceUnavailableReason,
+                FavoriteVoiceAddUnavailableReason = CurrentVoiceUnavailableReason,
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
                 IsBackSkipActive = () => _backSkip != null && _backSkip.IsActive,
@@ -937,6 +1001,35 @@ namespace WhiteRoom.Novel
             };
 
             return new NovelCommandBarController(NovelCommandCatalog.Create(bindings));
+        }
+
+        private void OpenFavoriteVoices()
+        {
+            if (!IsEndingInputBlocked() && _favoriteVoices != null && _favoriteVoices.HasFavorites)
+                _favoriteVoiceScreen?.Open();
+        }
+
+        private void ReplayCurrentVoice()
+        {
+            if (_favoriteVoices == null)
+                return;
+            HandleFavoriteVoiceFeedback(_favoriteVoices.ReplayCurrent());
+        }
+
+        private void AddCurrentFavoriteVoice()
+        {
+            if (_favoriteVoices == null)
+                return;
+            HandleFavoriteVoiceFeedback(_favoriteVoices.AddCurrent());
+        }
+
+        private string CurrentVoiceUnavailableReason()
+        {
+            if (IsEndingInputBlocked())
+                return "Dialogue input is blocked";
+            return _favoriteVoices != null && _favoriteVoices.CanUseCurrentVoice
+                ? string.Empty
+                : "Current voice is unavailable";
         }
 
         private bool CanJumpBoundary(DialogueBoundaryKind kind, DialogueBoundaryDirection direction)
@@ -967,6 +1060,7 @@ namespace WhiteRoom.Novel
             _saveLoadScreen?.Close();
             _collectionScreen?.Close();
             _configScreen?.Close();
+            _favoriteVoiceScreen?.Close();
             SetGameplayInputEnabled(false);
 
             var result = _boundaryNavigation.Jump(kind, direction);
@@ -1054,6 +1148,7 @@ namespace WhiteRoom.Novel
                 || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
                 || (_messageVisibility != null && _messageVisibility.IsHidden)
                 || (_collectionScreen != null && _collectionScreen.IsOpen)
+                || (_favoriteVoiceScreen != null && _favoriteVoiceScreen.IsOpen)
                 || (_configScreen != null && _configScreen.IsOpen)
                 || (_quitConfirmation != null && _quitConfirmation.IsOpen);
         }
@@ -1074,6 +1169,7 @@ namespace WhiteRoom.Novel
                 || (_titleReturnService != null && _titleReturnService.IsTransitionInProgress)
                 || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
                 || (_collectionScreen != null && _collectionScreen.IsOpen)
+                || (_favoriteVoiceScreen != null && _favoriteVoiceScreen.IsOpen)
                 || (_configScreen != null && _configScreen.IsOpen)
                 || (_quitConfirmation != null && _quitConfirmation.IsOpen)
                 || (_saveLoadScreen != null && _saveLoadScreen.IsOpen)
@@ -1084,6 +1180,7 @@ namespace WhiteRoom.Novel
         private void ResumeGameplayAfterSystemOverlay()
         {
             if ((_configScreen != null && _configScreen.IsOpen)
+                || (_favoriteVoiceScreen != null && _favoriteVoiceScreen.IsOpen)
                 || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
                 || (_messageVisibility != null && _messageVisibility.IsHidden))
                 return;
