@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using kkmia.TalkSystem;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 namespace WhiteRoom.Novel
@@ -63,6 +64,10 @@ namespace WhiteRoom.Novel
         private CollectionScreenController _collectionScreen;
         private ConfigScreenController _configScreen;
         private QuitConfirmationController _quitConfirmation;
+        private TitleReturnService _titleReturnService;
+        private TitleReturnConfirmationController _titleReturnConfirmation;
+        private MessageWindowVisibilityController _messageVisibility;
+        private GameplayOverlayCoordinator _gameplayOverlay;
         private VersionedDialogueSettingsStore _settingsStore;
         private DialoguePresentationIssueLogger _presentationIssueLogger;
         private BacklogController _backlog;
@@ -76,6 +81,7 @@ namespace WhiteRoom.Novel
         private bool _quickLoadAvailable;
         private DialoguePlaybackMode? _thumbnailPlaybackMode;
         private bool _thumbnailKeyboardWasEnabled;
+        private Coroutine _gameplayInputRestore;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeBootstrap()
@@ -136,12 +142,19 @@ namespace WhiteRoom.Novel
             if (_collectionScreen != null)
                 _collectionScreen.VisibilityChanged -= HandleCollectionVisibilityChanged;
             if (_configScreen != null)
-                _configScreen.VisibilityChanged -= HandleTitleSubScreenVisibilityChanged;
+                _configScreen.VisibilityChanged -= HandleConfigVisibilityChanged;
             if (_quitConfirmation != null)
                 _quitConfirmation.VisibilityChanged -= HandleTitleSubScreenVisibilityChanged;
+            if (_titleReturnConfirmation != null)
+                _titleReturnConfirmation.VisibilityChanged -= HandleTitleReturnVisibilityChanged;
+            if (_messageVisibility != null)
+                _messageVisibility.HiddenChanged -= HandleMessageHiddenChanged;
+            if (_manager != null)
+                _manager.LineStarted -= HandleLineStartedForTitleReturn;
             _presentationIssueLogger?.Dispose();
             _commandBar?.Dispose();
             _saveLoadScreen?.Dispose();
+            _messageVisibility?.Dispose();
             if (_playbackController != null)
                 _playbackController.StateChanged -= HandlePlaybackStateChanged;
 
@@ -330,8 +343,27 @@ namespace WhiteRoom.Novel
 
         public void OpenConfig()
         {
+            if (IsEndingInputBlocked() || (_configScreen != null && _configScreen.IsOpen))
+                return;
+
+            _backlog?.Close();
+            _saveLoadScreen?.Close();
+            _collectionScreen?.Close();
+            _quitConfirmation?.Cancel();
+            _configScreen?.Open();
+        }
+
+        public void HideMessageWindow()
+        {
             if (!IsEndingInputBlocked())
-                _configScreen?.Open();
+                _messageVisibility?.Hide();
+        }
+
+        public bool RequestReturnToTitle()
+        {
+            return !IsEndingInputBlocked() &&
+                   _titleReturnConfirmation != null &&
+                   _titleReturnConfirmation.Request();
         }
 
         public void OpenQuitConfirmation()
@@ -486,6 +518,15 @@ namespace WhiteRoom.Novel
             _commandBar.EnsureCreated();
             _commandBar.SetSceneVisible(ShouldShowCommandBar());
 
+            _titleReturnService = new TitleReturnService(ResetForTitleTransition, ReturnToTitle);
+            _titleReturnConfirmation = new TitleReturnConfirmationController(_titleReturnService);
+            _messageVisibility = new MessageWindowVisibilityController(_view, _commandBar, ShouldShowCommandBar);
+            _gameplayOverlay = new GameplayOverlayCoordinator(
+                () => _playbackController != null ? _playbackController.Mode : DialoguePlaybackMode.Normal,
+                mode => _playbackController?.SetMode(mode),
+                () => _backSkip?.Stop(),
+                SetGameplayInputEnabled);
+
             saveSystem.ThumbnailCaptureStarted += HandleThumbnailCaptureStarted;
             saveSystem.ThumbnailCaptureCompleted += HandleThumbnailCaptureCompleted;
 
@@ -495,8 +536,11 @@ namespace WhiteRoom.Novel
             _titleMenu.VisibilityChanged += _saveLoadScreen.SetTitleMenuVisible;
             _saveLoadScreen.VisibilityChanged += HandleSaveLoadVisibilityChanged;
             _collectionScreen.VisibilityChanged += HandleCollectionVisibilityChanged;
-            _configScreen.VisibilityChanged += HandleTitleSubScreenVisibilityChanged;
+            _configScreen.VisibilityChanged += HandleConfigVisibilityChanged;
             _quitConfirmation.VisibilityChanged += HandleTitleSubScreenVisibilityChanged;
+            _titleReturnConfirmation.VisibilityChanged += HandleTitleReturnVisibilityChanged;
+            _messageVisibility.HiddenChanged += HandleMessageHiddenChanged;
+            _manager.LineStarted += HandleLineStartedForTitleReturn;
 
             _manager.SetView(_view);
             _manager.SetVariableResolver(new PlayerNameVariableResolver(() => playerName));
@@ -532,6 +576,7 @@ namespace WhiteRoom.Novel
 
         private void HandleSaveCompleted()
         {
+            _titleReturnService?.MarkProgressSaved();
             _quickLoadAvailable = _saveService != null &&
                                   _saveService.HasSave(DialogueSaveSystem.QuickSaveSlot);
             _titleMenu.RefreshButtons();
@@ -541,6 +586,7 @@ namespace WhiteRoom.Novel
 
         private void HandleLoadCompleted()
         {
+            _titleReturnService?.MarkProgressSaved();
             StopPlaybackAutomation();
             _titleMenu.Hide();
             _saveLoadScreen.Close();
@@ -640,6 +686,36 @@ namespace WhiteRoom.Novel
             }
         }
 
+        private void HandleConfigVisibilityChanged(bool visible)
+        {
+            HandleTitleSubScreenVisibilityChanged(visible);
+            if (visible)
+                _gameplayOverlay?.Suspend();
+            else
+                ResumeGameplayAfterSystemOverlay();
+        }
+
+        private void HandleTitleReturnVisibilityChanged(bool visible)
+        {
+            if (visible)
+                _gameplayOverlay?.Suspend();
+            else if (_titleReturnService == null || !_titleReturnService.IsTransitionInProgress)
+                ResumeGameplayAfterSystemOverlay();
+        }
+
+        private void HandleMessageHiddenChanged(bool hidden)
+        {
+            if (hidden)
+                _gameplayOverlay?.Suspend();
+            else
+                ResumeGameplayAfterSystemOverlay();
+        }
+
+        private void HandleLineStartedForTitleReturn(DialogueEventContext context)
+        {
+            _titleReturnService?.MarkProgressChanged();
+        }
+
         private void HandleDialogueEvent(DialogueEventContext context)
         {
             if (context == null || string.IsNullOrEmpty(context.EventKey))
@@ -680,6 +756,12 @@ namespace WhiteRoom.Novel
                 return;
 
             _endingFlow?.NotifySceneLoaded();
+            _gameplayOverlay?.ResetForTransition();
+            _messageVisibility?.Reset();
+            if (_configScreen != null && _configScreen.IsOpen)
+                _configScreen.Close();
+            _titleReturnConfirmation?.Reset();
+            _titleReturnService?.NotifySceneLoaded();
             _endingResultScreen?.Hide();
             StopPlaybackAutomation();
             if (ShouldShowTitleMenu(scene.name))
@@ -688,9 +770,7 @@ namespace WhiteRoom.Novel
                 _titleMenu.Hide();
 
             _commandBar?.SetSceneVisible(ShouldShowCommandBar(scene.name));
-            _commandBar?.SetInputBlocked(false);
-            if (_dialogueKeyboardInput != null)
-                _dialogueKeyboardInput.enabled = true;
+            SetGameplayInputEnabled(ShouldShowCommandBar(scene.name));
         }
 
         private bool ShouldShowTitleMenu()
@@ -714,6 +794,7 @@ namespace WhiteRoom.Novel
                 OpenLoad = OpenLoadScreen,
                 QuickSave = () => QuickSave(),
                 QuickLoad = () => QuickLoad(),
+                OpenSystemConfig = OpenConfig,
                 PreviousText = Rollback,
                 BackSkip = _backSkip != null ? _backSkip.Toggle : null,
                 ToggleBacklog = ToggleBacklog,
@@ -731,9 +812,14 @@ namespace WhiteRoom.Novel
                         playbackController.ToggleSkip();
                     }
                     : null,
+                HideMessage = HideMessageWindow,
+                ReturnTitle = () => RequestReturnToTitle(),
                 CanSave = () => !IsEndingInputBlocked() && _saveService != null && _saveService.CanSaveNow && !_saveService.IsBusy,
                 CanQuickLoad = () => !IsEndingInputBlocked() && _quickLoadAvailable,
                 CanBackSkip = () => _backSkip != null && _backSkip.CanStart,
+                CanOpenSystemConfig = () => !IsEndingInputBlocked(),
+                CanHideMessage = () => !IsEndingInputBlocked() && _manager != null && _manager.CurrentData != null,
+                CanReturnTitle = () => !IsEndingInputBlocked(),
                 HasDialogue = () => _manager != null && _manager.CurrentData != null,
                 IsBacklogOpen = () => _backlog != null && _backlog.IsOpen,
                 IsBackSkipActive = () => _backSkip != null && _backSkip.IsActive,
@@ -769,9 +855,15 @@ namespace WhiteRoom.Novel
 
         private void ResetForTitleTransition()
         {
-            StopPlaybackAutomation();
+            _gameplayOverlay?.ResetForTransition();
             _backlog?.Close();
             _saveLoadScreen?.Close();
+            _collectionScreen?.Close();
+            if (_configScreen != null && _configScreen.IsOpen)
+                _configScreen.Close();
+            _quitConfirmation?.Cancel();
+            _titleReturnConfirmation?.Reset();
+            _messageVisibility?.Reset();
             _view?.ForceStop();
             _view?.Clear();
             if (_view != null)
@@ -782,6 +874,8 @@ namespace WhiteRoom.Novel
             _presentation?.AudioPlayer?.ResetPlayback();
             _endingResultScreen?.Hide();
             _commandBar?.SetInputBlocked(true);
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(null);
         }
 
         private void ReturnToTitle()
@@ -790,6 +884,7 @@ namespace WhiteRoom.Novel
             {
                 HandleEndingTransitionFailed("Title sceneが設定されていません。");
                 _endingFlow?.NotifySceneLoaded();
+                _titleReturnService?.NotifySceneLoaded();
                 return;
             }
 
@@ -799,6 +894,7 @@ namespace WhiteRoom.Novel
                     StringComparison.OrdinalIgnoreCase))
             {
                 _endingFlow?.NotifySceneLoaded();
+                _titleReturnService?.NotifySceneLoaded();
                 _titleMenu?.Show();
                 return;
             }
@@ -809,9 +905,56 @@ namespace WhiteRoom.Novel
         private bool IsEndingInputBlocked()
         {
             return (_endingFlow != null && _endingFlow.IsInputBlocked)
+                || (_titleReturnService != null && _titleReturnService.IsTransitionInProgress)
+                || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
+                || (_messageVisibility != null && _messageVisibility.IsHidden)
                 || (_collectionScreen != null && _collectionScreen.IsOpen)
                 || (_configScreen != null && _configScreen.IsOpen)
                 || (_quitConfirmation != null && _quitConfirmation.IsOpen);
+        }
+
+        private void ResumeGameplayAfterSystemOverlay()
+        {
+            if ((_configScreen != null && _configScreen.IsOpen)
+                || (_titleReturnConfirmation != null && _titleReturnConfirmation.IsOpen)
+                || (_messageVisibility != null && _messageVisibility.IsHidden))
+                return;
+
+            _gameplayOverlay?.Resume();
+        }
+
+        private void SetGameplayInputEnabled(bool enabled)
+        {
+            if (_gameplayInputRestore != null)
+            {
+                StopCoroutine(_gameplayInputRestore);
+                _gameplayInputRestore = null;
+            }
+
+            if (!enabled)
+            {
+                if (_dialogueKeyboardInput != null)
+                    _dialogueKeyboardInput.enabled = false;
+                _commandBar?.SetInputBlocked(true);
+                return;
+            }
+
+            _gameplayInputRestore = StartCoroutine(EnableGameplayInputNextFrame());
+        }
+
+        private IEnumerator EnableGameplayInputNextFrame()
+        {
+            // Consume the key/click that closed an overlay before dialogue input is
+            // restored, preventing the same action from also advancing the line.
+            yield return null;
+            _gameplayInputRestore = null;
+            var canEnable = ShouldShowCommandBar()
+                            && !IsEndingInputBlocked()
+                            && (_saveLoadScreen == null || !_saveLoadScreen.IsOpen)
+                            && (_backlog == null || !_backlog.IsOpen);
+            if (_dialogueKeyboardInput != null)
+                _dialogueKeyboardInput.enabled = canEnable;
+            _commandBar?.SetInputBlocked(!canEnable);
         }
 
         private bool ShouldShowCommandBar()
