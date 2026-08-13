@@ -28,8 +28,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario・journey coverage
 
-- `WhiteRoomScenarioContractTests`は公開CSV 9,904行をparseし、ID一意性、全`NextId`/choice target、
-  chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を検証する
+- `WhiteRoomScenarioContractTests`は公開CSV 134行をparseし、ID一意性、全`NextId`/choice target、
+  1 turn 52文字の上限、chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を
+  検証する。レイ単独chapter境界の立ち絵状態もsimulationし、直前のナギが残らないことを確認する
 - `Assets/Tests/Fixtures/r00_ending_routes.json`をreview対象のroute matrixとする。各entryはdialogue ID 1000001から
   4つの固有Endingまでのchoice targetを保持し、testはchoice間の通常`NextId`を追跡する。target欠損、循環、
   未使用choice、想定外Endingをfailureにする
@@ -38,6 +39,8 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   source index付きの決定的な`docs/development/white-room-speaker-audit.json`を出力できる
 - `WhiteRoomProductJourneyPlayModeTests`は実Title/Main sceneをloadし、製品scenarioをEndingまで進め、
   memory save復元、overlay中automation停止、Title帰還、manager/canvas/event-system重複を検証する
+- `WhiteRoomPlayModeStartupSmokeTests`は本番`NewGameButton`をclickし、dialogue ID 1000001の開始前に
+  `Main`がloadされること、unexpected startup logやruntime UI重複がないことを検証する
 - `WhiteRoomBoundaryNavigationPlayModeTests`はbranch timelineへ到達し、前後のscene/choice復元、
   line eventを再実行しないpresentation/Backlog一貫性、save slotからの到達target再読込を検証する
 - Auto、Skip、Rollback、Backlog、manual/Quick/Auto Save、thumbnail、Config、collection、Ending、

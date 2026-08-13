@@ -30,9 +30,11 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario and journey coverage
 
-- `WhiteRoomScenarioContractTests` parses all 9,904 published CSV rows and verifies
-  unique IDs, every `NextId` and choice target, fourteen chapter markers, the
-  two-choice baseline, zero condition flags, and all four unique ending keys.
+- `WhiteRoomScenarioContractTests` parses all 134 published CSV rows and verifies
+  unique IDs, every `NextId` and choice target, the 52-character turn ceiling,
+  fourteen chapter markers, two choice nodes, zero condition flags, and four unique
+  ending keys. It also simulates portrait state at Rei-only chapter boundaries so a
+  prior Nagi portrait cannot leak into the new scene.
 - `Assets/Tests/Fixtures/r00_ending_routes.json` is the reviewed route matrix. Each
   entry records choice targets from dialogue ID 1000001 to one of four unique endings. The test
   follows normal `NextId` edges between choices and fails on a missing target, a
@@ -46,6 +48,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   the shipped scenario through an ending, restores an in-memory save, validates
   overlay automation suspension, returns to Title, and detects duplicate manager,
   canvas, or event-system instances.
+- `WhiteRoomPlayModeStartupSmokeTests` clicks the production `NewGameButton`, verifies
+  that `Main` loads before dialogue ID 1000001 starts, and rejects unexpected startup
+  logs or duplicate runtime UI.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.

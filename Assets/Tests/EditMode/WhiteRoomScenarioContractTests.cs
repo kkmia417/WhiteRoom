@@ -13,6 +13,8 @@ namespace WhiteRoom.Novel.EditModeTests
     {
         private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
         private const string RouteMatrixPath = "Assets/Tests/Fixtures/r00_ending_routes.json";
+        private const int PublishedRowCount = 134;
+        private const int MaximumTurnCharacters = 52;
 
         [Serializable]
         private sealed class RouteMatrixDocument
@@ -37,9 +39,11 @@ namespace WhiteRoom.Novel.EditModeTests
             var rows = repository.GetAll().ToArray();
             var physicalRows = csv.text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length - 1;
 
-            Assert.That(physicalRows, Is.EqualTo(9904), "The published CSV row baseline changed.");
+            Assert.That(physicalRows, Is.EqualTo(PublishedRowCount), "The concise CSV row baseline changed.");
             Assert.That(rows.Length, Is.EqualTo(physicalRows), "Duplicate IDs can be hidden by dictionary parsing.");
             Assert.That(rows.Select(row => row.Id).Distinct().Count(), Is.EqualTo(rows.Length));
+            Assert.That(rows.All(row => (row.Text ?? string.Empty).Length <= MaximumTurnCharacters), Is.True,
+                $"Every dialogue turn must fit within {MaximumTurnCharacters} characters.");
             Assert.That(repository.ValidationReport.HasErrors, Is.False,
                 string.Join("\n", repository.ValidationReport.Messages.Select(message => message.ToString())));
 
@@ -55,8 +59,8 @@ namespace WhiteRoom.Novel.EditModeTests
             foreach (var routeKey in new[] { "managed_future", "single_answer" })
             {
                 var branchStart = rows.Single(row => row.RouteKey == routeKey);
-                Assert.That(CountRowsThroughEnding(repository, branchStart.Id), Is.GreaterThanOrEqualTo(11),
-                    routeKey + " must include a dramatized aftermath, not only a summary ending.");
+                Assert.That(CountRowsThroughEnding(repository, branchStart.Id), Is.GreaterThanOrEqualTo(5),
+                    routeKey + " must include a concise aftermath before the ending.");
             }
 
             foreach (var row in rows)
@@ -65,6 +69,39 @@ namespace WhiteRoom.Novel.EditModeTests
                     Assert.That(byId.ContainsKey(row.NextId), Is.True, $"Row {row.Id} NextId {row.NextId}");
                 foreach (var choice in row.GetChoices())
                     Assert.That(byId.ContainsKey(choice.NextId), Is.True, $"Row {row.Id} choice target {choice.NextId}");
+            }
+        }
+
+        [Test]
+        public void ChapterAndEndingBoundariesResetPortraitState()
+        {
+            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            Assert.That(csv, Is.Not.Null, ScenarioPath);
+            var rows = new DialogueRepository(csv).GetAll().ToArray();
+            var chapterRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.ChapterKey)).ToArray();
+            var endingRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.EndingKey)).ToArray();
+
+            Assert.That(chapterRows, Has.Length.EqualTo(14));
+            foreach (var row in chapterRows)
+            {
+                var directives = row.GetStageDirectives();
+                Assert.That(directives, Is.Not.Empty, $"Chapter row {row.Id} must define the stage.");
+                Assert.That(directives[0].IsClearAll, Is.True,
+                    $"Chapter row {row.Id} must clear inherited portraits first.");
+            }
+
+            foreach (var row in endingRows)
+                Assert.That(row.GetStageDirectives().Any(directive => directive.IsClearAll), Is.True,
+                    $"Ending row {row.Id} must clear all portraits.");
+
+            var byId = rows.ToDictionary(row => row.Id);
+            foreach (var reiOnlyBoundary in new[] { 1000004, 1002588, 1003404, 1006857 })
+            {
+                var state = new DialogueStageState();
+                state.Apply(DialogueStageDirective.ParseList("Rei@left|Nagi@right"));
+                state.Apply(byId[reiOnlyBoundary].GetStageDirectives());
+                Assert.That(state.Occupancy.Values, Does.Not.Contain("Nagi"),
+                    $"Row {reiOnlyBoundary} must not inherit Nagi from the previous scene.");
             }
         }
 

@@ -31,7 +31,7 @@ namespace WhiteRoom.Novel.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TitleStartupBuildsNovelRuntimeWithoutUnexpectedLogs()
+        public IEnumerator TitleNewGameLoadsMainThenStartsThePublishedScenarioWithoutUnexpectedLogs()
         {
             var bootstrapType = Type.GetType("WhiteRoom.Novel.NovelGameBootstrap, Assembly-CSharp");
             Assert.That(bootstrapType, Is.Not.Null);
@@ -55,9 +55,9 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(commandBar.GetComponentsInChildren<Image>(true), Is.All.Matches<Image>(image =>
                 image.sprite == null && image.type == Image.Type.Simple));
 
-            Assert.That(Object.FindObjectsByType<DialogueManager>(
+            var manager = Object.FindObjectsByType<DialogueManager>(
                 FindObjectsInactive.Include,
-                FindObjectsSortMode.None), Has.Length.EqualTo(1));
+                FindObjectsSortMode.None).Single();
             Assert.That(Object.FindObjectsByType<Canvas>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -65,6 +65,19 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(Object.FindObjectsByType<EventSystem>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None), Has.Length.EqualTo(1));
+
+            var newGameButton = GameObject.Find("NewGameButton")?.GetComponent<Button>();
+            Assert.That(newGameButton, Is.Not.Null);
+            newGameButton.onClick.Invoke();
+
+            for (var guard = 0; guard < 60 && manager.CurrentData == null; guard++)
+                yield return null;
+
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Main"));
+            Assert.That(manager.CurrentData, Is.Not.Null);
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000001));
+            Assert.That(commandBar.activeInHierarchy, Is.True);
+            Assert.That(GameObject.Find("WhiteRoomTitleMenu"), Is.Null);
         }
 
         private static void DestroyRuntimeObjects()

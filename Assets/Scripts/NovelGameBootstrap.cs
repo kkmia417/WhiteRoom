@@ -51,7 +51,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool showSaveLoadLauncher = true;
         [SerializeField] private bool saveThumbnails = true;
         [SerializeField] private Key screenshotShortcut = Key.F12;
-        [SerializeField] private string saveContentVersion = "r00_chapters_01_14_v2";
+        [SerializeField] private string saveContentVersion = "r00_chapters_01_14_v3";
         [SerializeField] private string saveProductChannel = string.Empty;
 
         private DialogueManager _manager;
@@ -89,6 +89,7 @@ namespace WhiteRoom.Novel
         private bool _quickLoadAvailable;
         private DialoguePlaybackMode? _thumbnailPlaybackMode;
         private bool _thumbnailKeyboardWasEnabled;
+        private bool _startNewGameWhenMainSceneLoads;
         private Coroutine _gameplayInputRestore;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -231,7 +232,16 @@ namespace WhiteRoom.Novel
         public void StartNewGame()
         {
             _boundaryNavigation?.Reset();
-            StartDialogueForTrigger(startTriggerKey);
+
+            if (string.IsNullOrEmpty(mainSceneName)
+                || string.Equals(SceneManager.GetActiveScene().name, mainSceneName, StringComparison.OrdinalIgnoreCase))
+            {
+                StartDialogueForTrigger(startTriggerKey);
+                return;
+            }
+
+            _startNewGameWhenMainSceneLoads = true;
+            LoadMainScene();
         }
 
         public void RequestNext()
@@ -879,6 +889,13 @@ namespace WhiteRoom.Novel
 
             _commandBar?.SetSceneVisible(ShouldShowCommandBar(scene.name));
             SetGameplayInputEnabled(ShouldShowCommandBar(scene.name));
+
+            if (_startNewGameWhenMainSceneLoads
+                && string.Equals(scene.name, mainSceneName, StringComparison.OrdinalIgnoreCase))
+            {
+                _startNewGameWhenMainSceneLoads = false;
+                StartDialogueForTrigger(startTriggerKey);
+            }
         }
 
         private bool ShouldShowTitleMenu()
