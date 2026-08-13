@@ -13,8 +13,9 @@ are the canonical project assets; the transient generator outputs are not
 required to build the game.
 
 `NonVisual/Transparent.png` is a programmatically created fully transparent
-utility sprite used for narration, system voice, and the unseen guard. It has
-no external source material.
+utility sprite used for narration, system voice, unseen roles, and chapter
+1-14 cast members that do not yet have approved portraits. It has no external
+source material.
 
 ## Generation prompt set
 
@@ -49,6 +50,13 @@ objects as their canonical definitions. `？？？` resolves to Nagi for the
 pre-reveal line. Non-visual Speaker keys use the transparent utility sprite so
 CSV character validation remains exhaustive without displaying an unrelated
 portrait.
+
+The chapter 1-14 adaptation also registers non-visual nameplates for Asahi,
+Yui, Instructor, Staff, Boy, Team Leader, Driver, Woman, Man, Old Woman, Girl,
+Leader, Old Man, and Supervisor. These entries intentionally resolve
+validation and display the correct name without pretending that final
+character art exists. The Issue #65 speaker audit additionally identifies
+Doctor and Mother in remote testimony; both use the same non-visual treatment.
 
 All character textures use a bottom-center pivot, 100 pixels per unit, source
 alpha, no mipmaps, clamp wrapping, bilinear filtering, and a maximum texture

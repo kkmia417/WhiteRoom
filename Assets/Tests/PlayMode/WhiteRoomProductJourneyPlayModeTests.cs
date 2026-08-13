@@ -90,6 +90,9 @@ namespace WhiteRoom.Novel.PlayModeTests
                 manager.LoadRepository(new TextAssetDialogueRepositoryLoader(scenario));
                 yield return null;
                 yield return null;
+                var publishedRows = CsvLoader.Parse<DialogueData>(scenario).Values
+                    .OrderBy(row => row.RowNumber)
+                    .ToArray();
 
                 var endingFlowType = RequireProductType("WhiteRoom.Novel.EndingFlowService");
                 endingFlow = Activator.CreateInstance(
@@ -99,33 +102,38 @@ namespace WhiteRoom.Novel.PlayModeTests
                     new Action(() => SceneManager.LoadScene("Title")));
                 Invoke(endingFlow, "AttachTo", manager);
 
-                manager.StartDialogue(1);
+                manager.StartDialogue(publishedRows[0].Id);
                 yield return null;
-                Assert.That(manager.CurrentData.Id, Is.EqualTo(1));
+                Assert.That(manager.CurrentData.Id, Is.EqualTo(publishedRows[0].Id));
                 manager.RequestNext();
                 yield return null;
                 manager.RequestNext();
                 yield return null;
-                Assert.That(manager.CurrentData.Id, Is.EqualTo(3));
+                Assert.That(manager.CurrentData.Id, Is.EqualTo(publishedRows[2].Id));
 
                 Assert.That(saveSystem.Save(10, false, "journey-checkpoint"), Is.Not.Null);
                 manager.RequestNext();
                 yield return null;
-                Assert.That(manager.CurrentData.Id, Is.EqualTo(4));
+                Assert.That(manager.CurrentData.Id, Is.EqualTo(publishedRows[3].Id));
                 Assert.That(saveSystem.Load(10), Is.True);
                 yield return null;
-                Assert.That(manager.CurrentData.Id, Is.EqualTo(3));
+                Assert.That(manager.CurrentData.Id, Is.EqualTo(publishedRows[2].Id));
 
                 AssertOverlaySuspendsAndRestoresAutomation();
 
-                manager.RequestNext();
+                var endingRow = publishedRows.Single(row =>
+                    row.EndingKey == "ending_return_to_white_room");
+                var firstEndingTarget = publishedRows.Single(row =>
+                    row.RouteKey == "bad_return").Id;
+                var firstChoice = publishedRows.Single(row => row.GetChoices()
+                    .Any(choice => choice.NextId == firstEndingTarget));
+
+                manager.EndDialogue();
+                manager.StartDialogue(firstChoice.Id);
                 yield return null;
-                manager.RequestNext();
-                yield return null;
-                Assert.That(manager.CurrentData.Id, Is.EqualTo(5));
+                Assert.That(manager.CurrentData.Id, Is.EqualTo(firstChoice.Id));
                 Assert.That(manager.State, Is.EqualTo(DialogueSessionState.ChoicePending));
 
-                var firstEndingTarget = 100;
                 var selectedIndex = manager.CurrentData.GetChoices()
                     .Select((choice, index) => new { choice, index })
                     .Single(item => item.choice.NextId == firstEndingTarget)
@@ -141,8 +149,8 @@ namespace WhiteRoom.Novel.PlayModeTests
 
                 var result = GetProperty(endingFlow, "CurrentResult");
                 Assert.That(result, Is.Not.Null);
-                Assert.That(GetProperty(result, "EndingKey"), Is.EqualTo("bad_too_good"));
-                Assert.That(manager.History.Select(entry => entry.Id), Does.Contain(104));
+                Assert.That(GetProperty(result, "EndingKey"), Is.EqualTo("ending_return_to_white_room"));
+                Assert.That(manager.History.Select(entry => entry.Id), Does.Contain(endingRow.Id));
                 Assert.That(UnityEngine.Object.FindObjectsByType<DialogueManager>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None).Length, Is.EqualTo(1));

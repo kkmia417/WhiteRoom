@@ -37,7 +37,7 @@ namespace WhiteRoom.Novel.EditModeTests
             var rows = repository.GetAll().ToArray();
             var physicalRows = csv.text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length - 1;
 
-            Assert.That(physicalRows, Is.EqualTo(199), "The published CSV row baseline changed.");
+            Assert.That(physicalRows, Is.EqualTo(9904), "The published CSV row baseline changed.");
             Assert.That(rows.Length, Is.EqualTo(physicalRows), "Duplicate IDs can be hidden by dictionary parsing.");
             Assert.That(rows.Select(row => row.Id).Distinct().Count(), Is.EqualTo(rows.Length));
             Assert.That(repository.ValidationReport.HasErrors, Is.False,
@@ -45,10 +45,19 @@ namespace WhiteRoom.Novel.EditModeTests
 
             var byId = rows.ToDictionary(row => row.Id);
             var choiceRows = rows.Where(row => row.GetChoices().Count > 0).ToArray();
-            Assert.That(choiceRows.Length, Is.EqualTo(20));
-            Assert.That(rows.Count(row => !string.IsNullOrWhiteSpace(row.EndingKey)), Is.EqualTo(16));
+            Assert.That(choiceRows.Length, Is.EqualTo(2));
+            Assert.That(rows.Count(row => !string.IsNullOrWhiteSpace(row.EndingKey)), Is.EqualTo(4));
             Assert.That(rows.Select(row => row.EndingKey).Where(key => !string.IsNullOrWhiteSpace(key)).Distinct().Count(),
-                Is.EqualTo(14));
+                Is.EqualTo(4));
+            Assert.That(rows.Count(row => !string.IsNullOrWhiteSpace(row.ChapterKey)), Is.EqualTo(14));
+            Assert.That(rows.All(row => string.IsNullOrWhiteSpace(row.ConditionKey)), Is.True,
+                "The chapter 1-14 adaptation intentionally has no state-gated branches.");
+            foreach (var routeKey in new[] { "managed_future", "single_answer" })
+            {
+                var branchStart = rows.Single(row => row.RouteKey == routeKey);
+                Assert.That(CountRowsThroughEnding(repository, branchStart.Id), Is.GreaterThanOrEqualTo(11),
+                    routeKey + " must include a dramatized aftermath, not only a summary ending.");
+            }
 
             foreach (var row in rows)
             {
@@ -70,8 +79,8 @@ namespace WhiteRoom.Novel.EditModeTests
             var matrix = JsonUtility.FromJson<RouteMatrixDocument>(matrixAsset.text);
             Assert.That(matrix, Is.Not.Null);
             Assert.That(matrix.routes, Is.Not.Null);
-            Assert.That(matrix.routes.Length, Is.EqualTo(14));
-            Assert.That(matrix.routes.Select(route => route.endingKey).Distinct().Count(), Is.EqualTo(14));
+            Assert.That(matrix.routes.Length, Is.EqualTo(4));
+            Assert.That(matrix.routes.Select(route => route.endingKey).Distinct().Count(), Is.EqualTo(4));
 
             var scenarioEndingKeys = repository.GetAll()
                 .Select(row => row.EndingKey)
@@ -88,7 +97,10 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void ProductResolversProgressConditionsAndFallbackSaveTitlesRemainStable()
         {
-            var row = new DialogueRepository(AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath)).Get(1);
+            var row = new DialogueRepository(AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath))
+                .GetAll()
+                .OrderBy(item => item.RowNumber)
+                .First();
             var resolverType = RequireProductType("WhiteRoom.Novel.PlayerNameVariableResolver");
             var resolver = (IDialogueVariableResolver)Activator.CreateInstance(
                 resolverType,
@@ -146,7 +158,8 @@ namespace WhiteRoom.Novel.EditModeTests
             var visited = new HashSet<int>();
             var row = repository.Get(startId);
 
-            for (var step = 0; step < 500; step++)
+            var maximumSteps = repository.GetAll().Count() + 1;
+            for (var step = 0; step < maximumSteps; step++)
             {
                 Assert.That(row, Is.Not.Null, $"{route.endingKey}: missing row at step {step}");
                 Assert.That(visited.Add(row.Id), Is.True, $"{route.endingKey}: cycle at row {row.Id}");
@@ -174,7 +187,24 @@ namespace WhiteRoom.Novel.EditModeTests
                 }
             }
 
-            Assert.Fail(route.endingKey + ": route exceeded the 500-row guard.");
+            Assert.Fail(route.endingKey + ": route exceeded the scenario-sized guard.");
+        }
+
+        private static int CountRowsThroughEnding(DialogueRepository repository, int startId)
+        {
+            var count = 0;
+            var visited = new HashSet<int>();
+            var row = repository.Get(startId);
+            while (row != null && visited.Add(row.Id))
+            {
+                count++;
+                if (!string.IsNullOrWhiteSpace(row.EndingKey))
+                    return count;
+                row = repository.Get(row.NextId);
+            }
+
+            Assert.Fail($"Route {startId} did not reach an ending.");
+            return count;
         }
 
         private static Type RequireProductType(string fullName)

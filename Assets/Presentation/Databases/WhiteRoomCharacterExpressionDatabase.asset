@@ -290,3 +290,83 @@ MonoBehaviour:
     expressions:
     - emotionKey: cold
       sprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+  - speakerKey: "\u30A2\u30B5\u30D2"
+    displayName: "\u30A2\u30B5\u30D2"
+    nameColor: {r: 0.82, g: 0.9, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u30E6\u30A4"
+    displayName: "\u30E6\u30A4"
+    nameColor: {r: 1, g: 0.78, b: 0.82, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u6559\u5B98"
+    displayName: "\u6559\u5B98"
+    nameColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u8077\u54E1"
+    displayName: "\u8077\u54E1"
+    nameColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u5C11\u5E74"
+    displayName: "\u5C11\u5E74"
+    nameColor: {r: 0.72, g: 0.95, b: 0.95, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u73ED\u9577"
+    displayName: "\u73ED\u9577"
+    nameColor: {r: 0.9, g: 0.84, b: 0.72, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u904B\u8EE2\u624B"
+    displayName: "\u904B\u8EE2\u624B"
+    nameColor: {r: 0.84, g: 0.9, b: 0.78, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u5973\u6027"
+    displayName: "\u5973\u6027"
+    nameColor: {r: 1, g: 0.86, b: 0.72, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u7537"
+    displayName: "\u7537"
+    nameColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u8001\u5A46"
+    displayName: "\u8001\u5A46"
+    nameColor: {r: 0.88, g: 0.8, b: 0.72, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u5C11\u5973"
+    displayName: "\u5C11\u5973"
+    nameColor: {r: 1, g: 0.78, b: 0.35, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u6307\u5C0E\u8005"
+    displayName: "\u6307\u5C0E\u8005"
+    nameColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u8001\u4EBA"
+    displayName: "\u8001\u4EBA"
+    nameColor: {r: 0.88, g: 0.8, b: 0.72, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u4E3B\u4EFB"
+    displayName: "\u4E3B\u4EFB"
+    nameColor: {r: 0.8, g: 0.88, b: 0.92, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u533B\u5E2B"
+    displayName: "\u533B\u5E2B"
+    nameColor: {r: 0.82, g: 0.92, b: 1, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []
+  - speakerKey: "\u6BCD\u89AA"
+    displayName: "\u6BCD\u89AA"
+    nameColor: {r: 1, g: 0.86, b: 0.82, a: 1}
+    defaultSprite: {fileID: 21300000, guid: 43dc365b2f288fa4e910875e3282f9cb, type: 3}
+    expressions: []

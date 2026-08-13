@@ -24,7 +24,7 @@ namespace WhiteRoom.Novel.PlayModeTests
                 serviceType,
                 catalog,
                 new Func<string, List<string>>(category => category == "ending"
-                    ? new List<string> { "ending:end_true_name" }
+                    ? new List<string> { "ending:ending_beyond_correctness" }
                     : new List<string>()),
                 new Action<string>(_ => { }));
             var screen = Activator.CreateInstance(screenType, service);
@@ -34,7 +34,7 @@ namespace WhiteRoom.Novel.PlayModeTests
                 Invoke(screen, "OpenEndingList");
                 yield return null;
                 Assert.That(Get(screen, "IsOpen"), Is.EqualTo(true));
-                Assert.That(Get(screen, "VisibleItemCount"), Is.EqualTo(14));
+                Assert.That(Get(screen, "VisibleItemCount"), Is.EqualTo(4));
                 Assert.That(GameObject.Find("EndingListButton"), Is.Not.Null);
                 Assert.That(GameObject.Find("GalleryButton"), Is.Not.Null);
                 Assert.That(GameObject.Find("BackButton"), Is.Not.Null);

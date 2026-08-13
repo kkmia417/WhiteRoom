@@ -28,11 +28,14 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario・journey coverage
 
-- `WhiteRoomScenarioContractTests`は公開CSV 199行をparseし、ID一意性、全`NextId`/choice target、
-  choice node 20件、固有EndingKey 14件を検証する
-- `Assets/Tests/Fixtures/r00_ending_routes.json`をreview対象のroute matrixとする。各entryはdialogue ID 1から
-  固有Endingまでのchoice targetを保持し、testはchoice間の通常`NextId`を追跡する。target欠損、循環、
+- `WhiteRoomScenarioContractTests`は公開CSV 9,904行をparseし、ID一意性、全`NextId`/choice target、
+  chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を検証する
+- `Assets/Tests/Fixtures/r00_ending_routes.json`をreview対象のroute matrixとする。各entryはdialogue ID 1000001から
+  4つの固有Endingまでのchoice targetを保持し、testはchoice間の通常`NextId`を追跡する。target欠損、循環、
   未使用choice、想定外Endingをfailureにする
+- `scripts/tests/test_import_white_room_novel.py`はreview済みfixtureを使い、発話tagと人物動作を
+  取り違えない境界を含む保守的な話者推定を検証する。Importerは原稿の全引用段落7,250件を対象に、
+  source index付きの決定的な`docs/development/white-room-speaker-audit.json`を出力できる
 - `WhiteRoomProductJourneyPlayModeTests`は実Title/Main sceneをloadし、製品scenarioをEndingまで進め、
   memory save復元、overlay中automation停止、Title帰還、manager/canvas/event-system重複を検証する
 - `WhiteRoomBoundaryNavigationPlayModeTests`はbranch timelineへ到達し、前後のscene/choice復元、
