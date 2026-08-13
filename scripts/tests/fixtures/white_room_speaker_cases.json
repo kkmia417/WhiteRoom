@@ -1,0 +1,33 @@
+[
+  {
+    "name": "explicit speech tag",
+    "paragraphs": ["「まだ答えません」", "レイが言う。"],
+    "expectedSpeaker": "レイ",
+    "expectedEvidence": "explicit_attribution"
+  },
+  {
+    "name": "character action remains unresolved",
+    "paragraphs": ["「隣の区域は？」", "少年が首を振る。", "「送電容量が足りない」"],
+    "expectedSpeaker": "",
+    "expectedReason": "single_nearby_character_but_no_speech_attribution"
+  },
+  {
+    "name": "normal standalone attribution",
+    "paragraphs": ["「時間、十一分」", "ナギ。"],
+    "expectedSpeaker": "ナギ",
+    "expectedEvidence": "explicit_attribution"
+  },
+  {
+    "name": "remote media cue",
+    "paragraphs": ["画面にユイが映った。", "『何でレイがいるの』"],
+    "targetOffset": 1,
+    "expectedSpeaker": "ユイ",
+    "expectedEvidence": "remote_media_cue"
+  },
+  {
+    "name": "ambiguous rapid exchange",
+    "paragraphs": ["「行く？」", "「はい」", "「即答なんだ」"],
+    "expectedSpeaker": "",
+    "expectedReason": "no_explicit_speaker_in_context"
+  }
+]

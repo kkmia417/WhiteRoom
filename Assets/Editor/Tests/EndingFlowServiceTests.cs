@@ -14,12 +14,12 @@ namespace WhiteRoom.Novel.Editor.Tests
         private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
 
         [Test]
-        public void ScenarioContainsFourteenUniqueEndingKeysWithDisplayableResults()
+        public void ScenarioContainsFourUniqueEndingKeysWithDisplayableResults()
         {
             var rows = LoadEndingRows();
             var unique = rows.GroupBy(row => row.EndingKey).Select(group => group.First()).ToArray();
 
-            Assert.That(unique.Length, Is.EqualTo(14));
+            Assert.That(unique.Length, Is.EqualTo(4));
             foreach (var row in unique)
             {
                 var result = EndingResultInfo.Create(row.EndingKey, row.Text, true);
@@ -37,7 +37,7 @@ namespace WhiteRoom.Novel.Editor.Tests
                 () => { calls.Add("persist"); return true; },
                 () => calls.Add("reset"),
                 () => calls.Add("title"));
-            var row = LoadEndingRows().First(item => item.EndingKey == "bad_too_good");
+            var row = LoadEndingRows().First(item => item.EndingKey == "ending_return_to_white_room");
 
             RaiseMarker(service, row, true);
             Assert.That(service.CurrentResult, Is.Null, "The final line must remain visible until DialogueEnded.");
@@ -45,7 +45,7 @@ namespace WhiteRoom.Novel.Editor.Tests
             RaiseDialogueEnded(service);
             Assert.That(service.CurrentResult, Is.Not.Null);
             Assert.That(service.CurrentResult.Type, Is.EqualTo("BAD END"));
-            Assert.That(service.CurrentResult.DisplayName, Is.EqualTo("できすぎる子"));
+            Assert.That(service.CurrentResult.DisplayName, Is.EqualTo("白い部屋へ戻る"));
 
             Assert.That(service.ConfirmAndReturnToTitle(), Is.True);
             CollectionAssert.AreEqual(new[] { "persist", "reset", "title" }, calls);
@@ -58,13 +58,13 @@ namespace WhiteRoom.Novel.Editor.Tests
         public void RepeatEndingStillShowsResultWithoutBeingFirstReach()
         {
             var service = new EndingFlowService(() => true, () => { }, () => { });
-            var row = LoadEndingRows().First(item => item.EndingKey == "normal_drain_alone");
+            var row = LoadEndingRows().First(item => item.EndingKey == "ending_beyond_correctness");
 
             RaiseMarker(service, row, false);
             RaiseDialogueEnded(service);
 
             Assert.That(service.CurrentResult, Is.Not.Null);
-            Assert.That(service.CurrentResult.EndingKey, Is.EqualTo("normal_drain_alone"));
+            Assert.That(service.CurrentResult.EndingKey, Is.EqualTo("ending_beyond_correctness"));
             Assert.That(service.CurrentResult.IsFirstReach, Is.False);
         }
 
@@ -73,10 +73,10 @@ namespace WhiteRoom.Novel.Editor.Tests
         {
             var service = new EndingFlowService(
                 () => true,
-                key => key == "bad_too_good",
+                key => key == "ending_return_to_white_room",
                 () => { },
                 () => { });
-            var row = LoadEndingRows().First(item => item.EndingKey == "bad_too_good");
+            var row = LoadEndingRows().First(item => item.EndingKey == "ending_return_to_white_room");
 
             RaiseMarker(service, row, true);
             RaiseDialogueEnded(service);

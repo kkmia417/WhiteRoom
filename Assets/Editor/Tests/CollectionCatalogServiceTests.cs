@@ -15,7 +15,7 @@ namespace WhiteRoom.Novel.Editor.Tests
         private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
 
         [Test]
-        public void CatalogContainsExactlyTheFourteenUniqueScenarioEndingsInStableOrder()
+        public void CatalogContainsExactlyTheFourUniqueScenarioEndingsInStableOrder()
         {
             var result = LoadCatalog();
             var endings = result.Catalog.List(CollectionItemKind.Ending);
@@ -27,25 +27,25 @@ namespace WhiteRoom.Novel.Editor.Tests
                 .ToArray();
 
             Assert.That(result.Warnings, Is.Empty);
-            Assert.That(endings.Count, Is.EqualTo(14));
-            Assert.That(endings.Select(entry => entry.Key).Distinct().Count(), Is.EqualTo(14));
+            Assert.That(endings.Count, Is.EqualTo(4));
+            Assert.That(endings.Select(entry => entry.Key).Distinct().Count(), Is.EqualTo(4));
             CollectionAssert.AreEquivalent(scenarioKeys, endings.Select(entry => entry.Key));
             CollectionAssert.IsOrdered(endings.Select(entry => entry.Order).ToArray());
         }
 
         [Test]
-        public void HiddenAndTrueEndingLockedNamesAreControlledByCatalogData()
+        public void BadSideAndTrueEndingLockedNamesAreControlledByCatalogData()
         {
             var endings = LoadCatalog().Catalog.List(CollectionItemKind.Ending);
 
             Assert.That(
-                endings.Single(entry => entry.Key == "bad_too_good").LockedNameRule,
+                endings.Single(entry => entry.Key == "ending_return_to_white_room").LockedNameRule,
                 Is.EqualTo(LockedNameRule.Show));
             Assert.That(
-                endings.Single(entry => entry.Key == "end_true_name").LockedNameRule,
+                endings.Single(entry => entry.Key == "ending_beyond_correctness").LockedNameRule,
                 Is.EqualTo(LockedNameRule.Mask));
             Assert.That(
-                endings.Single(entry => entry.Key == "end_hidden_underground_child").LockedNameRule,
+                endings.Single(entry => entry.Key == "ending_single_answer").LockedNameRule,
                 Is.EqualTo(LockedNameRule.Mask));
         }
 
@@ -55,7 +55,7 @@ namespace WhiteRoom.Novel.Editor.Tests
             var warnings = new List<string>();
             var persisted = new List<string>
             {
-                "ending:end_true_name",
+                "ending:ending_beyond_correctness",
                 "ending:future_unknown"
             };
             var service = new CollectionService(
@@ -65,11 +65,11 @@ namespace WhiteRoom.Novel.Editor.Tests
 
             var items = service.Build(CollectionItemKind.Ending);
 
-            Assert.That(items.Count, Is.EqualTo(14));
-            Assert.That(items.Single(item => item.Entry.Key == "end_true_name").IsUnlocked, Is.True);
-            Assert.That(items.Single(item => item.Entry.Key == "end_true_name").DisplayName, Is.EqualTo("名前を呼ぶ声"));
-            Assert.That(items.Single(item => item.Entry.Key == "end_hidden_underground_child").DisplayName, Is.EqualTo("????????"));
-            Assert.That(items.Single(item => item.Entry.Key == "bad_too_good").DisplayName, Is.EqualTo("できすぎる子"));
+            Assert.That(items.Count, Is.EqualTo(4));
+            Assert.That(items.Single(item => item.Entry.Key == "ending_beyond_correctness").IsUnlocked, Is.True);
+            Assert.That(items.Single(item => item.Entry.Key == "ending_beyond_correctness").DisplayName, Is.EqualTo("正解の外側"));
+            Assert.That(items.Single(item => item.Entry.Key == "ending_single_answer").DisplayName, Is.EqualTo("????????"));
+            Assert.That(items.Single(item => item.Entry.Key == "ending_return_to_white_room").DisplayName, Is.EqualTo("白い部屋へ戻る"));
             Assert.That(warnings.Count, Is.EqualTo(1));
             Assert.That(warnings[0], Does.Contain("ending:future_unknown"));
 
