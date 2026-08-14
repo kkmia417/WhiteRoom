@@ -54,7 +54,10 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   canvas, or event-system instances.
 - `WhiteRoomPlayModeStartupSmokeTests` clicks the production `NewGameButton`, verifies
   that `Main` loads before dialogue ID 1000001 starts, and rejects unexpected startup
-  logs or duplicate runtime UI.
+  logs or duplicate runtime UI. It also verifies the [dialogue motion contract](dialogue-motion-spec.md):
+  left/right speaker focus, narration neutral state, two visible placeholders, and
+  completed choice reveals. Stage-transition coverage checks a completed cut, a
+  chapter transition cancelled by restore, and a non-blocking overlay.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.

@@ -57,6 +57,7 @@ namespace WhiteRoom.Novel
         private DialogueManager _manager;
         private DialogueView _view;
         private DialoguePresentation _presentation;
+        private NovelDialogueMotionController _dialogueMotion;
         private DialogueSaveSystem _saveSystem;
         private NovelSaveService _saveService;
         private AutosaveCheckpointService _autosaveCheckpoints;
@@ -488,6 +489,10 @@ namespace WhiteRoom.Novel
                 resolvedBackgroundDatabase,
                 resolvedCharacterDatabase,
                 resolvedAudioDatabase);
+            _dialogueMotion = DialogueMotionFactory.Ensure(
+                _manager,
+                _view,
+                _presentation.StageView);
             _presentation.RegisterSaveContributors(saveSystem);
             _presentationIssueLogger = new DialoguePresentationIssueLogger(
                 () => _manager != null && _manager.CurrentData != null
@@ -666,6 +671,7 @@ namespace WhiteRoom.Novel
         {
             _titleReturnService?.MarkProgressSaved();
             StopPlaybackAutomation();
+            _dialogueMotion?.ResetTransientState();
             _titleMenu.Hide();
             _saveLoadScreen.Close();
             _favoriteVoiceScreen?.Close();

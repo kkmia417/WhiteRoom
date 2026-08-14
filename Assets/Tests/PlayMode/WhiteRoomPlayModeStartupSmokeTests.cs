@@ -59,6 +59,16 @@ namespace WhiteRoom.Novel.PlayModeTests
             var manager = Object.FindObjectsByType<DialogueManager>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None).Single();
+            var saveSystem = Object.FindFirstObjectByType<DialogueSaveSystem>();
+            Assert.That(saveSystem, Is.Not.Null);
+            saveSystem.SetThumbnailCaptureProvider(() =>
+            {
+                var texture = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+                var pixels = Enumerable.Repeat(Color.black, 16).ToArray();
+                texture.SetPixels(pixels);
+                texture.Apply();
+                return texture;
+            });
             Assert.That(Object.FindObjectsByType<Canvas>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -80,24 +90,160 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(commandBar.activeInHierarchy, Is.True);
             Assert.That(GameObject.Find("WhiteRoomTitleMenu"), Is.Null);
 
+            var dialogueView = Object.FindFirstObjectByType<DialogueView>();
+            var motionType = Type.GetType("WhiteRoom.Novel.NovelDialogueMotionController, Assembly-CSharp");
+            var choiceMotionType = Type.GetType("WhiteRoom.Novel.NovelChoiceMotionFeedback, Assembly-CSharp");
+            Assert.That(motionType, Is.Not.Null);
+            Assert.That(choiceMotionType, Is.Not.Null);
+            var motion = Object.FindFirstObjectByType(
+                motionType,
+                FindObjectsInactive.Include) as Component;
+            var left = GameObject.Find("LeftCharacter")?.GetComponent<Image>();
+            var right = GameObject.Find("RightCharacter")?.GetComponent<Image>();
+            Assert.That(dialogueView, Is.Not.Null);
+            Assert.That(motion, Is.Not.Null);
+            Assert.That(GetMotionProperty<bool>(motion, "IsConfigured"), Is.True);
+            Assert.That(left, Is.Not.Null);
+            Assert.That(right, Is.Not.Null);
+
+            var transitionOverlay = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Single(transform => transform.name == "NovelStageTransitionOverlay");
+            var transitionImage = transitionOverlay.GetComponent<Image>();
+            var transitionGroup = transitionOverlay.GetComponent<CanvasGroup>();
+            Assert.That(transitionImage, Is.Not.Null);
+            Assert.That(transitionImage.raycastTarget, Is.False);
+            Assert.That(transitionGroup, Is.Not.Null);
+            Assert.That(transitionGroup.blocksRaycasts, Is.False);
+            Assert.That(transitionGroup.alpha, Is.GreaterThan(0f));
+            manager.EndDialogue();
+            Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
+            Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+
+            manager.StartDialogue(1000062);
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.22f);
+            Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
+            Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+
+            manager.EndDialogue();
+            manager.StartDialogue(1000019);
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.35f);
+            Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.EqualTo(DialogueStageSlot.Left));
+            Assert.That(ColorEnergy(left.color), Is.GreaterThan(ColorEnergy(right.color)));
+
+            manager.RequestNext();
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.35f);
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000020));
+            Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.EqualTo(DialogueStageSlot.Right));
+            Assert.That(ColorEnergy(right.color), Is.GreaterThan(ColorEnergy(left.color)));
+
+            var girlState = manager.CaptureState();
+            manager.RequestNext();
+            yield return null;
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000021));
+            Assert.That(manager.RestoreState(girlState), Is.True);
+            yield return null;
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000020));
+            Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.EqualTo(DialogueStageSlot.Right));
+
+            manager.EndDialogue();
+            manager.StartDialogue(1000001);
+            dialogueView.CompleteTyping();
+            yield return null;
+            Assert.That(transitionOverlay.gameObject.activeSelf, Is.True);
+            Assert.That(manager.RestoreState(girlState), Is.True);
+            yield return null;
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000020));
+            Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
+            Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+
+            manager.EndDialogue();
+            manager.StartDialogue(1000077);
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.35f);
+            Assert.That(left.enabled, Is.True);
+            Assert.That(right.enabled, Is.True);
+            Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.EqualTo(DialogueStageSlot.Left));
+            Assert.That(ColorEnergy(left.color), Is.GreaterThan(ColorEnergy(right.color)));
+
+            manager.RequestNext();
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.35f);
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000078));
+            Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.Empty);
+            Assert.That(ColorEnergy(left.color), Is.EqualTo(ColorEnergy(right.color)).Within(0.02f));
+
+            manager.EndDialogue();
+            manager.StartDialogue(1000717);
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.45f);
+            var choices = dialogueView.transform.Find("Choices");
+            var choiceButtons = choices.GetComponentsInChildren<Button>(false);
+            Assert.That(choiceButtons, Has.Length.EqualTo(2));
+            Assert.That(choiceButtons, Is.All.Matches<Button>(button =>
+                button.GetComponent(choiceMotionType) != null &&
+                Mathf.Approximately(button.GetComponent<CanvasGroup>().alpha, 1f)));
+
             var captureDirectory = Environment.GetEnvironmentVariable("WHITE_ROOM_CAPTURE_DIR");
             if (!string.IsNullOrWhiteSpace(captureDirectory))
             {
-                var dialogueView = Object.FindFirstObjectByType<DialogueView>();
-                dialogueView.CompleteTyping();
                 yield return new WaitForEndOfFrame();
-                WriteCapture(Path.Combine(captureDirectory, "dialogue-opening.png"));
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-motion-choice.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000019);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.35f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-motion-rei-focus.png"));
+
+                manager.RequestNext();
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.35f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-motion-girl-focus.png"));
 
                 manager.EndDialogue();
                 manager.StartDialogue(1000077);
-                yield return null;
                 dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.35f);
                 yield return new WaitForEndOfFrame();
                 WriteGeometry(
                     Path.Combine(captureDirectory, "dialogue-geometry.txt"),
                     dialogueView);
-                WriteCapture(Path.Combine(captureDirectory, "dialogue-two-placeholders.png"));
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-motion-two-placeholders.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000001);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.12f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-cold-chapter.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1008625);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.06f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-alarm-chapter.png"));
             }
+        }
+
+        private static float ColorEnergy(Color color)
+        {
+            return color.r + color.g + color.b;
+        }
+
+        private static T GetMotionProperty<T>(Component motion, string propertyName)
+        {
+            Assert.That(motion, Is.Not.Null);
+            var property = motion.GetType().GetProperty(propertyName);
+            Assert.That(property, Is.Not.Null, propertyName);
+            return (T)property.GetValue(motion);
         }
 
         private static void WriteGeometry(string path, DialogueView view)
