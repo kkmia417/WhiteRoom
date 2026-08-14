@@ -16,6 +16,12 @@ namespace WhiteRoom.Novel.PlayModeTests
         private const string ScreenTypeName = "WhiteRoom.Novel.SaveLoadScreenController, Assembly-CSharp";
         private const string GateTypeName = "WhiteRoom.Novel.DialogueAutoAdvanceGate, Assembly-CSharp";
 
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private sealed class MemoryStorage : IDialogueSaveStorage
         {
             public readonly Dictionary<int, DialogueSaveSlot> Slots = new Dictionary<int, DialogueSaveSlot>();
@@ -156,15 +162,6 @@ namespace WhiteRoom.Novel.PlayModeTests
                 };
                 savedEvent.AddEventHandler(saveService, refreshAfterSave);
                 saveSystem.SetThumbnailCaptureProvider(() => null);
-                LogAssert.Expect(
-                    LogType.Error,
-                    new System.Text.RegularExpressions.Regex("\\[DialogueSaveSystem\\] SaveThumbnail failed"));
-                LogAssert.Expect(
-                    LogType.Exception,
-                    new System.Text.RegularExpressions.Regex("ArgumentNullException: Value cannot be null"));
-                LogAssert.Expect(
-                    LogType.Warning,
-                    new System.Text.RegularExpressions.Regex("NovelSaveService: dialogue save SaveThumbnail failed"));
                 Assert.That((bool)Invoke(saveService, "Save", 1), Is.True,
                     "Thumbnail capture failure must not invalidate the save payload.");
                 yield return null;

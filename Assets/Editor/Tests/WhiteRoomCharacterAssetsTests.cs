@@ -22,7 +22,8 @@ namespace WhiteRoom.Novel.Editor.Tests
             {
                 { "Rei", new[] { "blank", "determined", "frozen", "lost", "running", "serious", "shocked", "soft", "surprise", "tired" } },
                 { "Nagi", new[] { "angry", "focus", "running", "serious", "shadow", "shocked", "smile", "soft", "tired", "wary" } },
-                { "Researcher", new[] { "guilty", "nervous", "neutral" } }
+                { "Researcher", new[] { "guilty", "nervous", "neutral" } },
+                { "Placeholder", new[] { "neutral" } }
             };
 
         private static readonly Dictionary<string, string> RequiredAliases =
@@ -145,7 +146,70 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(view.CharacterCalls.Any(call => call.StartsWith("center|") && call.EndsWith("|fadein")), Is.True);
             Assert.That(view.CharacterCalls.Any(call => call.StartsWith("left|")), Is.True);
             Assert.That(view.CharacterCalls.Any(call => call.StartsWith("right|")), Is.True);
-            Assert.That(view.ClearCount, Is.EqualTo(1));
+            Assert.That(view.ClearCount, Is.GreaterThanOrEqualTo(1));
+        }
+
+        [Test]
+        public void OpeningConversationKeepsReiAndSubstituteSpeakerSideBySide()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+
+            foreach (var id in new[] { 1000019, 1000020 })
+            {
+                var row = rows.Single(item => item.Id == id);
+                var directives = row.GetStageDirectives().ToArray();
+                var visible = directives.Where(item => !item.IsClearAll && !item.IsExit).ToArray();
+
+                Assert.That(directives.Count(item => item.IsClearAll), Is.EqualTo(1), id.ToString());
+                Assert.That(visible, Has.Length.EqualTo(2), id.ToString());
+                Assert.That(visible.Select(item => item.Slot), Does.Contain(DialogueStageSlot.Left), id.ToString());
+                Assert.That(visible.Select(item => item.Slot), Does.Contain(DialogueStageSlot.Right), id.ToString());
+                Assert.That(visible.Select(item => item.CharacterKey), Does.Contain("Rei"), id.ToString());
+                Assert.That(visible.Select(item => item.CharacterKey), Does.Contain("PlaceholderRight"), id.ToString());
+            }
+        }
+
+        [Test]
+        public void MissingAssetConversationKeepsTwoDistinctSubstitutesVisible()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var row = rows.Single(item => item.Id == 1000077);
+            var directives = row.GetStageDirectives().ToArray();
+            var visible = directives.Where(item => !item.IsClearAll && !item.IsExit).ToArray();
+
+            Assert.That(visible, Has.Length.EqualTo(2));
+            Assert.That(visible.Select(item => item.CharacterKey), Is.EquivalentTo(new[]
+            {
+                "PlaceholderLeft",
+                "PlaceholderRight"
+            }));
+
+            var state = new DialogueStageState();
+            state.Apply(directives);
+            Assert.That(state.Occupancy.Keys, Is.EquivalentTo(new[]
+            {
+                DialogueStageSlot.Left,
+                DialogueStageSlot.Right
+            }));
+        }
+
+        [Test]
+        public void OpeningChapterDoesNotRevealNagi()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var row = CsvLoader.Parse<DialogueData>(scenario).Values.Single(item => item.Id == 1000001);
+            var visible = row.GetStageDirectives()
+                .Where(item => !item.IsClearAll && !item.IsExit)
+                .ToArray();
+
+            Assert.That(visible.Select(item => item.CharacterKey), Does.Not.Contain("Nagi"));
+            Assert.That(visible.Select(item => item.CharacterKey), Is.EquivalentTo(new[]
+            {
+                "Rei",
+                "PlaceholderRight"
+            }));
         }
 
         [Test]

@@ -82,8 +82,17 @@ namespace WhiteRoom.Novel
             var root = CreateDialogueRoot(parent);
             root.SetActive(!startInactive);
 
-            var speaker = NovelUiFactory.CreateText("SpeakerText", root.transform, new Vector2(28f, -18f), new Vector2(-28f, -56f), 24f, FontStyles.Bold);
-            var body = NovelUiFactory.CreateText("BodyText", root.transform, new Vector2(28f, -70f), new Vector2(-148f, 26f), 26f, FontStyles.Normal);
+            var speaker = NovelUiFactory.CreateText("SpeakerText", root.transform, Vector2.zero, Vector2.zero, 24f, FontStyles.Bold);
+            var speakerRect = (RectTransform)speaker.transform;
+            speakerRect.anchorMin = new Vector2(0f, 1f);
+            speakerRect.anchorMax = new Vector2(0f, 1f);
+            speakerRect.pivot = new Vector2(0.5f, 0.5f);
+            speakerRect.anchoredPosition = new Vector2(185f, -75f);
+            speakerRect.sizeDelta = new Vector2(250f, 48f);
+            speaker.alignment = TextAlignmentOptions.Center;
+            speaker.textWrappingMode = TextWrappingModes.NoWrap;
+
+            var body = NovelUiFactory.CreateText("BodyText", root.transform, new Vector2(120f, 24f), new Vector2(-148f, -120f), 26f, FontStyles.Normal);
             var nextButton = CreateNextButton(root.transform);
             var choicesContainer = CreateChoicesContainer(root.transform);
             var choiceButtonPrefab = CreateChoiceButtonPrefab(choicesContainer);

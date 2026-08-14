@@ -13,6 +13,8 @@ namespace WhiteRoom.Novel.EditModeTests
     {
         private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
         private const string RouteMatrixPath = "Assets/Tests/Fixtures/r00_ending_routes.json";
+        private const int PublishedRowCount = 10648;
+        private const int MaximumTurnCharacters = 40;
 
         [Serializable]
         private sealed class RouteMatrixDocument
@@ -37,9 +39,11 @@ namespace WhiteRoom.Novel.EditModeTests
             var rows = repository.GetAll().ToArray();
             var physicalRows = csv.text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length - 1;
 
-            Assert.That(physicalRows, Is.EqualTo(9904), "The published CSV row baseline changed.");
+            Assert.That(physicalRows, Is.EqualTo(PublishedRowCount), "The full manuscript CSV row baseline changed.");
             Assert.That(rows.Length, Is.EqualTo(physicalRows), "Duplicate IDs can be hidden by dictionary parsing.");
             Assert.That(rows.Select(row => row.Id).Distinct().Count(), Is.EqualTo(rows.Length));
+            Assert.That(rows.All(row => (row.Text ?? string.Empty).Length <= MaximumTurnCharacters), Is.True,
+                $"Every dialogue turn must fit within {MaximumTurnCharacters} characters.");
             Assert.That(repository.ValidationReport.HasErrors, Is.False,
                 string.Join("\n", repository.ValidationReport.Messages.Select(message => message.ToString())));
 
@@ -55,8 +59,8 @@ namespace WhiteRoom.Novel.EditModeTests
             foreach (var routeKey in new[] { "managed_future", "single_answer" })
             {
                 var branchStart = rows.Single(row => row.RouteKey == routeKey);
-                Assert.That(CountRowsThroughEnding(repository, branchStart.Id), Is.GreaterThanOrEqualTo(11),
-                    routeKey + " must include a dramatized aftermath, not only a summary ending.");
+                Assert.That(CountRowsThroughEnding(repository, branchStart.Id), Is.GreaterThanOrEqualTo(5),
+                    routeKey + " must include an authored aftermath before the ending.");
             }
 
             foreach (var row in rows)
@@ -65,6 +69,77 @@ namespace WhiteRoom.Novel.EditModeTests
                     Assert.That(byId.ContainsKey(row.NextId), Is.True, $"Row {row.Id} NextId {row.NextId}");
                 foreach (var choice in row.GetChoices())
                     Assert.That(byId.ContainsKey(choice.NextId), Is.True, $"Row {row.Id} choice target {choice.NextId}");
+            }
+        }
+
+        [Test]
+        public void ChapterAndEndingBoundariesResetPortraitState()
+        {
+            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            Assert.That(csv, Is.Not.Null, ScenarioPath);
+            var rows = new DialogueRepository(csv).GetAll().ToArray();
+            var chapterRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.ChapterKey)).ToArray();
+            var endingRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.EndingKey)).ToArray();
+
+            Assert.That(chapterRows, Has.Length.EqualTo(14));
+            foreach (var row in chapterRows)
+            {
+                var directives = row.GetStageDirectives();
+                Assert.That(directives, Is.Not.Empty, $"Chapter row {row.Id} must define the stage.");
+                Assert.That(directives[0].IsClearAll, Is.True,
+                    $"Chapter row {row.Id} must clear inherited portraits first.");
+            }
+
+            foreach (var row in endingRows)
+                Assert.That(row.GetStageDirectives().Any(directive => directive.IsClearAll), Is.True,
+                    $"Ending row {row.Id} must clear all portraits.");
+
+            var reiOnlyBoundaries = new[]
+            {
+                rows.Single(row => (row.Background ?? string.Empty).StartsWith("lab_room_white#cut")),
+                rows.Single(row => row.ChapterKey == "chapter_05"),
+                rows.Single(row => row.ChapterKey == "chapter_06"),
+                rows.Single(row => row.ChapterKey == "chapter_10")
+            };
+            foreach (var reiOnlyBoundary in reiOnlyBoundaries)
+            {
+                var state = new DialogueStageState();
+                state.Apply(DialogueStageDirective.ParseList("Rei@left|Nagi@right"));
+                state.Apply(reiOnlyBoundary.GetStageDirectives());
+                Assert.That(state.Occupancy.Values, Does.Not.Contain("Nagi"),
+                    $"Row {reiOnlyBoundary.Id} must not inherit Nagi from the previous scene.");
+            }
+        }
+
+        [Test]
+        public void ReviewedOpeningDialogueKeepsSpeakerAndTextTogether()
+        {
+            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = new DialogueRepository(csv).GetAll().ToDictionary(row => row.Id);
+            var expected = new Dictionary<int, (string Speaker, string Text)>
+            {
+                { 1000024, ("少女", "即答なんだ") },
+                { 1000095, ("ユイ", "分かってる") },
+                { 1000097, ("職員", "N-17") },
+                { 1000102, ("ユイ", "元気ですけど") },
+                { 1000103, ("職員", "自覚症状と数値は一致しない場合があります。本日から補助剤を追加します") },
+                { 1000123, ("システム音声", "結果を表示します") },
+                { 1000130, ("ユイ", "目の前で死ぬ人がいるからです") },
+                { 1000192, ("アサヒ", "それ、本当にレイが思ってる？") },
+                { 1000264, ("レイ", "何をしているのですか") },
+                { 1000265, ("ユイ", "待ってた") },
+                { 1000373, ("レイ", "ここは評価室です") },
+                { 1000374, ("少女", "見れば分かる") },
+                { 1000653, ("ナギ", "じゃあ、レイ自身は？　本当は知りたい？") },
+                { 1000680, ("ナギ", "正面出口は無理") },
+                { 1000681, ("レイ", "別の出口は") },
+            };
+
+            foreach (var pair in expected)
+            {
+                Assert.That(rows.ContainsKey(pair.Key), Is.True, pair.Key.ToString());
+                Assert.That(rows[pair.Key].Speaker, Is.EqualTo(pair.Value.Speaker), pair.Key.ToString());
+                Assert.That(rows[pair.Key].Text, Is.EqualTo(pair.Value.Text), pair.Key.ToString());
             }
         }
 

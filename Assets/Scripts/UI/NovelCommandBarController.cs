@@ -290,9 +290,7 @@ namespace WhiteRoom.Novel
             rect.sizeDelta = new Vector2(0f, 44f);
 
             var background = _root.GetComponent<Image>();
-            background.color = new Color(0.055f, 0.035f, 0.028f, 0.38f);
-            background.sprite = LoadRoundedSprite();
-            background.type = background.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            ConfigureSolidSurface(background, new Color(0.055f, 0.035f, 0.028f, 0.38f));
 
             _canvasGroup = _root.GetComponent<CanvasGroup>();
             var layout = _root.GetComponent<HorizontalLayoutGroup>();
@@ -345,8 +343,7 @@ namespace WhiteRoom.Novel
             layout.preferredHeight = ButtonHeight;
 
             var image = button.GetComponent<Image>();
-            image.sprite = LoadRoundedSprite();
-            image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            ConfigureSolidSurface(image, image.color);
 
             var outline = button.gameObject.AddComponent<Outline>();
             outline.effectColor = OutlineColor;
@@ -396,10 +393,7 @@ namespace WhiteRoom.Novel
             rect.sizeDelta = new Vector2(430f, 30f);
 
             var image = _tooltipRoot.GetComponent<Image>();
-            image.color = new Color(0.035f, 0.025f, 0.022f, 0.92f);
-            image.sprite = LoadRoundedSprite();
-            image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-            image.raycastTarget = false;
+            ConfigureSolidSurface(image, new Color(0.035f, 0.025f, 0.022f, 0.92f), false);
 
             _tooltipLabel = NovelUiFactory.CreateText(
                 "Label",
@@ -470,9 +464,15 @@ namespace WhiteRoom.Novel
                 _tooltipRoot.SetActive(false);
         }
 
-        private static Sprite LoadRoundedSprite()
+        private static void ConfigureSolidSurface(Image image, Color color, bool raycastTarget = true)
         {
-            return Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+            // A sprite-less Simple Image is rendered by uGUI as a code-native solid quad.
+            // Keeping the surface explicit avoids legacy built-in UI resources that are
+            // no longer shipped with Unity 6 while preserving the existing flat styling.
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            image.color = color;
+            image.raycastTarget = raycastTarget;
         }
 
         private static void ValidateDefinitions(IReadOnlyList<NovelCommandDefinition> definitions)

@@ -30,22 +30,31 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario and journey coverage
 
-- `WhiteRoomScenarioContractTests` parses all 9,904 published CSV rows and verifies
-  unique IDs, every `NextId` and choice target, fourteen chapter markers, the
-  two-choice baseline, zero condition flags, and all four unique ending keys.
+- `WhiteRoomScenarioContractTests` parses all 10,648 published CSV rows and verifies
+  unique IDs, every `NextId` and choice target, the 40-character turn ceiling,
+  fourteen chapter markers, two choice nodes, zero condition flags, and four unique
+  ending keys. It also simulates portrait state at Rei-only chapter boundaries so a
+  prior Nagi portrait cannot leak into the new scene.
 - `Assets/Tests/Fixtures/r00_ending_routes.json` is the reviewed route matrix. Each
   entry records choice targets from dialogue ID 1000001 to one of four unique endings. The test
   follows normal `NextId` edges between choices and fails on a missing target, a
   cycle, an unused choice, or an unexpected ending.
-- `scripts/tests/test_import_white_room_novel.py` verifies conservative speaker
-  attribution against a reviewed fixture, including the false-positive boundary
-  between speech tags and character actions. The importer can emit the deterministic,
-  source-indexed `docs/development/white-room-speaker-audit.json` for all 7,250 quoted
-  manuscript paragraphs.
+- The opening speaker regression set checks staff/Yui, instructor/Yui,
+  Rei/Yui/Asahi, and Rei/Nagi exchanges by public row ID so narration cannot shift
+  a nameplate onto an adjacent line.
+- `scripts/tests/test_import_white_room_novel.py` verifies directional speech-tag
+  attribution, the boundary between speech and character actions, sentence-first
+  splitting without comma-ended turns, reviewed dialogue edits, stable fragment IDs,
+  and the 40-character ceiling. The checked-in ledger and audit cover all 7,250
+  quoted manuscript paragraphs with zero unresolved speakers; the source map covers
+  all 14,156 manuscript paragraphs with zero untracked entries.
 - `WhiteRoomProductJourneyPlayModeTests` loads the real Title and Main scenes, advances
   the shipped scenario through an ending, restores an in-memory save, validates
   overlay automation suspension, returns to Title, and detects duplicate manager,
   canvas, or event-system instances.
+- `WhiteRoomPlayModeStartupSmokeTests` clicks the production `NewGameButton`, verifies
+  that `Main` loads before dialogue ID 1000001 starts, and rejects unexpected startup
+  logs or duplicate runtime UI.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.

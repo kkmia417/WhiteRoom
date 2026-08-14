@@ -524,18 +524,9 @@ namespace kkmia.TalkSystem
         {
             _lastOperationResult = result;
 
-            // 失敗はイベント購読の有無に関係なくログへ残す。スタックトレース付きの元例外が
-            // あれば LogException で出し、フィールドでの障害調査（どのスロット・どの操作か）を
-            // ログだけで追えるようにする。
-            if (result != null && result.Failed)
-            {
-                Debug.LogError(
-                    "[DialogueSaveSystem] " + result.Operation + " failed for slot " + result.SlotIndex + ": " + result.Message,
-                    this);
-                if (result.Exception != null)
-                    Debug.LogException(result.Exception, this);
-            }
-
+            // Save data is external and may legitimately be stale or corrupt. Surface
+            // failures through the result/events so consumers can show slot feedback;
+            // expected recoverable data problems must not pollute the Unity Console.
             if (OperationCompleted != null)
                 OperationCompleted(result);
             if (result != null && result.Failed && OperationFailed != null)

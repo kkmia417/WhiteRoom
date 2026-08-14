@@ -85,6 +85,19 @@ namespace WhiteRoom.Novel.Editor.Tests
         }
 
         [Test]
+        public void PrefabAndFallbackKeepSpeakerNameAboveDialogueBody()
+        {
+            var configuration = NovelUiConfiguration.LoadDefault();
+            var prefabView = DialogueViewFactory.EnsureDialogueView(configuration.DialogueViewPrefab);
+            AssertSeparatedTextRegions(prefabView);
+
+            Object.DestroyImmediate(prefabView.gameObject);
+            var fallbackView = DialogueViewFactory.CreateDefaultDialogueView(
+                NovelUiFactory.EnsureCanvas().transform);
+            AssertSeparatedTextRegions(fallbackView);
+        }
+
+        [Test]
         public void MissingPrefabsUseFallbacksAndWarnOnlyOncePerViewType()
         {
             const string dialogueWarning =
@@ -114,6 +127,26 @@ namespace WhiteRoom.Novel.Editor.Tests
         private static T[] FindSceneObjects<T>() where T : Object
         {
             return Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        }
+
+        private static void AssertSeparatedTextRegions(DialogueView view)
+        {
+            var speaker = view.transform.Find("SpeakerText") as RectTransform;
+            var body = view.transform.Find("BodyText") as RectTransform;
+            Assert.That(speaker, Is.Not.Null);
+            Assert.That(body, Is.Not.Null);
+            Assert.That(speaker.anchorMin.x, Is.EqualTo(0f));
+            Assert.That(speaker.anchorMax.x, Is.EqualTo(0f));
+            Assert.That(speaker.anchorMin.y, Is.EqualTo(1f));
+            Assert.That(speaker.anchorMax.y, Is.EqualTo(1f));
+            Assert.That(speaker.pivot, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(speaker.anchoredPosition, Is.EqualTo(new Vector2(185f, -75f)));
+            Assert.That(speaker.sizeDelta, Is.EqualTo(new Vector2(250f, 48f)));
+            Assert.That(speaker.GetComponent<TMP_Text>().alignment, Is.EqualTo(TextAlignmentOptions.Center));
+            Assert.That(body.offsetMin.x, Is.EqualTo(120f));
+            Assert.That(body.offsetMax.y, Is.EqualTo(-120f));
+            Assert.That(body.offsetMax.y, Is.LessThan(speaker.anchoredPosition.y - speaker.sizeDelta.y * 0.5f),
+                "The body text must begin below the speaker-name region.");
         }
 
         private static void DestroySceneObjects<T>() where T : Component

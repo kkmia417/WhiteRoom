@@ -4,28 +4,28 @@
     {
       "endingKey": "ending_return_to_white_room",
       "choiceTargets": [
-        1009877
+        1009992
       ]
     },
     {
       "endingKey": "ending_managed_future",
       "choiceTargets": [
-        1000702,
-        1009882
+        1000718,
+        1009997
       ]
     },
     {
       "endingKey": "ending_single_answer",
       "choiceTargets": [
-        1000702,
-        1009887
+        1000718,
+        1010002
       ]
     },
     {
       "endingKey": "ending_beyond_correctness",
       "choiceTargets": [
-        1000702,
-        1008519
+        1000718,
+        1008623
       ]
     }
   ]

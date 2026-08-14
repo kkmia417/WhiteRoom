@@ -39,6 +39,7 @@ namespace WhiteRoom.Novel
     public static class NovelUiFactory
     {
         public const string CanvasName = "NovelDialogueCanvas";
+        public const string DefaultFontResourcePath = "Fonts/LogoTypeGothicCondense/LogoTypeGothicCondense";
 
         private static TMP_FontAsset _fontAsset;
 
@@ -83,6 +84,7 @@ namespace WhiteRoom.Novel
         /// </summary>
         public static void ApplyFontToHierarchy(Component root)
         {
+            EnsureDefaultFont();
             if (_fontAsset == null || root == null)
                 return;
 
@@ -101,6 +103,7 @@ namespace WhiteRoom.Novel
 
         public static TextMeshProUGUI CreateText(string name, Transform parent, Vector2 offsetMin, Vector2 offsetMax, float fontSize, FontStyles style)
         {
+            EnsureDefaultFont();
             var textObject = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             textObject.transform.SetParent(parent, false);
 
@@ -121,6 +124,12 @@ namespace WhiteRoom.Novel
             text.alignment = TextAlignmentOptions.TopLeft;
 
             return text;
+        }
+
+        private static void EnsureDefaultFont()
+        {
+            if (_fontAsset == null)
+                EnsureFont(null, DefaultFontResourcePath);
         }
 
         public static Button CreateButton(
