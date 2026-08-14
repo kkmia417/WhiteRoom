@@ -28,15 +28,18 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario・journey coverage
 
-- `WhiteRoomScenarioContractTests`は公開CSV 134行をparseし、ID一意性、全`NextId`/choice target、
-  1 turn 52文字の上限、chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を
+- `WhiteRoomScenarioContractTests`は公開CSV 10,648行をparseし、ID一意性、全`NextId`/choice target、
+  1 turn 40文字の上限、chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を
   検証する。レイ単独chapter境界の立ち絵状態もsimulationし、直前のナギが残らないことを確認する
 - `Assets/Tests/Fixtures/r00_ending_routes.json`をreview対象のroute matrixとする。各entryはdialogue ID 1000001から
   4つの固有Endingまでのchoice targetを保持し、testはchoice間の通常`NextId`を追跡する。target欠損、循環、
   未使用choice、想定外Endingをfailureにする
-- `scripts/tests/test_import_white_room_novel.py`はreview済みfixtureを使い、発話tagと人物動作を
-  取り違えない境界を含む保守的な話者推定を検証する。Importerは原稿の全引用段落7,250件を対象に、
-  source index付きの決定的な`docs/development/white-room-speaker-audit.json`を出力できる
+- 冒頭の話者回帰セットは、職員/ユイ、教官/ユイ、レイ/ユイ/アサヒ、レイ/ナギの会話を
+  公開row ID単位で検証し、途中の地の文によるnameplateのずれを防ぐ
+- `scripts/tests/test_import_white_room_novel.py`は発話tagの方向、発話と人物動作の境界、文末優先で
+  読点終わりを作らない分割、review済みの台詞調整、fragment IDの安定性、40文字上限を検証する。
+  repository内のledgerと監査は引用7,250件を未解決0件で覆い、
+  source mapは原稿14,156 paragraphを未追跡0件で覆う
 - `WhiteRoomProductJourneyPlayModeTests`は実Title/Main sceneをloadし、製品scenarioをEndingまで進め、
   memory save復元、overlay中automation停止、Title帰還、manager/canvas/event-system重複を検証する
 - `WhiteRoomPlayModeStartupSmokeTests`は本番`NewGameButton`をclickし、dialogue ID 1000001の開始前に

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using kkmia.TalkSystem;
-using UnityEngine;
 
 namespace WhiteRoom.Novel
 {
@@ -62,7 +61,6 @@ namespace WhiteRoom.Novel
             _directSaveTarget = new NovelDirectSaveTarget(
                 preferenceStore ?? new PlayerPrefsNovelSavePreferenceStore());
 
-            _saveSystem.OperationFailed += HandleOperationFailed;
             _saveSystem.ThumbnailCaptureCompleted += HandleThumbnailCaptureCompleted;
         }
 
@@ -230,7 +228,6 @@ namespace WhiteRoom.Novel
             catch (Exception exception)
             {
                 var message = "Autosave failed; dialogue will continue. " + exception.Message;
-                Debug.LogWarning("NovelSaveService: " + message);
                 Publish(NovelSaveFeedbackKind.Autosave, slot, false, message);
                 return false;
             }
@@ -289,8 +286,7 @@ namespace WhiteRoom.Novel
         {
             if (_saveSystem != null)
             {
-                _saveSystem.OperationFailed -= HandleOperationFailed;
-                _saveSystem.ThumbnailCaptureCompleted -= HandleThumbnailCaptureCompleted;
+            _saveSystem.ThumbnailCaptureCompleted -= HandleThumbnailCaptureCompleted;
             }
             _slotCache.Clear();
         }
@@ -378,14 +374,6 @@ namespace WhiteRoom.Novel
             }
 
             return slot == DialogueSaveSystem.QuickSaveSlot ? "Quick Save" : $"Save {slot}";
-        }
-
-        private void HandleOperationFailed(DialogueSaveOperationResult result)
-        {
-            if (result == null)
-                return;
-
-            Debug.LogWarning($"NovelSaveService: dialogue save {result.Operation} failed for slot {result.SlotIndex}: {result.Message}");
         }
 
         private void HandleThumbnailCaptureCompleted(int slot, bool succeeded, string message)

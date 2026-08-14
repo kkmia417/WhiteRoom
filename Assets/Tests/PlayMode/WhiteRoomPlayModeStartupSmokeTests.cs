@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using kkmia.TalkSystem;
 using NUnit.Framework;
@@ -78,6 +79,52 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(manager.CurrentData.Id, Is.EqualTo(1000001));
             Assert.That(commandBar.activeInHierarchy, Is.True);
             Assert.That(GameObject.Find("WhiteRoomTitleMenu"), Is.Null);
+
+            var captureDirectory = Environment.GetEnvironmentVariable("WHITE_ROOM_CAPTURE_DIR");
+            if (!string.IsNullOrWhiteSpace(captureDirectory))
+            {
+                var dialogueView = Object.FindFirstObjectByType<DialogueView>();
+                dialogueView.CompleteTyping();
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-opening.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000077);
+                yield return null;
+                dialogueView.CompleteTyping();
+                yield return new WaitForEndOfFrame();
+                WriteGeometry(
+                    Path.Combine(captureDirectory, "dialogue-geometry.txt"),
+                    dialogueView);
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-two-placeholders.png"));
+            }
+        }
+
+        private static void WriteGeometry(string path, DialogueView view)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            var names = new[] { "DialogueView(Clone)", "SpeakerText", "BodyText" };
+            var lines = new[] { $"screen={Screen.width}x{Screen.height}" }
+                .Concat(names.Select(name =>
+                {
+                    var target = name == "DialogueView(Clone)"
+                        ? view.transform as RectTransform
+                        : view.transform.Find(name) as RectTransform;
+                    var corners = new Vector3[4];
+                    target.GetWorldCorners(corners);
+                    return $"{name}: rect={target.rect} anchored={target.anchoredPosition} " +
+                           $"size={target.sizeDelta} min={corners[0]} max={corners[2]}";
+                }));
+            File.WriteAllLines(path, lines);
+        }
+
+        private static void WriteCapture(string path)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            var texture = ScreenCapture.CaptureScreenshotAsTexture();
+            Assert.That(texture, Is.Not.Null, "The gameplay frame could not be captured.");
+            File.WriteAllBytes(path, texture.EncodeToPNG());
+            Object.Destroy(texture);
         }
 
         private static void DestroyRuntimeObjects()

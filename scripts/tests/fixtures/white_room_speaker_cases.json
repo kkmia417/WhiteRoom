@@ -1,7 +1,7 @@
 [
   {
     "name": "explicit speech tag",
-    "paragraphs": ["「まだ答えません」", "レイが言う。"],
+    "paragraphs": ["「まだ答えません」", "レイが言った。"],
     "expectedSpeaker": "レイ",
     "expectedEvidence": "explicit_attribution"
   },

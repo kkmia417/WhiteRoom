@@ -1,26 +1,32 @@
-# R00 第一章〜第十四章 短編scenario・分岐仕様
+# R00 第一章〜第十四章 全編シナリオ・分岐仕様
 
-ステータス: [Issue #65](https://github.com/kkmia417/WhiteRoom/issues/65) として実装し、[Issue #68](https://github.com/kkmia417/WhiteRoom/issues/68) で短編化<br>
-長編原稿: `WHITE_ROOM_第一章〜第十四章_全編_会話調整版.docx`（作者提供、repository外）<br>
+ステータス: [Issue #69](https://github.com/kkmia417/WhiteRoom/issues/69) として実装<br>
+原稿: `WHITE_ROOM_第一章〜第十四章_全編_会話調整版.docx`（作者提供、repository外）<br>
 English canonical file: [英語正本](story-condition-spec.md)
 
 ## 成果とスコープ
 
-公開中のTalk System scenarioは
-`Assets/Resources/Dialogue/r00_escape_talksystem.csv`である。全十四章の中心対立、レイとナギの関係、
-二つの選択、四つのEndingを保ちつつ、長編原稿を一文ずつ再生しない短いインタラクティブ版とする。
+公開中のTalk Systemシナリオは
+`Assets/Resources/Dialogue/r00_escape_talksystem.csv`である。全十四章の原稿を
+ノベルゲーム向けのturnへ変換し、二つの選択と四つのEndingを維持する。発話は話者を`Speaker`、
+かぎ括弧を除いた本文を`Text`へ格納する。
 
-Titleの`NEW GAME`は先に`Main`をloadし、scene load完了後にだけ`R00EscapeStart`を開始する。
-Dialogue schema、condition文法、score system、route、character、presentation assetは追加しない。
+Dialogue schema、condition文法、score system、route、Endingは追加しない。正式立ち絵がない話者には、
+画面に表示される共通の仮立ち絵を使う。左右で別の表示キーを割り当て、素材がない二人も同時表示する。
+短編版の保存位置を無関係な本文へ復元しないよう、
+Save content versionは`r00_chapters_01_14_v4`とする。
 
-## 公開scenario契約
+## 公開シナリオ契約
 
 | 項目 | 公開値 |
 | --- | ---: |
-| Dialogue row | 134 |
-| 現在の`Text`最大長 | 23文字 |
-| 1 turnの上限 | 52文字 |
+| Dialogue row | 10,648 |
+| 分割時の目安 | 24〜36文字 |
+| `Text`の絶対上限 | 40文字 |
 | First dialogue ID | 1,000,001 |
+| 原稿paragraph | 14,156 |
+| 引用paragraph | 7,250 |
+| 未解決の引用話者 | 0 |
 | 章 | 14 |
 | Choice node | 2 |
 | Unique ending | 4 |
@@ -28,8 +34,7 @@ Dialogue schema、condition文法、score system、route、character、presentat
 | Voice cue | 0 |
 
 `ChapterKey`は`chapter_01`から`chapter_14`まで。正史pathは`RouteKey=main`、別分岐の開始点は
-`bad_return`、`managed_future`、`single_answer`を使う。開始・章・choice target・endingの主要IDは
-1,000,001〜1,009,892の範囲で維持する。Save content versionは`r00_chapters_01_14_v3`である。
+`bad_return`、`managed_future`、`single_answer`を使う。
 
 ## レビュー済み分岐表
 
@@ -41,33 +46,42 @@ Dialogue schema、condition文法、score system、route、character、presentat
 過去stateで後続choiceをfilterしない。全optionに明示的な結果があり、不可視flag依存、choice 0件、
 Save/Load時だけ成立するrouteはない。
 
-## 編集・演出ルール
+## Import・編集・演出ルール
 
-- 全十四章の境界、main plot、二つの判断、四Endingの意味を維持する
-- 1 turnを52文字以内にし、1 clickにつき一つの完結したbeatを置き、重複説明を削る
-- 全chapter rowは`*`でstageをclearしてから、そのsceneに必要なcastだけを表示する
-- 主要な場所変更では立ち絵を明示的にclearまたはexitする。特にID 1,000,004ではナギを退場させて
-  レイだけを表示し、第5・6・10章もレイ単独で開始する
-- 全routeの最終行で`*`と`Bgm=stop`を指定し、result screenへ立ち絵や音を残さない
-- Presentation keyはrepository内のbackground・character・audio databaseで解決可能にする。
-  承認済み音声が揃うまでVoiceは空にする
+- Import前に原稿のbyte数とSHA-256を検証する
+- 全原稿paragraphを`docs/development/white-room-source-map.json`で追跡し、未追跡を許可しない
+- 全引用の決定的な話者割当を`white-room-speaker-ledger.json`へ保存し、結果を
+  `white-room-speaker-audit.json`へ出力する
+- source index単位のreview済み話者は、古い推論ledgerより優先する。第一章の引用575件は
+  全て前後の文脈で確認し、途中に地の文が入っても前後の人物へ話者名をずらさない
+- 1 turnは24〜36文字を目安にし、40文字を絶対に超えない。文字数より文末を優先して分割し、
+  文の途中を続ける場合は明示的に`――`を使い、読点でturnを終えない。先頭fragmentの公開IDを維持し、
+  続きには予約済みの1,200,000番台を使う
+- 発話の人物名は`Speaker`だけに、内容は外側のかぎ括弧を除いて`Text`へ入れる。地の文は
+  `Speaker=地の文`とする
+- 全chapter rowは`*`でstageをclearしてから必要なcastを表示し、全routeの最終行は`*`と
+  `Bgm=stop`で終了する
+- 同じ会話の参加者二人を左右slotへ並べる。レイ、ナギ、研究員には既存立ち絵を使い、
+  それ以外の発話者には`PlaceholderLeft`と`PlaceholderRight`を使って共通の仮素材を左右同時に表示する。
+  第一章冒頭はレイと正体不明の少女の仮素材を表示し、ナギを先に見せない
+- 承認済み音声が揃うまでVoiceは空にする
 
-`scripts/import_white_room_novel.py`と話者監査は長編原稿を確認するための履歴toolとして維持する。
-現在の短編CSVは生成対象ではない。同scriptを公開CSVへ実行するとreview済み134行版を置き換えるため、
-再実行には新しいcontent reviewが必要である。
+`scripts/import_white_room_novel.py`を公開CSVの生成元とする。同じ原稿とrepository内の話者ledgerを使った
+再実行は、scenario、監査、source mapを同一内容で生成しなければならない。
 
 ## Validation契約
 
 - IDは一意で、全`NextId`とchoice targetが存在する
-- 134行、chapter marker 14件、choice node 2件、unique ending 4件、condition 0件を維持し、
-  52文字を超えるturnを許可しない
-- 全chapterとendingで立ち絵状態をresetし、レイ単独sceneへナギを引き継がない
-- Route fixtureがcycleや未使用choiceなしに全endingへ到達する
-- Talk System validationでspeaker、expression、background、BGM、SEの欠損を出さない
-- PlayModeで本番`NewGameButton`をclickし、`Main`とdialogue ID 1,000,001の開始を確認する
+- 10,648行、chapter marker 14件、choice node 2件、unique ending 4件、condition 0件を維持し、
+  40文字を超える`Text`を許可しない
+- 原稿14,156 paragraphの全てを出力するか、明示的な省略理由を記録する
+- 引用7,250件は全て話者を確定するか明示的に省略し、未解決を0件にする
+- 本番prefabとruntime fallbackの両方で`SpeakerText`を上部の名前欄、`BodyText`をその下の本文欄に置く
+- 共通代替素材を含む全stage directiveが解決する
+- 全四Ending routeとSave/Loadを通したとき、Talk System validationとclear済みUnity Consoleに
+  warning/errorを残さない
 
 ## 今後のproduction content
 
-短編scenarioは既存のレイ・ナギ・研究員のportraitとprototype用background/audioで最後までplayできる。
-Title遷移と立ち絵残留の修正に新規画像は不要である。Scene専用CG、background追加、final music/SE、
-収録voiceは今後の品質向上候補であり、現在の導線を妨げるblockerではない。
+全編シナリオは既存立ち絵と共通placeholderで最後までplayできる。役別の正式立ち絵、Scene専用CG、
+background追加、final music/SE、収録voiceへの差し替えは今後のproduction作業とする。

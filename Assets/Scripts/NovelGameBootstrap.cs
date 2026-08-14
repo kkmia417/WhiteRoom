@@ -51,7 +51,7 @@ namespace WhiteRoom.Novel
         [SerializeField] private bool showSaveLoadLauncher = true;
         [SerializeField] private bool saveThumbnails = true;
         [SerializeField] private Key screenshotShortcut = Key.F12;
-        [SerializeField] private string saveContentVersion = "r00_chapters_01_14_v3";
+        [SerializeField] private string saveContentVersion = "r00_chapters_01_14_v4";
         [SerializeField] private string saveProductChannel = string.Empty;
 
         private DialogueManager _manager;
