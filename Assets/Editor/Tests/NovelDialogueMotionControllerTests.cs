@@ -204,6 +204,29 @@ namespace WhiteRoom.Novel.Editor.Tests
         }
 
         [Test]
+        public void CharacterMotionPolicyResolvesAuthoredCuesAndUnknownFallsBackToNone()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+
+            Assert.That(
+                NovelDialogueMotionController.ResolveCharacterMotion(rows[1000019]),
+                Is.EqualTo(NovelDialogueMotionController.CharacterMotionStyle.ReactSharp));
+            Assert.That(
+                NovelDialogueMotionController.ResolveCharacterMotion(rows[1000020]),
+                Is.EqualTo(NovelDialogueMotionController.CharacterMotionStyle.ReactSoft));
+            Assert.That(
+                NovelDialogueMotionController.ResolveCharacterMotion(rows[1000077]),
+                Is.EqualTo(NovelDialogueMotionController.CharacterMotionStyle.EnterLeft));
+            Assert.That(
+                NovelDialogueMotionController.ResolveCharacterMotion(rows[1000717]),
+                Is.EqualTo(NovelDialogueMotionController.CharacterMotionStyle.IdleBreathe));
+            Assert.That(
+                NovelDialogueMotionController.ResolveCharacterMotion(rows[1000078]),
+                Is.EqualTo(NovelDialogueMotionController.CharacterMotionStyle.None));
+        }
+
+        [Test]
         public void MotionFactoryConfiguresProductionPrefabAndRuntimeFallbackOnce()
         {
             var managerObject = new GameObject("MotionTestManager", typeof(DialogueManager));

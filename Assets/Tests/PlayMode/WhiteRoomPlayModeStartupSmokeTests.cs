@@ -206,7 +206,13 @@ namespace WhiteRoom.Novel.PlayModeTests
             manager.EndDialogue();
             manager.StartDialogue(1000019);
             dialogueView.CompleteTyping();
-            yield return new WaitForSecondsRealtime(0.35f);
+            yield return new WaitForSecondsRealtime(0.08f);
+            Assert.That(
+                GetMotionProperty<object>(motion, "ActiveCharacterMotion").ToString(),
+                Is.EqualTo("ReactSharp"));
+            Assert.That(GetMotionProperty<Vector2>(motion, "ActiveCharacterMotionOffset").magnitude, Is.GreaterThan(0.1f));
+            Assert.That(GetMotionProperty<float>(motion, "ActiveCharacterMotionScale"), Is.GreaterThan(1f));
+            yield return new WaitForSecondsRealtime(0.27f);
             Assert.That(GetMotionProperty<string>(motion, "ActiveSlot"), Is.EqualTo(DialogueStageSlot.Left));
             Assert.That(ColorEnergy(left.color), Is.GreaterThan(ColorEnergy(right.color)));
 
@@ -276,6 +282,10 @@ namespace WhiteRoom.Novel.PlayModeTests
             manager.StartDialogue(1000717);
             dialogueView.CompleteTyping();
             yield return new WaitForSecondsRealtime(0.45f);
+            Assert.That(
+                GetMotionProperty<object>(motion, "ActiveCharacterMotion").ToString(),
+                Is.EqualTo("IdleBreathe"));
+            Assert.That(GetMotionProperty<float>(motion, "ActiveCharacterMotionScale"), Is.InRange(1f, 1.0121f));
             var choices = dialogueView.transform.Find("Choices");
             var choiceButtons = choices.GetComponentsInChildren<Button>(false);
             Assert.That(choiceButtons, Has.Length.EqualTo(2));
@@ -292,7 +302,10 @@ namespace WhiteRoom.Novel.PlayModeTests
                 manager.EndDialogue();
                 manager.StartDialogue(1000019);
                 dialogueView.CompleteTyping();
-                yield return new WaitForSecondsRealtime(0.35f);
+                yield return new WaitForSecondsRealtime(0.08f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-character-react-sharp.png"));
+                yield return new WaitForSecondsRealtime(0.27f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-motion-rei-focus.png"));
 

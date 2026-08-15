@@ -1,4 +1,4 @@
-Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect,TransitionStyle,DepthStyle
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect,TransitionStyle,DepthStyle,CharacterMotion
 1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein,,match_fade,drift
 1000002,地の文,少女には、レイを殺せる機会が三度あった。,1000003,narration,,,,,,,,,,,,,
 1000003,地の文,けれど、引き金は一度も引かなかった。,1000004,narration,,,,,,,,,,,,,
@@ -18,8 +18,8 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000016,少女,痛いなあ,1000017,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000017,地の文,少女は笑ったが、顔だけがぼやけて見えない。,1000018,narration,,,,,,,,,,,,,
 1000018,地の文,雨のせいではない。目を凝らすほど、輪郭が崩れていく。,1000019,narration,,,,,,,,,,,,,
-1000019,レイ,本気ですね,1000020,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
-1000020,少女,そっちがでしょ,1000021,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
+1000019,レイ,本気ですね,1000020,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral,,,,react_sharp
+1000020,少女,そっちがでしょ,1000021,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank,,,,react_soft
 1000021,地の文,少女が距離を取り、レイも構え直した。,1000022,narration,,,,,,,,,,,,,
 1000022,少女,まだやる？,1000023,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000023,レイ,はい,1000024,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
@@ -81,7 +81,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000074,レイ,味覚には個人差があります,1000075,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
 1000075,アサヒ,朝から正論で殴らないでくれる？,1000076,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000076,地の文,隣からフォークが伸びてきた。アサヒの皿から、小さな人参が消える。,1000077,narration,,,,,,,,,,,,,
-1000077,アサヒ,おい,1000078,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral
+1000077,アサヒ,おい,1000078,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral,,,,enter_left
 1000078,地の文,ユイが口へ放り込んだ。,1000079,narration,,,,,,,,,,,,,
 1000079,ユイ,何,1000080,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral
 1000080,アサヒ,俺の,1000081,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral
@@ -767,7 +767,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000714,ナギ,知らない場所に――,1000715,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1000715,ナギ,レイ！,1000716,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1000716,地の文,ナギが笑っている。,1000717,narration,,,,,,,,,,,,,
-1000717,ナギ,捕まるのと、知らない穴。どっち？,-1,choice,,,,知らない穴へ入る->1000718|警備へ投降する->1009992,,,,,,,footsteps,,Rei@left:serious|Nagi@right:smile
+1000717,ナギ,捕まるのと、知らない穴。どっち？,-1,choice,,,,知らない穴へ入る->1000718|警備へ投降する->1009992,,,,,,,footsteps,,Rei@left:serious|Nagi@right:smile,,,,idle_breathe
 1000718,地の文,選択肢を出される。普通なら、相手の望む側を読めばいい。,1200052,narration,,,,,,,,,,,,,
 1200052,地の文,ナギからは何も出ない。後ろから足音が近づく。レイは穴へ入った。,1000719,narration,,,,,,,,,,,,,
 1000719,ナギ,そっち選ぶんだ,1000720,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank

@@ -1,6 +1,6 @@
 # Dialogue presentation motion specification
 
-Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73), [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75), [Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78), and [Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80)<br>
+Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73), [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75), [Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78), [Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80), and [Issue #82](https://github.com/kkmia417/WhiteRoom/issues/82)<br>
 Japanese counterpart: [日本語版](dialogue-motion-spec.ja.md)
 
 ## Outcome and ownership
@@ -70,6 +70,11 @@ package API, save field, or route rule is added.
   Overscan is capped at 1.10x. `still` restores both layers exactly; missing or unknown
   values preserve the subtle `drift` baseline. Dialogue UI and transient overlays are
   outside both depth layers.
+- The optional `CharacterMotion` column selects directional `enter_left`/`enter_right`,
+  `react_soft`, `react_sharp`, or `idle_breathe`. Transient reactions apply only to the
+  resolved active portrait and use anticipation, impact, and settle within the existing
+  0.22-second line entrance. Idle breathing stays below 1.2 percent scale. Narration and
+  unknown cues retain normal focus motion; cancellation restores portrait baselines.
 
 ## Cancellation and restore
 
