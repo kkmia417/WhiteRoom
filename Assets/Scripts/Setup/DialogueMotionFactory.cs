@@ -20,7 +20,10 @@ namespace WhiteRoom.Novel
             var controller = view.GetComponent<NovelDialogueMotionController>();
             if (controller == null)
                 controller = view.gameObject.AddComponent<NovelDialogueMotionController>();
-            controller.Configure(manager, view, stageView);
+            var canvas = view.GetComponentInParent<Canvas>(true);
+            var chapterTitleView = NovelChapterTitleView.Ensure(
+                canvas != null ? canvas.transform : view.transform.parent);
+            controller.Configure(manager, view, stageView, chapterTitleView);
             return controller;
         }
     }

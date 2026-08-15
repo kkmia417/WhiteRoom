@@ -57,7 +57,9 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   logs or duplicate runtime UI. It also verifies the [dialogue motion contract](dialogue-motion-spec.md):
   left/right speaker focus, narration neutral state, two visible placeholders, and
   completed choice reveals. Stage-transition coverage checks a completed cut, a
-  chapter transition cancelled by restore, and a non-blocking overlay.
+  chapter transition cancelled by restore, and a non-blocking overlay. Chapter-title
+  coverage checks top-right safe-area placement, ordinal/title separation, normal-window
+  suppression, following-line restoration, and restore cancellation.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.

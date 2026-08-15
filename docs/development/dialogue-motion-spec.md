@@ -1,6 +1,6 @@
 # Dialogue presentation motion specification
 
-Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71)<br>
+Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)<br>
 Japanese counterpart: [日本語版](dialogue-motion-spec.ja.md)
 
 ## Outcome and ownership
@@ -36,27 +36,36 @@ package API, save field, or route rule is added.
   accent, or 0.48 seconds at a chapter boundary. Night and exterior keys use deep
   navy, white rooms use pale ice blue, and alarm keys use a restrained crimson pulse.
   The veil never intercepts pointer or navigation input.
+- A row carrying `ChapterKey` separates the leading chapter ordinal (for example,
+  `第一章`) from the remaining title and presents both in `NovelChapterTitleView` at
+  the safe area's top-right. The normal window image, speaker, and body are suppressed
+  for that row, so the chapter heading is not duplicated; the existing Next control,
+  typewriter completion, Auto, Skip, keyboard, and controller paths remain authoritative.
+  The title waits 0.10 seconds, reveals over 0.48 seconds from the right, and exits
+  over 0.18 seconds. Accent colors follow the same cold, sterile, alarm, or neutral
+  mood resolved for the stage transition. The overlay itself never receives raycasts.
 - The Next indicator uses a small non-blocking pulse while it is visible.
 
 ## Cancellation and restore
 
 Every new line increments a generation token and stops the prior line coroutine.
 Dialogue end, view disable, destruction, and a completed load restore the baseline
-window, nameplate, choices, background, transition veil, and portrait transforms.
-Load then reapplies the current line's final focus state without replaying a durable
-stage cue or transition.
+window, nameplate, choices, background, transition veil, chapter title, and portrait
+transforms. Load then reapplies the current line's final focus and chapter-title state
+without replaying a durable stage cue or transition.
 
 Motion completion never advances dialogue or writes save state. All timing uses
 `Time.unscaledDeltaTime`, so Auto and Skip do not leave a paused tween behind.
 
 ## Validation
 
-- `NovelDialogueMotionControllerTests` covers active-slot and transition mood policy,
+- `NovelDialogueMotionControllerTests` covers active-slot, transition mood, and chapter
+  title parsing policy,
   production/fallback factory wiring, singleton attachment, non-blocking overlay
-  configuration, and pointer/controller choice parity.
+  configuration, safe-area top-right anchoring, and pointer/controller choice parity.
 - `WhiteRoomPlayModeStartupSmokeTests` checks Rei-to-girl focus switching, narration
-  neutral state, two simultaneous placeholders, choice reveal completion, and zero
-  unexpected logs.
+  neutral state, two simultaneous placeholders, choice reveal completion, chapter-title
+  suppression/restoration, and zero unexpected logs.
 - Visual captures cover Rei focus, girl focus, two placeholder speakers, a choice,
   a cold chapter reveal, and an alarm chapter reveal.
 
