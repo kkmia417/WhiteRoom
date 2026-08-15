@@ -1,6 +1,6 @@
 # 会話presentation motion仕様
 
-ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73) と [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75) で拡張<br>
+ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)、[Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)、[Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78) で拡張<br>
 English canonical file: [英語正本](dialogue-motion-spec.md)
 
 ## 成果とownership
@@ -41,12 +41,16 @@ save data、restoreのauthorityはTalk Systemに残す。
   18 px・0.42秒を上限とする。zoomは1.035倍・0.50秒を上限とし、短いovershoot後に基準値へ完全復帰する
 - 白flashはalpha 0.72・0.26秒、警報flashはalpha 0.48・0.34秒を上限とする。どちらも一度の急な
   attackと一度のdecayだけで連続点滅させず、overscanしたoverlayはraycastを受け取らない
+- 任意のcustom列`TransitionStyle`は`wipe_left`、`wipe_right`、`iris`、`match_fade`を選択する。
+  wipeはoverscan veilを指定方向へ0.58秒で移動する。irisは抑制した中央apertureからraycastを受けない
+  4 panelを0.72秒で同期して開く。match fadeはmood色を短くholdして0.48秒で減衰する。Backgroundの
+  duration指定はstyle別にclampし、未知値は警告なしで既存fade/cut policyへfallbackする
 
 ## Cancelとrestore
 
 新しい行ごとにgeneration tokenを更新し、前の行のcoroutineを停止する。会話終了、view disable、destroy、
-load完了時はwindow、nameplate、choice、stage transform、screen-effect overlay、背景、transition veil、
-章題、立ち絵transformを基準値へ戻す。
+load完了時はwindow、nameplate、choice、stage transform、screen-effect overlay、背景、transition veilと
+iris panel、章題、立ち絵transformを基準値へ戻す。
 load後はdurable stage cueやtransitionを再生せず、現在行の最終focus・章題状態だけを適用する。
 
 motion完了は会話を進めず、save stateにも書き込まない。全時間計算に`Time.unscaledDeltaTime`を使い、

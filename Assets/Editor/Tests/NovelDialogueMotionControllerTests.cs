@@ -49,7 +49,8 @@ namespace WhiteRoom.Novel.Editor.Tests
                 NovelDialogueMotionController.TryResolveStageTransition(rows[1000001], out opening),
                 Is.True);
             Assert.That(opening.Mood, Is.EqualTo(NovelDialogueMotionController.StageTransitionMood.Cold));
-            Assert.That(opening.Duration, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(opening.Style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.MatchFade));
+            Assert.That(opening.Duration, Is.EqualTo(0.82f).Within(0.001f));
             Assert.That(opening.StartAlpha, Is.GreaterThan(0.8f));
             Assert.That(opening.AlertPulse, Is.False);
 
@@ -58,13 +59,15 @@ namespace WhiteRoom.Novel.Editor.Tests
                 NovelDialogueMotionController.TryResolveStageTransition(rows[1000062], out sterileCut),
                 Is.True);
             Assert.That(sterileCut.Mood, Is.EqualTo(NovelDialogueMotionController.StageTransitionMood.Sterile));
-            Assert.That(sterileCut.Duration, Is.EqualTo(0.16f).Within(0.001f));
+            Assert.That(sterileCut.Style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.Iris));
+            Assert.That(sterileCut.Duration, Is.EqualTo(0.72f).Within(0.001f));
 
             NovelDialogueMotionController.StageTransitionProfile alarmChapter;
             Assert.That(
                 NovelDialogueMotionController.TryResolveStageTransition(rows[1008625], out alarmChapter),
                 Is.True);
             Assert.That(alarmChapter.Mood, Is.EqualTo(NovelDialogueMotionController.StageTransitionMood.Alarm));
+            Assert.That(alarmChapter.Style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.Fade));
             Assert.That(alarmChapter.Duration, Is.EqualTo(0.48f).Within(0.001f));
             Assert.That(alarmChapter.AlertPulse, Is.True);
 
@@ -72,6 +75,28 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(
                 NovelDialogueMotionController.TryResolveStageTransition(rows[1000019], out unused),
                 Is.False);
+        }
+
+        [Test]
+        public void TransitionStylePolicyResolvesDirectionAndFallsBackSilently()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+
+            NovelDialogueMotionController.StageTransitionStyle style;
+            Assert.That(NovelDialogueMotionController.TryResolveTransitionStyle(rows[1004397], out style), Is.True);
+            Assert.That(style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.WipeLeft));
+            Assert.That(NovelDialogueMotionController.TryResolveTransitionStyle(rows[1002628], out style), Is.True);
+            Assert.That(style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.WipeRight));
+            Assert.That(NovelDialogueMotionController.TryResolveTransitionStyle(rows[1000062], out style), Is.True);
+            Assert.That(style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.Iris));
+
+            var unknownCsv = new TextAsset(
+                "Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,TransitionStyle\n" +
+                "1,Narrator,Unknown,-1,narration,,,not_registered\n");
+            var unknown = CsvLoader.Parse<DialogueData>(unknownCsv).Values.Single();
+            Assert.That(NovelDialogueMotionController.TryResolveTransitionStyle(unknown, out style), Is.False);
+            Assert.That(style, Is.EqualTo(NovelDialogueMotionController.StageTransitionStyle.Fade));
         }
 
         [Test]
@@ -194,6 +219,16 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(overlayGroup, Is.Not.Null);
             Assert.That(overlayGroup.blocksRaycasts, Is.False);
             Assert.That(overlayGroup.interactable, Is.False);
+            var irisOverlays = presentation.StageView.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform.name == "NovelIrisTransitionOverlay")
+                .ToArray();
+            Assert.That(irisOverlays, Has.Length.EqualTo(1));
+            var irisGroup = irisOverlays[0].GetComponent<CanvasGroup>();
+            Assert.That(irisGroup.blocksRaycasts, Is.False);
+            Assert.That(irisGroup.interactable, Is.False);
+            var irisImages = irisOverlays[0].GetComponentsInChildren<Image>(true);
+            Assert.That(irisImages, Has.Length.EqualTo(4));
+            Assert.That(irisImages, Is.All.Matches<Image>(image => !image.raycastTarget));
             var screenEffectOverlays = presentation.StageView.GetComponentsInChildren<Transform>(true)
                 .Where(transform => transform.name == "NovelScreenEffectOverlay")
                 .ToArray();
