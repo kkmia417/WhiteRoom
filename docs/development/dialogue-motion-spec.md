@@ -1,6 +1,6 @@
 # Dialogue presentation motion specification
 
-Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)<br>
+Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73) and [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)<br>
 Japanese counterpart: [日本語版](dialogue-motion-spec.ja.md)
 
 ## Outcome and ownership
@@ -45,12 +45,25 @@ package API, save field, or route rule is added.
   over 0.18 seconds. Accent colors follow the same cold, sterile, alarm, or neutral
   mood resolved for the stage transition. The overlay itself never receives raycasts.
 - The Next indicator uses a small non-blocking pulse while it is visible.
+- The optional custom CSV column `ScreenEffect` resolves semantic, composable cues:
+  `shake_soft`, `shake_impact`, `flash_white`, `flash_alarm`, and `zoom_in`.
+  Unknown tokens are ignored without diagnostics, and a row with no recognized token
+  retains the existing presentation. Multiple tokens are separated with `|`.
+- Shake and zoom affect the stage root, keeping the dialogue window, speaker name,
+  body, choices, and Next control stable. Shake uses a deterministic multi-frequency
+  waveform with attack and cubic damping: soft is capped at 6 px / 0.32 seconds and
+  impact at 18 px / 0.42 seconds. Zoom is capped at 1.035x / 0.50 seconds and returns
+  to the exact baseline after its short overshoot.
+- White flash is capped at 0.72 alpha / 0.26 seconds and alarm flash at 0.48 alpha /
+  0.34 seconds. Both use one rapid attack and one decay; they never strobe, and their
+  overscanned overlay does not receive raycasts.
 
 ## Cancellation and restore
 
 Every new line increments a generation token and stops the prior line coroutine.
 Dialogue end, view disable, destruction, and a completed load restore the baseline
-window, nameplate, choices, background, transition veil, chapter title, and portrait
+window, nameplate, choices, stage transform, screen-effect overlay, background,
+transition veil, chapter title, and portrait
 transforms. Load then reapplies the current line's final focus and chapter-title state
 without replaying a durable stage cue or transition.
 
@@ -59,15 +72,16 @@ Motion completion never advances dialogue or writes save state. All timing uses
 
 ## Validation
 
-- `NovelDialogueMotionControllerTests` covers active-slot, transition mood, and chapter
-  title parsing policy,
+- `NovelDialogueMotionControllerTests` covers active-slot, transition mood, chapter
+  title parsing, typed screen-effect resolution and safety clamps,
   production/fallback factory wiring, singleton attachment, non-blocking overlay
   configuration, safe-area top-right anchoring, and pointer/controller choice parity.
 - `WhiteRoomPlayModeStartupSmokeTests` checks Rei-to-girl focus switching, narration
   neutral state, two simultaneous placeholders, choice reveal completion, chapter-title
-  suppression/restoration, and zero unexpected logs.
+  suppression/restoration, screen-effect playback/cancellation, and zero unexpected logs.
 - Visual captures cover Rei focus, girl focus, two placeholder speakers, a choice,
-  a cold chapter reveal, and an alarm chapter reveal.
+  a cold chapter reveal, an alarm chapter reveal, impact flash/shake, alarm flash,
+  and a short stage zoom.
 
 This implementation conforms to ADR-0009. A future Timeline, Live2D, Spine,
 Cinemachine, shader, or post-processing integration requires a separate Issue and

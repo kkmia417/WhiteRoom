@@ -26,6 +26,7 @@ namespace WhiteRoom.Novel
         private const float ChapterRevealDelay = 0.10f;
         private const float ChapterRevealDuration = 0.48f;
         private const float ChapterExitDuration = 0.18f;
+        private const string ScreenEffectColumn = "ScreenEffect";
 
         private static readonly Color FocusColor = Color.white;
         private static readonly Color ListenerColor = new Color(0.58f, 0.64f, 0.72f, 1f);
@@ -37,6 +38,60 @@ namespace WhiteRoom.Novel
             Cold,
             Sterile,
             Alarm
+        }
+
+        [Flags]
+        public enum ScreenEffectKind
+        {
+            None = 0,
+            ShakeSoft = 1 << 0,
+            ShakeImpact = 1 << 1,
+            FlashWhite = 1 << 2,
+            FlashAlarm = 1 << 3,
+            ZoomIn = 1 << 4
+        }
+
+        public readonly struct ScreenEffectProfile
+        {
+            public ScreenEffectProfile(
+                ScreenEffectKind kind,
+                string cue,
+                float shakeAmplitude,
+                float shakeFrequency,
+                float shakeDuration,
+                Color flashColor,
+                float flashAlpha,
+                float flashDuration,
+                float zoomScale,
+                float zoomDuration,
+                float phase)
+            {
+                Kind = kind;
+                Cue = cue ?? string.Empty;
+                ShakeAmplitude = shakeAmplitude;
+                ShakeFrequency = shakeFrequency;
+                ShakeDuration = shakeDuration;
+                FlashColor = flashColor;
+                FlashAlpha = flashAlpha;
+                FlashDuration = flashDuration;
+                ZoomScale = zoomScale;
+                ZoomDuration = zoomDuration;
+                Phase = phase;
+                Duration = Mathf.Max(shakeDuration, Mathf.Max(flashDuration, zoomDuration));
+            }
+
+            public ScreenEffectKind Kind { get; }
+            public string Cue { get; }
+            public float ShakeAmplitude { get; }
+            public float ShakeFrequency { get; }
+            public float ShakeDuration { get; }
+            public Color FlashColor { get; }
+            public float FlashAlpha { get; }
+            public float FlashDuration { get; }
+            public float ZoomScale { get; }
+            public float ZoomDuration { get; }
+            public float Phase { get; }
+            public float Duration { get; }
         }
 
         public readonly struct StageTransitionProfile
@@ -87,15 +142,19 @@ namespace WhiteRoom.Novel
         private CanvasGroup _bodyGroup;
         private RectTransform _choicesContainer;
         private RectTransform _nextRect;
+        private RectTransform _stageRect;
         private RectTransform _backgroundRect;
         private Image _backgroundImage;
         private Image _transitionImage;
         private CanvasGroup _transitionGroup;
+        private Image _screenEffectImage;
+        private CanvasGroup _screenEffectGroup;
         private readonly List<PortraitVisual> _portraits = new List<PortraitVisual>();
         private readonly List<ChoiceReveal> _choiceReveals = new List<ChoiceReveal>();
         private Coroutine _lineMotion;
         private Coroutine _transitionMotion;
         private Coroutine _chapterMotion;
+        private Coroutine _screenEffectMotion;
         private int _generation;
         private bool _bound;
         private bool _configured;
@@ -109,6 +168,9 @@ namespace WhiteRoom.Novel
         private Vector3 _nextBaseScale = Vector3.one;
         private Vector2 _backgroundBasePosition;
         private Vector3 _backgroundBaseScale = Vector3.one;
+        private Vector2 _stageBasePosition;
+        private Vector3 _stageBaseScale = Vector3.one;
+        private string _activeScreenEffectCue = string.Empty;
         private bool _dialogueWindowEnabledAtBaseline = true;
 
         public bool IsConfigured => _configured;
@@ -119,6 +181,15 @@ namespace WhiteRoom.Novel
         public bool IsTransitionPlaying => _transitionMotion != null;
         public bool IsChapterTitleActive => _chapterTitleActive;
         public NovelChapterTitleView ChapterTitleView => _chapterTitleView;
+        public bool IsScreenEffectPlaying => _screenEffectMotion != null;
+        public string ActiveScreenEffectCue => _activeScreenEffectCue;
+        public float ScreenEffectOverlayAlpha => _screenEffectGroup != null ? _screenEffectGroup.alpha : 0f;
+        public Vector2 StageEffectOffset => _stageRect != null
+            ? _stageRect.anchoredPosition - _stageBasePosition
+            : Vector2.zero;
+        public float StageEffectScale => _stageRect != null && !Mathf.Approximately(_stageBaseScale.x, 0f)
+            ? _stageRect.localScale.x / _stageBaseScale.x
+            : 1f;
 
         public void Configure(
             DialogueManager manager,
@@ -141,9 +212,11 @@ namespace WhiteRoom.Novel
             _bodyGroup = EnsureCanvasGroup(_bodyRect != null ? _bodyRect.gameObject : null);
             _choicesContainer = FindDescendant(view != null ? view.transform : null, "Choices") as RectTransform;
             _nextRect = FindDescendant(view != null ? view.transform : null, "NextButton") as RectTransform;
+            _stageRect = stageView != null ? stageView.transform as RectTransform : null;
             _backgroundRect = FindDescendant(stageView != null ? stageView.transform : null, "Background") as RectTransform;
             _backgroundImage = _backgroundRect != null ? _backgroundRect.GetComponent<Image>() : null;
             EnsureTransitionOverlay();
+            EnsureScreenEffectOverlay();
 
             _portraits.Clear();
             AddPortrait(DialogueStageSlot.Left, "LeftCharacter");
@@ -154,7 +227,8 @@ namespace WhiteRoom.Novel
             _configured = _manager != null && _view != null && _stageView != null &&
                           _chapterTitleView != null && _windowRect != null && _speakerRect != null &&
                           _bodyRect != null && _choicesContainer != null &&
-                          _backgroundRect != null && _portraits.Count == 3;
+                          _stageRect != null && _backgroundRect != null && _screenEffectGroup != null &&
+                          _portraits.Count == 3;
             if (isActiveAndEnabled)
                 Bind();
             ResetTransientState();
@@ -167,6 +241,7 @@ namespace WhiteRoom.Novel
             ResetChoiceReveals();
             ResetBackground();
             ResetTransitionOverlay();
+            ResetScreenEffect();
 
             var current = _manager != null ? _manager.CurrentData : null;
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
@@ -196,6 +271,86 @@ namespace WhiteRoom.Novel
                 .Replace('_', ' ')
                 .ToUpperInvariant();
             content = new ChapterTitleContent(fallbackOrdinal, text);
+            return true;
+        }
+
+        public static bool TryResolveScreenEffect(DialogueData data, out ScreenEffectProfile profile)
+        {
+            profile = default;
+            if (data == null || !data.TryGetExtra(ScreenEffectColumn, out var rawCue) ||
+                string.IsNullOrWhiteSpace(rawCue))
+                return false;
+
+            var kind = ScreenEffectKind.None;
+            var knownCues = new List<string>();
+            var shakeAmplitude = 0f;
+            var shakeFrequency = 0f;
+            var shakeDuration = 0f;
+            var flashColor = Color.white;
+            var flashAlpha = 0f;
+            var flashDuration = 0f;
+            var zoomScale = 1f;
+            var zoomDuration = 0f;
+
+            var tokens = rawCue.Split(new[] { '|', '+', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            for (var i = 0; i < tokens.Length; i++)
+            {
+                var cue = tokens[i].Trim().ToLowerInvariant();
+                switch (cue)
+                {
+                    case "shake_soft":
+                        kind |= ScreenEffectKind.ShakeSoft;
+                        knownCues.Add(cue);
+                        shakeAmplitude = Mathf.Max(shakeAmplitude, 6f);
+                        shakeFrequency = Mathf.Max(shakeFrequency, 24f);
+                        shakeDuration = Mathf.Max(shakeDuration, 0.32f);
+                        break;
+                    case "shake_impact":
+                        kind |= ScreenEffectKind.ShakeImpact;
+                        knownCues.Add(cue);
+                        shakeAmplitude = Mathf.Max(shakeAmplitude, 18f);
+                        shakeFrequency = Mathf.Max(shakeFrequency, 32f);
+                        shakeDuration = Mathf.Max(shakeDuration, 0.42f);
+                        break;
+                    case "flash_white":
+                        kind |= ScreenEffectKind.FlashWhite;
+                        knownCues.Add(cue);
+                        flashColor = new Color(0.92f, 0.97f, 1f, 1f);
+                        flashAlpha = Mathf.Max(flashAlpha, 0.72f);
+                        flashDuration = Mathf.Max(flashDuration, 0.26f);
+                        break;
+                    case "flash_alarm":
+                        kind |= ScreenEffectKind.FlashAlarm;
+                        knownCues.Add(cue);
+                        flashColor = new Color(0.78f, 0.035f, 0.055f, 1f);
+                        flashAlpha = Mathf.Max(flashAlpha, 0.48f);
+                        flashDuration = Mathf.Max(flashDuration, 0.34f);
+                        break;
+                    case "zoom_in":
+                        kind |= ScreenEffectKind.ZoomIn;
+                        knownCues.Add(cue);
+                        zoomScale = Mathf.Max(zoomScale, 1.035f);
+                        zoomDuration = Mathf.Max(zoomDuration, 0.50f);
+                        break;
+                }
+            }
+
+            if (kind == ScreenEffectKind.None)
+                return false;
+
+            var normalizedCue = string.Join("|", knownCues);
+            profile = new ScreenEffectProfile(
+                kind,
+                normalizedCue,
+                Mathf.Clamp(shakeAmplitude, 0f, 18f),
+                Mathf.Clamp(shakeFrequency, 0f, 32f),
+                Mathf.Clamp(shakeDuration, 0f, 0.42f),
+                flashColor,
+                Mathf.Clamp(flashAlpha, 0f, 0.72f),
+                Mathf.Clamp(flashDuration, 0f, 0.34f),
+                Mathf.Clamp(zoomScale, 1f, 1.035f),
+                Mathf.Clamp(zoomDuration, 0f, 0.50f),
+                StablePhase(data.Id + ":" + normalizedCue));
             return true;
         }
 
@@ -264,6 +419,7 @@ namespace WhiteRoom.Novel
             ResetChoiceReveals();
             ResetBackground();
             ResetTransitionOverlay();
+            ResetScreenEffect();
             _chapterTitleView?.HideImmediate();
             ApplyPortraitStateImmediate(string.Empty);
         }
@@ -341,6 +497,10 @@ namespace WhiteRoom.Novel
                 }
                 _lineMotion = StartCoroutine(AnimateLine(context.Data, generation));
             }
+
+            ScreenEffectProfile screenEffect;
+            if (TryResolveScreenEffect(context.Data, out screenEffect))
+                _screenEffectMotion = StartCoroutine(AnimateScreenEffect(screenEffect, generation));
         }
 
         private void HandleDialogueEnded(DialogueEventContext context)
@@ -354,6 +514,7 @@ namespace WhiteRoom.Novel
             ResetChoiceReveals();
             ResetBackground();
             ResetTransitionOverlay();
+            ResetScreenEffect();
             _chapterTitleView?.HideImmediate();
             ApplyPortraitStateImmediate(string.Empty);
         }
@@ -369,6 +530,7 @@ namespace WhiteRoom.Novel
             SnapUiToRest();
             ResetBackground();
             ResetTransitionOverlay();
+            ResetScreenEffect();
             _observedDialogueId = currentId;
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
@@ -523,6 +685,84 @@ namespace WhiteRoom.Novel
             {
                 ResetTransitionOverlay();
                 _transitionMotion = null;
+            }
+        }
+
+        private IEnumerator AnimateScreenEffect(ScreenEffectProfile profile, int generation)
+        {
+            if (_stageRect == null || profile.Duration <= 0f)
+                yield break;
+
+            _activeScreenEffectCue = profile.Cue;
+            if (profile.FlashDuration > 0f && _screenEffectImage != null && _screenEffectGroup != null)
+            {
+                _screenEffectImage.color = profile.FlashColor;
+                _screenEffectImage.gameObject.SetActive(true);
+                _screenEffectImage.transform.SetAsLastSibling();
+                _screenEffectGroup.alpha = 0f;
+            }
+
+            var elapsed = 0f;
+            while (elapsed < profile.Duration)
+            {
+                if (generation != _generation)
+                    yield break;
+
+                elapsed += Time.unscaledDeltaTime;
+                ApplyScreenEffectFrame(profile, elapsed);
+                yield return null;
+            }
+
+            if (generation == _generation)
+            {
+                ResetScreenEffect();
+                _screenEffectMotion = null;
+            }
+        }
+
+        private void ApplyScreenEffectFrame(ScreenEffectProfile profile, float elapsed)
+        {
+            var offset = Vector2.zero;
+            if (profile.ShakeDuration > 0f && elapsed < profile.ShakeDuration)
+            {
+                var t = Mathf.Clamp01(elapsed / profile.ShakeDuration);
+                var attack = EaseOutCubic(Mathf.Clamp01(t / 0.08f));
+                var damping = 1f - EaseOutCubic(t);
+                var angle = (elapsed * profile.ShakeFrequency + profile.Phase) * Mathf.PI * 2f;
+                var x = Mathf.Sin(angle) + Mathf.Sin(angle * 1.91f + 0.7f) * 0.24f;
+                var y = Mathf.Sin(angle * 1.37f + 1.1f) + Mathf.Sin(angle * 2.23f) * 0.18f;
+                offset = new Vector2(x, y) * (profile.ShakeAmplitude * attack * damping);
+            }
+
+            var scale = 1f;
+            if (profile.ZoomDuration > 0f && elapsed < profile.ZoomDuration)
+            {
+                var t = Mathf.Clamp01(elapsed / profile.ZoomDuration);
+                var envelope = t < 0.22f
+                    ? EaseOutCubic(t / 0.22f)
+                    : 1f - EaseInOutSine((t - 0.22f) / 0.78f);
+                scale += (profile.ZoomScale - 1f) * envelope;
+            }
+
+            _stageRect.anchoredPosition = _stageBasePosition + offset;
+            _stageRect.localScale = _stageBaseScale * scale;
+
+            if (_screenEffectGroup != null)
+            {
+                var alpha = 0f;
+                if (profile.FlashDuration > 0f && elapsed < profile.FlashDuration)
+                {
+                    var attackDuration = Mathf.Min(0.045f, profile.FlashDuration * 0.20f);
+                    if (elapsed < attackDuration)
+                        alpha = profile.FlashAlpha * EaseOutCubic(elapsed / attackDuration);
+                    else
+                    {
+                        var decay = Mathf.Clamp01(
+                            (elapsed - attackDuration) / (profile.FlashDuration - attackDuration));
+                        alpha = profile.FlashAlpha * (1f - EaseOutCubic(decay));
+                    }
+                }
+                _screenEffectGroup.alpha = Mathf.Clamp(alpha, 0f, 0.72f);
             }
         }
 
@@ -856,6 +1096,54 @@ namespace WhiteRoom.Novel
             overlayObject.transform.SetAsLastSibling();
         }
 
+        private void EnsureScreenEffectOverlay()
+        {
+            _screenEffectImage = null;
+            _screenEffectGroup = null;
+            if (_stageView == null)
+                return;
+
+            var existing = FindDescendant(_stageView.transform, "NovelScreenEffectOverlay");
+            GameObject overlayObject;
+            if (existing != null)
+            {
+                overlayObject = existing.gameObject;
+            }
+            else
+            {
+                overlayObject = new GameObject(
+                    "NovelScreenEffectOverlay",
+                    typeof(RectTransform),
+                    typeof(CanvasGroup),
+                    typeof(Image));
+                overlayObject.transform.SetParent(_stageView.transform, false);
+            }
+
+            var rect = overlayObject.transform as RectTransform;
+            if (rect != null)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(-48f, -48f);
+                rect.offsetMax = new Vector2(48f, 48f);
+                rect.localScale = Vector3.one;
+                rect.localRotation = Quaternion.identity;
+            }
+
+            _screenEffectImage = overlayObject.GetComponent<Image>();
+            if (_screenEffectImage == null)
+                _screenEffectImage = overlayObject.AddComponent<Image>();
+            _screenEffectImage.sprite = null;
+            _screenEffectImage.type = Image.Type.Simple;
+            _screenEffectImage.raycastTarget = false;
+
+            _screenEffectGroup = EnsureCanvasGroup(overlayObject);
+            _screenEffectGroup.interactable = false;
+            _screenEffectGroup.blocksRaycasts = false;
+            overlayObject.transform.SetAsLastSibling();
+            ResetScreenEffectOverlay();
+        }
+
         private void CaptureBaselines()
         {
             if (_dialogueWindowImage != null)
@@ -869,6 +1157,11 @@ namespace WhiteRoom.Novel
                 _speakerBaseScale = _speakerRect.localScale;
             if (_nextRect != null)
                 _nextBaseScale = _nextRect.localScale;
+            if (_stageRect != null)
+            {
+                _stageBasePosition = _stageRect.anchoredPosition;
+                _stageBaseScale = _stageRect.localScale;
+            }
             if (_backgroundRect != null)
             {
                 _backgroundBasePosition = _backgroundRect.anchoredPosition;
@@ -896,8 +1189,14 @@ namespace WhiteRoom.Novel
                 StopCoroutine(_chapterMotion);
                 _chapterMotion = null;
             }
+            if (_screenEffectMotion != null)
+            {
+                StopCoroutine(_screenEffectMotion);
+                _screenEffectMotion = null;
+            }
             ResetChoiceReveals();
             ResetTransitionOverlay();
+            ResetScreenEffect();
             _chapterTitleView?.HideImmediate();
         }
 
@@ -936,6 +1235,25 @@ namespace WhiteRoom.Novel
                 _transitionGroup.alpha = 0f;
             if (_transitionImage != null)
                 _transitionImage.gameObject.SetActive(false);
+        }
+
+        private void ResetScreenEffect()
+        {
+            _activeScreenEffectCue = string.Empty;
+            if (_stageRect != null)
+            {
+                _stageRect.anchoredPosition = _stageBasePosition;
+                _stageRect.localScale = _stageBaseScale;
+            }
+            ResetScreenEffectOverlay();
+        }
+
+        private void ResetScreenEffectOverlay()
+        {
+            if (_screenEffectGroup != null)
+                _screenEffectGroup.alpha = 0f;
+            if (_screenEffectImage != null)
+                _screenEffectImage.gameObject.SetActive(false);
         }
 
         private static CanvasGroup EnsureCanvasGroup(GameObject target)
