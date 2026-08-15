@@ -106,6 +106,10 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(GetMotionProperty<bool>(motion, "IsConfigured"), Is.True);
             Assert.That(left, Is.Not.Null);
             Assert.That(right, Is.Not.Null);
+            var backgroundDepthLayer = GameObject.Find("NovelBackgroundDepthLayer")?.GetComponent<RectTransform>();
+            var portraitDepthLayer = GameObject.Find("NovelPortraitDepthLayer")?.GetComponent<RectTransform>();
+            Assert.That(backgroundDepthLayer, Is.Not.Null);
+            Assert.That(portraitDepthLayer, Is.Not.Null);
 
             var chapterTitle = Object.FindObjectsByType<Transform>(
                     FindObjectsInactive.Include,
@@ -165,6 +169,12 @@ namespace WhiteRoom.Novel.PlayModeTests
             yield return new WaitForSecondsRealtime(0.65f);
             Assert.That(chapterTitle.gameObject.activeSelf, Is.True);
             Assert.That(chapterGroup.alpha, Is.EqualTo(1f).Within(0.001f));
+            var backgroundDepth = GetMotionProperty<Vector2>(motion, "BackgroundDepthOffset");
+            var portraitDepth = GetMotionProperty<Vector2>(motion, "PortraitDepthOffset");
+            Assert.That(GetMotionProperty<object>(motion, "ActiveDepthStyle").ToString(), Is.EqualTo("Drift"));
+            Assert.That(backgroundDepth.magnitude, Is.GreaterThan(0.05f));
+            Assert.That(portraitDepth.magnitude, Is.GreaterThan(0.01f));
+            Assert.That(Vector2.Dot(backgroundDepth, portraitDepth), Is.LessThan(0f));
 
             dialogueView.RequestNext();
             yield return new WaitForSecondsRealtime(0.25f);
@@ -186,6 +196,9 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(GetMotionProperty<bool>(motion, "IsScreenEffectPlaying"), Is.True);
             Assert.That(GetMotionProperty<string>(motion, "ActiveScreenEffectCue"), Is.EqualTo("zoom_in"));
             Assert.That(GetMotionProperty<float>(motion, "StageEffectScale"), Is.GreaterThan(1.005f));
+            Assert.That(GetMotionProperty<object>(motion, "ActiveDepthStyle").ToString(), Is.EqualTo("Still"));
+            Assert.That(GetMotionProperty<Vector2>(motion, "BackgroundDepthOffset"), Is.EqualTo(Vector2.zero));
+            Assert.That(GetMotionProperty<Vector2>(motion, "PortraitDepthOffset"), Is.EqualTo(Vector2.zero));
             yield return new WaitForSecondsRealtime(0.56f);
             Assert.That(irisOverlay.gameObject.activeSelf, Is.False);
             Assert.That(irisGroup.alpha, Is.EqualTo(0f).Within(0.001f));
@@ -354,6 +367,20 @@ namespace WhiteRoom.Novel.PlayModeTests
                 yield return new WaitForSecondsRealtime(0.25f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-wipe-right.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1008625);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.70f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-depth-tense.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1004397);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.70f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-depth-intimate.png"));
             }
         }
 
