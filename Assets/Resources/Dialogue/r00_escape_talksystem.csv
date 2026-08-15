@@ -1,5 +1,5 @@
-Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect,TransitionStyle
-1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein,,match_fade
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect,TransitionStyle,DepthStyle
+1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein,,match_fade,drift
 1000002,地の文,少女には、レイを殺せる機会が三度あった。,1000003,narration,,,,,,,,,,,,,
 1000003,地の文,けれど、引き金は一度も引かなかった。,1000004,narration,,,,,,,,,,,,,
 1000004,地の文,雨音が、壊れた街を満たしている。,1000005,narration,,,,,,,,,,,,,
@@ -61,7 +61,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000059,少女,――の答えじゃなくて,1000060,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000060,地の文,遠くの塔が光った。一瞬で夜が白くなる。最後の言葉だけが、すぐ耳元で聞こえた。,1000061,narration,,,,,,,,,,,,,
 1000061,レイ,自分で決めて,1000062,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
-1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein,zoom_in,iris
+1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein,zoom_in,iris,still
 1200001,地の文,血はない。左肩も痛くない。掌には爪の跡が四つ残っていた。枕元の表示が切り替わる。,1000063,narration,,,,,,,,,,,,,
 1000063,地の文,06:00睡眠記録の同期を完了しました。続いて、短い電子音。,1200002,narration,,,,,,,,,,,,,
 1200002,地の文,候補者R-00。起床してください。第一評価室への入室まで、残り十二分です。,1000064,narration,,,,,,,,,,,,,
@@ -391,7 +391,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000353,教官,回答を,1000354,,,,,,,,,,,,,,*|Placeholder@center:neutral
 1000354,地の文,レイは画面を見る。報告する。それだけ。なのに、押せない。,1000355,narration,,,,,,,,,,,,,
 1000355,教官,R-00？,1000356,,,,,,,,,,,,,,*|Placeholder@center:neutral
-1000356,地の文,照明が消えた。一瞬、完全な暗闇。直後、赤い非常灯が点く。警報が響いた。,1200037,narration,,,,,,,,,,,,,,flash_alarm
+1000356,地の文,照明が消えた。一瞬、完全な暗闇。直後、赤い非常灯が点く。警報が響いた。,1200037,narration,,,,,,,,,,,,,,flash_alarm,,tense
 1200037,地の文,外部侵入を確認。全区画を段階封鎖します。,1000357,narration,,,,,,,,,,,,,
 1000357,教官,候補者はその場で待機してください,1000358,,,,,,,,,,,,,,*|Placeholder@center:neutral
 1000358,地の文,教官の声。,1000359,narration,,,,,,,,,,,,,
@@ -1040,7 +1040,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000961,男,返事,1000962,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|Nagi@right:serious
 1000962,ナギ,はい,1000963,,,,,,,,,,,,,,*|Nagi@right:serious|PlaceholderLeft@left:neutral
 1000963,男,わざとだろ,1000964,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|Nagi@right:serious
-1000964,地の文,男はそれ以上言わなかった。レイも中へ入る。扉が閉まる。部屋には四人いた。,1200078,narration,,,,,,,,,,,,,
+1000964,地の文,男はそれ以上言わなかった。レイも中へ入る。扉が閉まる。部屋には四人いた。,1200078,narration,,,,,,,,,,,,,,,,intimate
 1200078,地の文,正面に背の高い男。端に少年。その隣に女性。そして運転手。,1000965,narration,,,,,,,,,,,,,
 1000965,運転手,何で俺まで,1000966,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral
 1000966,男,お前が連れてきた,1000967,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|PlaceholderRight@right:neutral
@@ -4606,7 +4606,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1200210,地の文,それでも。レイはもう一度言った。,1004395,narration,,,,,,,,,,,,,
 1004395,ナギ,分からない,1004396,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1004396,地の文,今度は少しだけ。自分の言葉に聞こえた。,1004397,narration,,,,,,,,,,,,,
-1004397,地の文,第七章　知らない依頼人,1004398,narration,,,,,,chapter_07,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:smile,,wipe_left
+1004397,地の文,第七章　知らない依頼人,1004398,narration,,,,,,chapter_07,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:smile,,wipe_left,intimate
 1004398,ナギ,動かないで,1004399,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1004399,レイ,動いていません,1004400,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
 1004400,ナギ,目,1004401,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
@@ -9160,7 +9160,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1008622,地の文,レイは、どう決める？,-1,choice,,,,A――ナギと管理する->1009997|B――レイが新しい規則を決める->1010002|AもBも選ばない->1008623,,,,,outside_wall_night#cut,alarm,camera_focus,,Rei@left:determined|Nagi@right:shocked
 1008623,ナギ,……選ばないの？,1008624,,,,,,,,,,,,,,*|Nagi@right:serious
 1008624,地の文,雨音の中。その声だけが。初めて。予測の中にはなかった。,1008625,narration,,,,,,,,,,,,,
-1008625,地の文,第十三章　正解の外側,1008626,narration,,,,,,chapter_13,main,,lab_room_alarm#cut,alarm,,,*|Rei@left:determined|Nagi@right:shocked
+1008625,地の文,第十三章　正解の外側,1008626,narration,,,,,,chapter_13,main,,lab_room_alarm#cut,alarm,,,*|Rei@left:determined|Nagi@right:shocked,,,tense
 1008626,ナギ,……選ばないの？,1008627,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1008627,地の文,ナギの声は、雨に消えそうなほど小さかった。銃口はまだレイへ向いている。,1200537,narration,,,,,,,,,,,,,
 1200537,地の文,ただ、さっきより少し下がっていた。,1008628,narration,,,,,,,,,,,,,

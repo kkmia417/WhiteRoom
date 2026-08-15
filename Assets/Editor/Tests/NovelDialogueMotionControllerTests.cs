@@ -179,6 +179,31 @@ namespace WhiteRoom.Novel.Editor.Tests
         }
 
         [Test]
+        public void DepthPolicyResolvesClampedMultiLayerProfilesAndDefaultsToDrift()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+
+            var still = NovelDialogueMotionController.ResolveDepthProfile(rows[1000062]);
+            Assert.That(still.Style, Is.EqualTo(NovelDialogueMotionController.DepthStyle.Still));
+            Assert.That(still.BackgroundAmplitude, Is.EqualTo(Vector2.zero));
+            Assert.That(still.OverscanScale, Is.EqualTo(1f));
+
+            var tense = NovelDialogueMotionController.ResolveDepthProfile(rows[1000356]);
+            Assert.That(tense.Style, Is.EqualTo(NovelDialogueMotionController.DepthStyle.Tense));
+            Assert.That(tense.BackgroundAmplitude.x, Is.LessThanOrEqualTo(8f));
+            Assert.That(tense.PortraitFactor, Is.LessThan(0f));
+            Assert.That(tense.OverscanScale, Is.LessThanOrEqualTo(1.10f));
+
+            var intimate = NovelDialogueMotionController.ResolveDepthProfile(rows[1000964]);
+            Assert.That(intimate.Style, Is.EqualTo(NovelDialogueMotionController.DepthStyle.Intimate));
+            Assert.That(intimate.Speed, Is.LessThan(tense.Speed));
+
+            var fallback = NovelDialogueMotionController.ResolveDepthProfile(rows[1000019]);
+            Assert.That(fallback.Style, Is.EqualTo(NovelDialogueMotionController.DepthStyle.Drift));
+        }
+
+        [Test]
         public void MotionFactoryConfiguresProductionPrefabAndRuntimeFallbackOnce()
         {
             var managerObject = new GameObject("MotionTestManager", typeof(DialogueManager));
@@ -242,6 +267,18 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(screenEffectImage.raycastTarget, Is.False);
             Assert.That(screenEffectGroup.blocksRaycasts, Is.False);
             Assert.That(screenEffectGroup.interactable, Is.False);
+            var backgroundLayers = presentation.StageView.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform.name == "NovelBackgroundDepthLayer")
+                .ToArray();
+            var portraitLayers = presentation.StageView.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform.name == "NovelPortraitDepthLayer")
+                .ToArray();
+            Assert.That(backgroundLayers, Has.Length.EqualTo(1));
+            Assert.That(portraitLayers, Has.Length.EqualTo(1));
+            Assert.That(backgroundLayers[0].Find("Background"), Is.Not.Null);
+            Assert.That(portraitLayers[0].Find("LeftCharacter"), Is.Not.Null);
+            Assert.That(portraitLayers[0].Find("CenterCharacter"), Is.Not.Null);
+            Assert.That(portraitLayers[0].Find("RightCharacter"), Is.Not.Null);
 
             Object.DestroyImmediate(production.gameObject);
             var fallback = DialogueViewFactory.CreateDefaultDialogueView(
@@ -256,6 +293,14 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(
                 presentation.StageView.GetComponentsInChildren<Transform>(true)
                     .Count(transform => transform.name == "NovelScreenEffectOverlay"),
+                Is.EqualTo(1));
+            Assert.That(
+                presentation.StageView.GetComponentsInChildren<Transform>(true)
+                    .Count(transform => transform.name == "NovelBackgroundDepthLayer"),
+                Is.EqualTo(1));
+            Assert.That(
+                presentation.StageView.GetComponentsInChildren<Transform>(true)
+                    .Count(transform => transform.name == "NovelPortraitDepthLayer"),
                 Is.EqualTo(1));
         }
 

@@ -1,6 +1,6 @@
 # 会話presentation motion仕様
 
-ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)、[Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)、[Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78) で拡張<br>
+ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)、[Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)、[Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78)、[Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80) で拡張<br>
 English canonical file: [英語正本](dialogue-motion-spec.md)
 
 ## 成果とownership
@@ -45,6 +45,10 @@ save data、restoreのauthorityはTalk Systemに残す。
   wipeはoverscan veilを指定方向へ0.58秒で移動する。irisは抑制した中央apertureからraycastを受けない
   4 panelを0.72秒で同期して開く。match fadeはmood色を短くholdして0.48秒で減衰する。Backgroundの
   duration指定はstyle別にclampし、未知値は警告なしで既存fade/cut policyへfallbackする
+- 任意のcustom列`DepthStyle`は`still`、`drift`、`tense`、`intimate`を選択する。runtime compositionは
+  背景と全立ち絵を別々のsingleton full-stage layerへ置く。背景は通常5/3 px、tenseで8/5 pxを上限に
+  driftし、立ち絵は逆方向へ15〜30%の距離だけ動く。overscanは1.10倍を上限とする。`still`は両layerを
+  完全に基準値へ戻し、未指定・未知値はsubtleな`drift`を維持する。会話UIとtransient overlayはlayer外に保つ
 
 ## Cancelとrestore
 

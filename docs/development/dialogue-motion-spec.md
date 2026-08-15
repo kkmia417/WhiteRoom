@@ -1,6 +1,6 @@
 # Dialogue presentation motion specification
 
-Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73), [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75), and [Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78)<br>
+Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73), [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75), [Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78), and [Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80)<br>
 Japanese counterpart: [日本語版](dialogue-motion-spec.ja.md)
 
 ## Outcome and ownership
@@ -63,6 +63,13 @@ package API, save field, or route rule is added.
   center aperture over 0.72 seconds. Match fade holds its mood color briefly, then
   decays over 0.48 seconds. Authored background duration is clamped per style; unknown
   values silently use the existing fade/cut policy.
+- The optional custom column `DepthStyle` selects `still`, `drift`, `tense`, or
+  `intimate`. Runtime composition places the background and all portraits in separate,
+  singleton full-stage layers. Background drift is capped at 5/3 px (8/5 px for tense)
+  while portraits move in the opposite direction at 15-30 percent of that distance.
+  Overscan is capped at 1.10x. `still` restores both layers exactly; missing or unknown
+  values preserve the subtle `drift` baseline. Dialogue UI and transient overlays are
+  outside both depth layers.
 
 ## Cancellation and restore
 

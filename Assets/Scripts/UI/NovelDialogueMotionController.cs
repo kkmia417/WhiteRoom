@@ -22,12 +22,12 @@ namespace WhiteRoom.Novel
         private const float FocusScale = 1.025f;
         private const float ListenerScale = 0.985f;
         private const float FocusLift = 8f;
-        private const float BackgroundScale = 1.08f;
         private const float ChapterRevealDelay = 0.10f;
         private const float ChapterRevealDuration = 0.48f;
         private const float ChapterExitDuration = 0.18f;
         private const string ScreenEffectColumn = "ScreenEffect";
         private const string TransitionStyleColumn = "TransitionStyle";
+        private const string DepthStyleColumn = "DepthStyle";
 
         private static readonly Color FocusColor = Color.white;
         private static readonly Color ListenerColor = new Color(0.58f, 0.64f, 0.72f, 1f);
@@ -48,6 +48,37 @@ namespace WhiteRoom.Novel
             WipeRight,
             Iris,
             MatchFade
+        }
+
+        public enum DepthStyle
+        {
+            Still,
+            Drift,
+            Tense,
+            Intimate
+        }
+
+        public readonly struct DepthProfile
+        {
+            public DepthProfile(
+                DepthStyle style,
+                Vector2 backgroundAmplitude,
+                float speed,
+                float portraitFactor,
+                float overscanScale)
+            {
+                Style = style;
+                BackgroundAmplitude = backgroundAmplitude;
+                Speed = speed;
+                PortraitFactor = portraitFactor;
+                OverscanScale = overscanScale;
+            }
+
+            public DepthStyle Style { get; }
+            public Vector2 BackgroundAmplitude { get; }
+            public float Speed { get; }
+            public float PortraitFactor { get; }
+            public float OverscanScale { get; }
         }
 
         [Flags]
@@ -156,6 +187,8 @@ namespace WhiteRoom.Novel
         private RectTransform _choicesContainer;
         private RectTransform _nextRect;
         private RectTransform _stageRect;
+        private RectTransform _backgroundDepthLayer;
+        private RectTransform _portraitDepthLayer;
         private RectTransform _backgroundRect;
         private Image _backgroundImage;
         private Image _transitionImage;
@@ -186,6 +219,11 @@ namespace WhiteRoom.Novel
         private Vector3 _backgroundBaseScale = Vector3.one;
         private Vector2 _stageBasePosition;
         private Vector3 _stageBaseScale = Vector3.one;
+        private Vector2 _backgroundLayerBasePosition;
+        private Vector3 _backgroundLayerBaseScale = Vector3.one;
+        private Vector2 _portraitLayerBasePosition;
+        private Vector3 _portraitLayerBaseScale = Vector3.one;
+        private DepthProfile _depthProfile = CreateDepthProfile(DepthStyle.Drift);
         private string _activeScreenEffectCue = string.Empty;
         private bool _dialogueWindowEnabledAtBaseline = true;
 
@@ -206,6 +244,13 @@ namespace WhiteRoom.Novel
         public float StageEffectScale => _stageRect != null && !Mathf.Approximately(_stageBaseScale.x, 0f)
             ? _stageRect.localScale.x / _stageBaseScale.x
             : 1f;
+        public DepthStyle ActiveDepthStyle => _depthProfile.Style;
+        public Vector2 BackgroundDepthOffset => _backgroundDepthLayer != null
+            ? _backgroundDepthLayer.anchoredPosition - _backgroundLayerBasePosition
+            : Vector2.zero;
+        public Vector2 PortraitDepthOffset => _portraitDepthLayer != null
+            ? _portraitDepthLayer.anchoredPosition - _portraitLayerBasePosition
+            : Vector2.zero;
 
         public void Configure(
             DialogueManager manager,
@@ -229,6 +274,7 @@ namespace WhiteRoom.Novel
             _choicesContainer = FindDescendant(view != null ? view.transform : null, "Choices") as RectTransform;
             _nextRect = FindDescendant(view != null ? view.transform : null, "NextButton") as RectTransform;
             _stageRect = stageView != null ? stageView.transform as RectTransform : null;
+            EnsureDepthLayers();
             _backgroundRect = FindDescendant(stageView != null ? stageView.transform : null, "Background") as RectTransform;
             _backgroundImage = _backgroundRect != null ? _backgroundRect.GetComponent<Image>() : null;
             EnsureTransitionOverlay();
@@ -243,7 +289,8 @@ namespace WhiteRoom.Novel
             _configured = _manager != null && _view != null && _stageView != null &&
                           _chapterTitleView != null && _windowRect != null && _speakerRect != null &&
                           _bodyRect != null && _choicesContainer != null &&
-                          _stageRect != null && _backgroundRect != null && _screenEffectGroup != null &&
+                          _stageRect != null && _backgroundDepthLayer != null && _portraitDepthLayer != null &&
+                          _backgroundRect != null && _screenEffectGroup != null &&
                           _portraits.Count == 3;
             if (isActiveAndEnabled)
                 Bind();
@@ -263,6 +310,7 @@ namespace WhiteRoom.Novel
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
             _observedDialogueId = current != null ? current.Id : -1;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
+            _depthProfile = ResolveDepthProfile(current);
             ApplyPortraitStateImmediate(ActiveSlot);
             ApplyChapterStateImmediate(current);
         }
@@ -368,6 +416,44 @@ namespace WhiteRoom.Novel
                 Mathf.Clamp(zoomDuration, 0f, 0.50f),
                 StablePhase(data.Id + ":" + normalizedCue));
             return true;
+        }
+
+        public static bool TryResolveDepthStyle(DialogueData data, out DepthStyle style)
+        {
+            style = DepthStyle.Drift;
+            if (data == null || !data.TryGetExtra(DepthStyleColumn, out var rawStyle))
+                return false;
+
+            switch ((rawStyle ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "still": style = DepthStyle.Still; return true;
+                case "drift": style = DepthStyle.Drift; return true;
+                case "tense": style = DepthStyle.Tense; return true;
+                case "intimate": style = DepthStyle.Intimate; return true;
+                default: return false;
+            }
+        }
+
+        public static DepthProfile ResolveDepthProfile(DialogueData data)
+        {
+            return TryResolveDepthStyle(data, out var style)
+                ? CreateDepthProfile(style)
+                : CreateDepthProfile(DepthStyle.Drift);
+        }
+
+        private static DepthProfile CreateDepthProfile(DepthStyle style)
+        {
+            switch (style)
+            {
+                case DepthStyle.Still:
+                    return new DepthProfile(style, Vector2.zero, 0f, 0f, 1f);
+                case DepthStyle.Tense:
+                    return new DepthProfile(style, new Vector2(8f, 5f), 0.18f, -0.30f, 1.10f);
+                case DepthStyle.Intimate:
+                    return new DepthProfile(style, new Vector2(3f, 2f), 0.065f, -0.15f, 1.055f);
+                default:
+                    return new DepthProfile(DepthStyle.Drift, new Vector2(5f, 3f), 0.10f, -0.22f, 1.08f);
+            }
         }
 
         public static string ResolveActiveSlot(DialogueData data)
@@ -481,6 +567,7 @@ namespace WhiteRoom.Novel
             _dialogueActive = true;
             _observedDialogueId = context.Data.Id;
             ActiveSlot = ResolveActiveSlot(context.Data);
+            _depthProfile = ResolveDepthProfile(context.Data);
             if (!string.IsNullOrEmpty(context.Data.Background))
                 _backgroundPhase = StablePhase(context.Data.Background);
 
@@ -550,6 +637,7 @@ namespace WhiteRoom.Novel
             _observedDialogueId = currentId;
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
+            _depthProfile = ResolveDepthProfile(current);
             ApplyPortraitStateImmediate(ActiveSlot);
             ApplyChapterStateImmediate(current);
         }
@@ -1140,14 +1228,64 @@ namespace WhiteRoom.Novel
 
         private void AnimateBackgroundDepth()
         {
-            if (_backgroundRect == null || _backgroundImage == null || !_backgroundImage.enabled)
+            if (_backgroundDepthLayer == null || _portraitDepthLayer == null)
                 return;
 
-            _backgroundPhase += Time.unscaledDeltaTime * 0.10f;
-            _backgroundRect.localScale = _backgroundBaseScale * BackgroundScale;
-            _backgroundRect.anchoredPosition = _backgroundBasePosition + new Vector2(
-                Mathf.Sin(_backgroundPhase) * 5f,
-                Mathf.Cos(_backgroundPhase * 0.73f) * 3f);
+            if (_depthProfile.Style == DepthStyle.Still)
+            {
+                ResetDepthLayers();
+                return;
+            }
+
+            _backgroundPhase += Time.unscaledDeltaTime * _depthProfile.Speed;
+            var backgroundOffset = new Vector2(
+                Mathf.Sin(_backgroundPhase) * _depthProfile.BackgroundAmplitude.x,
+                Mathf.Cos(_backgroundPhase * 0.73f) * _depthProfile.BackgroundAmplitude.y);
+            _backgroundDepthLayer.anchoredPosition = _backgroundLayerBasePosition + backgroundOffset;
+            _backgroundDepthLayer.localScale = _backgroundLayerBaseScale * _depthProfile.OverscanScale;
+            _portraitDepthLayer.anchoredPosition = _portraitLayerBasePosition +
+                                                   backgroundOffset * _depthProfile.PortraitFactor;
+            _portraitDepthLayer.localScale = _portraitLayerBaseScale;
+        }
+
+        private void EnsureDepthLayers()
+        {
+            _backgroundDepthLayer = null;
+            _portraitDepthLayer = null;
+            if (_stageView == null)
+                return;
+
+            _backgroundDepthLayer = EnsureDepthLayer(_stageView.transform, "NovelBackgroundDepthLayer");
+            _portraitDepthLayer = EnsureDepthLayer(_stageView.transform, "NovelPortraitDepthLayer");
+            MoveToDepthLayer("Background", _backgroundDepthLayer);
+            MoveToDepthLayer("LeftCharacter", _portraitDepthLayer);
+            MoveToDepthLayer("CenterCharacter", _portraitDepthLayer);
+            MoveToDepthLayer("RightCharacter", _portraitDepthLayer);
+            _backgroundDepthLayer.SetAsFirstSibling();
+            _portraitDepthLayer.SetSiblingIndex(1);
+        }
+
+        private void MoveToDepthLayer(string objectName, RectTransform layer)
+        {
+            var target = FindDescendant(_stageView.transform, objectName);
+            if (target != null && target.parent != layer)
+                target.SetParent(layer, false);
+        }
+
+        private static RectTransform EnsureDepthLayer(Transform parent, string name)
+        {
+            var existing = parent.Find(name);
+            GameObject layerObject;
+            if (existing != null)
+                layerObject = existing.gameObject;
+            else
+            {
+                layerObject = new GameObject(name, typeof(RectTransform));
+                layerObject.transform.SetParent(parent, false);
+            }
+            var rect = layerObject.transform as RectTransform;
+            StretchRect(rect);
+            return rect;
         }
 
         private void AnimateNextIndicator()
@@ -1323,6 +1461,16 @@ namespace WhiteRoom.Novel
                 _stageBasePosition = _stageRect.anchoredPosition;
                 _stageBaseScale = _stageRect.localScale;
             }
+            if (_backgroundDepthLayer != null)
+            {
+                _backgroundLayerBasePosition = _backgroundDepthLayer.anchoredPosition;
+                _backgroundLayerBaseScale = _backgroundDepthLayer.localScale;
+            }
+            if (_portraitDepthLayer != null)
+            {
+                _portraitLayerBasePosition = _portraitDepthLayer.anchoredPosition;
+                _portraitLayerBaseScale = _portraitDepthLayer.localScale;
+            }
             if (_backgroundRect != null)
             {
                 _backgroundBasePosition = _backgroundRect.anchoredPosition;
@@ -1388,6 +1536,21 @@ namespace WhiteRoom.Novel
                 return;
             _backgroundRect.anchoredPosition = _backgroundBasePosition;
             _backgroundRect.localScale = _backgroundBaseScale;
+            ResetDepthLayers();
+        }
+
+        private void ResetDepthLayers()
+        {
+            if (_backgroundDepthLayer != null)
+            {
+                _backgroundDepthLayer.anchoredPosition = _backgroundLayerBasePosition;
+                _backgroundDepthLayer.localScale = _backgroundLayerBaseScale;
+            }
+            if (_portraitDepthLayer != null)
+            {
+                _portraitDepthLayer.anchoredPosition = _portraitLayerBasePosition;
+                _portraitDepthLayer.localScale = _portraitLayerBaseScale;
+            }
         }
 
         private void ResetTransitionOverlay()
