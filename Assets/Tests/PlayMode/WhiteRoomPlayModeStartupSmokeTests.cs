@@ -140,6 +140,16 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(transitionGroup, Is.Not.Null);
             Assert.That(transitionGroup.blocksRaycasts, Is.False);
             Assert.That(transitionGroup.alpha, Is.GreaterThan(0f));
+            var screenEffectOverlay = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Single(transform => transform.name == "NovelScreenEffectOverlay");
+            var screenEffectImage = screenEffectOverlay.GetComponent<Image>();
+            var screenEffectGroup = screenEffectOverlay.GetComponent<CanvasGroup>();
+            Assert.That(screenEffectImage, Is.Not.Null);
+            Assert.That(screenEffectImage.raycastTarget, Is.False);
+            Assert.That(screenEffectGroup, Is.Not.Null);
+            Assert.That(screenEffectGroup.blocksRaycasts, Is.False);
 
             dialogueView.CompleteTyping();
             yield return new WaitForSecondsRealtime(0.65f);
@@ -161,6 +171,9 @@ namespace WhiteRoom.Novel.PlayModeTests
             yield return new WaitForSecondsRealtime(0.22f);
             Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
             Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(GetMotionProperty<bool>(motion, "IsScreenEffectPlaying"), Is.True);
+            Assert.That(GetMotionProperty<string>(motion, "ActiveScreenEffectCue"), Is.EqualTo("zoom_in"));
+            Assert.That(GetMotionProperty<float>(motion, "StageEffectScale"), Is.GreaterThan(1.005f));
 
             manager.EndDialogue();
             manager.StartDialogue(1000019);
@@ -197,6 +210,23 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
             Assert.That(chapterTitle.gameObject.activeSelf, Is.False);
             Assert.That(dialogueWindowImage.enabled, Is.True);
+
+            manager.EndDialogue();
+            manager.StartDialogue(1200046);
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.06f);
+            Assert.That(GetMotionProperty<bool>(motion, "IsScreenEffectPlaying"), Is.True);
+            Assert.That(
+                GetMotionProperty<string>(motion, "ActiveScreenEffectCue"),
+                Is.EqualTo("shake_impact|flash_white"));
+            Assert.That(GetMotionProperty<Vector2>(motion, "StageEffectOffset").magnitude, Is.GreaterThan(0.05f));
+            Assert.That(GetMotionProperty<float>(motion, "ScreenEffectOverlayAlpha"), Is.GreaterThan(0.05f));
+            Assert.That(manager.RestoreState(girlState), Is.True);
+            yield return null;
+            Assert.That(GetMotionProperty<bool>(motion, "IsScreenEffectPlaying"), Is.False);
+            Assert.That(GetMotionProperty<Vector2>(motion, "StageEffectOffset"), Is.EqualTo(Vector2.zero));
+            Assert.That(GetMotionProperty<float>(motion, "StageEffectScale"), Is.EqualTo(1f).Within(0.001f));
+            Assert.That(GetMotionProperty<float>(motion, "ScreenEffectOverlayAlpha"), Is.EqualTo(0f).Within(0.001f));
 
             manager.EndDialogue();
             manager.StartDialogue(1000077);
@@ -267,6 +297,27 @@ namespace WhiteRoom.Novel.PlayModeTests
                 yield return new WaitForSecondsRealtime(0.26f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-alarm-chapter.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1200046);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.06f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-screen-effect-impact.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000356);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.055f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-screen-effect-alarm.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000062);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.20f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-screen-effect-zoom.png"));
             }
         }
 

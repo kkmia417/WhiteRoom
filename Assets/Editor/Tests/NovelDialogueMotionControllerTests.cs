@@ -101,6 +101,59 @@ namespace WhiteRoom.Novel.Editor.Tests
         }
 
         [Test]
+        public void ScreenEffectPolicyResolvesTypedClampedCuesAndIgnoresUnknownValues()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+
+            NovelDialogueMotionController.ScreenEffectProfile zoom;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveScreenEffect(rows[1000062], out zoom),
+                Is.True);
+            Assert.That(zoom.Kind, Is.EqualTo(NovelDialogueMotionController.ScreenEffectKind.ZoomIn));
+            Assert.That(zoom.ZoomScale, Is.EqualTo(1.035f).Within(0.001f));
+            Assert.That(zoom.Duration, Is.EqualTo(0.50f).Within(0.001f));
+
+            NovelDialogueMotionController.ScreenEffectProfile alarm;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveScreenEffect(rows[1000356], out alarm),
+                Is.True);
+            Assert.That(alarm.Kind, Is.EqualTo(NovelDialogueMotionController.ScreenEffectKind.FlashAlarm));
+            Assert.That(alarm.FlashAlpha, Is.LessThanOrEqualTo(0.48f));
+
+            NovelDialogueMotionController.ScreenEffectProfile impact;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveScreenEffect(rows[1000605], out impact),
+                Is.True);
+            Assert.That(
+                impact.Kind & NovelDialogueMotionController.ScreenEffectKind.ShakeImpact,
+                Is.Not.EqualTo(NovelDialogueMotionController.ScreenEffectKind.None));
+            Assert.That(
+                impact.Kind & NovelDialogueMotionController.ScreenEffectKind.FlashWhite,
+                Is.Not.EqualTo(NovelDialogueMotionController.ScreenEffectKind.None));
+            Assert.That(impact.ShakeAmplitude, Is.LessThanOrEqualTo(18f));
+            Assert.That(impact.FlashAlpha, Is.LessThanOrEqualTo(0.72f));
+
+            NovelDialogueMotionController.ScreenEffectProfile soft;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveScreenEffect(rows[1000692], out soft),
+                Is.True);
+            Assert.That(
+                soft.Kind & NovelDialogueMotionController.ScreenEffectKind.ShakeSoft,
+                Is.Not.EqualTo(NovelDialogueMotionController.ScreenEffectKind.None));
+            Assert.That(soft.ShakeAmplitude, Is.EqualTo(6f).Within(0.001f));
+
+            var unknownCsv = new TextAsset(
+                "Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,ScreenEffect\n" +
+                "1,Narrator,Unknown,-1,narration,,,not_registered\n");
+            var unknown = CsvLoader.Parse<DialogueData>(unknownCsv).Values.Single();
+            NovelDialogueMotionController.ScreenEffectProfile unused;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveScreenEffect(unknown, out unused),
+                Is.False);
+        }
+
+        [Test]
         public void MotionFactoryConfiguresProductionPrefabAndRuntimeFallbackOnce()
         {
             var managerObject = new GameObject("MotionTestManager", typeof(DialogueManager));
@@ -141,6 +194,19 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(overlayGroup, Is.Not.Null);
             Assert.That(overlayGroup.blocksRaycasts, Is.False);
             Assert.That(overlayGroup.interactable, Is.False);
+            var screenEffectOverlays = presentation.StageView.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform.name == "NovelScreenEffectOverlay")
+                .ToArray();
+            Assert.That(screenEffectOverlays, Has.Length.EqualTo(1));
+            var screenEffectRect = screenEffectOverlays[0] as RectTransform;
+            var screenEffectImage = screenEffectOverlays[0].GetComponent<Image>();
+            var screenEffectGroup = screenEffectOverlays[0].GetComponent<CanvasGroup>();
+            Assert.That(screenEffectRect, Is.Not.Null);
+            Assert.That(screenEffectRect.offsetMin.x, Is.LessThan(0f));
+            Assert.That(screenEffectRect.offsetMax.x, Is.GreaterThan(0f));
+            Assert.That(screenEffectImage.raycastTarget, Is.False);
+            Assert.That(screenEffectGroup.blocksRaycasts, Is.False);
+            Assert.That(screenEffectGroup.interactable, Is.False);
 
             Object.DestroyImmediate(production.gameObject);
             var fallback = DialogueViewFactory.CreateDefaultDialogueView(
@@ -152,6 +218,10 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(fallbackMotion.BoundManager, Is.SameAs(manager));
             Assert.That(fallback.GetComponents<NovelDialogueMotionController>(), Has.Length.EqualTo(1));
             Assert.That(fallbackMotion.ChapterTitleView, Is.SameAs(chapterOverlays[0]));
+            Assert.That(
+                presentation.StageView.GetComponentsInChildren<Transform>(true)
+                    .Count(transform => transform.name == "NovelScreenEffectOverlay"),
+                Is.EqualTo(1));
         }
 
         [Test]

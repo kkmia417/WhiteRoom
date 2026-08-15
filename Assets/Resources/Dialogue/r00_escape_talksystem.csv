@@ -1,4 +1,4 @@
-Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect
 1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein
 1000002,地の文,少女には、レイを殺せる機会が三度あった。,1000003,narration,,,,,,,,,,,,,
 1000003,地の文,けれど、引き金は一度も引かなかった。,1000004,narration,,,,,,,,,,,,,
@@ -61,7 +61,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000059,少女,――の答えじゃなくて,1000060,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000060,地の文,遠くの塔が光った。一瞬で夜が白くなる。最後の言葉だけが、すぐ耳元で聞こえた。,1000061,narration,,,,,,,,,,,,,
 1000061,レイ,自分で決めて,1000062,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
-1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein
+1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein,zoom_in
 1200001,地の文,血はない。左肩も痛くない。掌には爪の跡が四つ残っていた。枕元の表示が切り替わる。,1000063,narration,,,,,,,,,,,,,
 1000063,地の文,06:00睡眠記録の同期を完了しました。続いて、短い電子音。,1200002,narration,,,,,,,,,,,,,
 1200002,地の文,候補者R-00。起床してください。第一評価室への入室まで、残り十二分です。,1000064,narration,,,,,,,,,,,,,
@@ -391,7 +391,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000353,教官,回答を,1000354,,,,,,,,,,,,,,*|Placeholder@center:neutral
 1000354,地の文,レイは画面を見る。報告する。それだけ。なのに、押せない。,1000355,narration,,,,,,,,,,,,,
 1000355,教官,R-00？,1000356,,,,,,,,,,,,,,*|Placeholder@center:neutral
-1000356,地の文,照明が消えた。一瞬、完全な暗闇。直後、赤い非常灯が点く。警報が響いた。,1200037,narration,,,,,,,,,,,,,
+1000356,地の文,照明が消えた。一瞬、完全な暗闇。直後、赤い非常灯が点く。警報が響いた。,1200037,narration,,,,,,,,,,,,,,flash_alarm
 1200037,地の文,外部侵入を確認。全区画を段階封鎖します。,1000357,narration,,,,,,,,,,,,,
 1000357,教官,候補者はその場で待機してください,1000358,,,,,,,,,,,,,,*|Placeholder@center:neutral
 1000358,地の文,教官の声。,1000359,narration,,,,,,,,,,,,,
@@ -498,7 +498,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000451,地の文,少女が床を滑る。向こう側へ抜け、手を伸ばした。,1000452,narration,,,,,,,,,,,,,
 1000452,少女,早く！,1000453,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000453,地の文,レイも踏み込む。靴底が滑った。少女の手が手首を掴む。身体が引かれる。,1200046,narration,,,,,,,,,,,,,
-1200046,地の文,直後、背中のすぐ後ろで隔壁が落ちた。大きな音。レイは床へ手をついた。,1000454,narration,,,,,,,,,,,,,
+1200046,地の文,直後、背中のすぐ後ろで隔壁が落ちた。大きな音。レイは床へ手をついた。,1000454,narration,,,,,,,,,,,,,,shake_impact|flash_white
 1000454,少女,危な,1000455,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000455,地の文,少女が笑った。,1000456,narration,,,,,,,,,,,,,
 1000456,少女,〇・五秒差,1000457,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
@@ -651,7 +651,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000602,ナギ,ありがとう、レイ,1000603,,,,,,,,,,,,,,*|Nagi@right:serious|PlaceholderLeft@left:neutral
 1000603,地の文,上から声。二人が顔を上げる。白い光が弾けた。,1000604,narration,,,,,,,,,,,,,
 1000604,警備員,っ――,1000605,,,,,,,,,,,,,,*|PlaceholderLeft@left:neutral|Nagi@right:serious
-1000605,地の文,短い衝撃音。二人が床へ倒れる。ナギが天井の配管から降りた。,1000606,narration,,,,,,,,,,,,,
+1000605,地の文,短い衝撃音。二人が床へ倒れる。ナギが天井の配管から降りた。,1000606,narration,,,,,,,,,,,,,,shake_impact|flash_white
 1000606,ナギ,今の、すごいね,1000607,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1000607,地の文,警備員の首元へ指を当てる。,1000608,narration,,,,,,,,,,,,,
 1000608,レイ,生きていますか,1000609,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
@@ -742,7 +742,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000689,地の文,角を曲がる。前方から警備員。三人。手には銃ではなく、短い黒色の装置。,1000690,narration,,,,,,,,,,,,,
 1000690,ナギ,止まれ！,1000691,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1000691,レイ,戻る！,1000692,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
-1000692,地の文,ナギがレイの肩を掴む。反対へ走る。後ろで乾いた音。壁へ小さな針が刺さる。,1000693,narration,,,,,,,,,,,,,
+1000692,地の文,ナギがレイの肩を掴む。反対へ走る。後ろで乾いた音。壁へ小さな針が刺さる。,1000693,narration,,,,,,,,,,,,,,shake_soft|flash_white
 1000693,レイ,当たると？,1000694,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
 1000694,ナギ,たぶん寝る！,1000695,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1000695,レイ,たぶん？,1000696,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
