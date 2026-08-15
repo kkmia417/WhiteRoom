@@ -27,6 +27,7 @@ namespace WhiteRoom.Novel
         private const float ChapterRevealDuration = 0.48f;
         private const float ChapterExitDuration = 0.18f;
         private const string ScreenEffectColumn = "ScreenEffect";
+        private const string TransitionStyleColumn = "TransitionStyle";
 
         private static readonly Color FocusColor = Color.white;
         private static readonly Color ListenerColor = new Color(0.58f, 0.64f, 0.72f, 1f);
@@ -38,6 +39,15 @@ namespace WhiteRoom.Novel
             Cold,
             Sterile,
             Alarm
+        }
+
+        public enum StageTransitionStyle
+        {
+            Fade,
+            WipeLeft,
+            WipeRight,
+            Iris,
+            MatchFade
         }
 
         [Flags]
@@ -98,12 +108,14 @@ namespace WhiteRoom.Novel
         {
             public StageTransitionProfile(
                 StageTransitionMood mood,
+                StageTransitionStyle style,
                 Color veilColor,
                 float startAlpha,
                 float duration,
                 bool alertPulse)
             {
                 Mood = mood;
+                Style = style;
                 VeilColor = veilColor;
                 StartAlpha = startAlpha;
                 Duration = duration;
@@ -111,6 +123,7 @@ namespace WhiteRoom.Novel
             }
 
             public StageTransitionMood Mood { get; }
+            public StageTransitionStyle Style { get; }
             public Color VeilColor { get; }
             public float StartAlpha { get; }
             public float Duration { get; }
@@ -147,6 +160,9 @@ namespace WhiteRoom.Novel
         private Image _backgroundImage;
         private Image _transitionImage;
         private CanvasGroup _transitionGroup;
+        private RectTransform _transitionRect;
+        private CanvasGroup _irisGroup;
+        private readonly List<RectTransform> _irisPanels = new List<RectTransform>();
         private Image _screenEffectImage;
         private CanvasGroup _screenEffectGroup;
         private readonly List<PortraitVisual> _portraits = new List<PortraitVisual>();
@@ -654,13 +670,10 @@ namespace WhiteRoom.Novel
 
         private IEnumerator AnimateStageTransition(StageTransitionProfile profile, int generation)
         {
-            if (_transitionImage == null || _transitionGroup == null)
+            if (_transitionImage == null || _transitionGroup == null || _transitionRect == null)
                 yield break;
 
-            _transitionImage.color = profile.VeilColor;
-            _transitionImage.gameObject.SetActive(true);
-            _transitionImage.transform.SetAsLastSibling();
-            _transitionGroup.alpha = profile.StartAlpha;
+            PrepareStageTransition(profile);
 
             var elapsed = 0f;
             while (elapsed < profile.Duration)
@@ -670,14 +683,7 @@ namespace WhiteRoom.Novel
 
                 elapsed += Time.unscaledDeltaTime;
                 var normalized = Mathf.Clamp01(elapsed / profile.Duration);
-                var reveal = EaseInOutSine(normalized);
-                var alpha = profile.StartAlpha * (1f - reveal);
-                if (profile.AlertPulse)
-                {
-                    var pulse = Mathf.Sin(normalized * Mathf.PI * 3f);
-                    alpha += pulse * pulse * 0.10f * (1f - normalized);
-                }
-                _transitionGroup.alpha = Mathf.Clamp01(alpha);
+                ApplyStageTransitionFrame(profile, normalized);
                 yield return null;
             }
 
@@ -686,6 +692,76 @@ namespace WhiteRoom.Novel
                 ResetTransitionOverlay();
                 _transitionMotion = null;
             }
+        }
+
+        private void PrepareStageTransition(StageTransitionProfile profile)
+        {
+            ResetTransitionOverlay();
+            if (profile.Style == StageTransitionStyle.Iris && _irisGroup != null)
+            {
+                _irisGroup.gameObject.SetActive(true);
+                _irisGroup.transform.SetAsLastSibling();
+                _irisGroup.alpha = profile.StartAlpha;
+                for (var i = 0; i < _irisPanels.Count; i++)
+                    _irisPanels[i].GetComponent<Image>().color = profile.VeilColor;
+                ApplyIrisAperture(0f);
+                return;
+            }
+
+            _transitionImage.color = profile.VeilColor;
+            _transitionImage.gameObject.SetActive(true);
+            _transitionImage.transform.SetAsLastSibling();
+            _transitionGroup.alpha = profile.StartAlpha;
+            _transitionRect.anchoredPosition = Vector2.zero;
+            _transitionRect.localScale = profile.Style == StageTransitionStyle.WipeLeft ||
+                                         profile.Style == StageTransitionStyle.WipeRight
+                ? Vector3.one * 1.04f
+                : Vector3.one;
+        }
+
+        private void ApplyStageTransitionFrame(StageTransitionProfile profile, float normalized)
+        {
+            var reveal = EaseInOutSine(normalized);
+            if (profile.Style == StageTransitionStyle.WipeLeft ||
+                profile.Style == StageTransitionStyle.WipeRight)
+            {
+                var direction = profile.Style == StageTransitionStyle.WipeLeft ? -1f : 1f;
+                _transitionGroup.alpha = profile.StartAlpha;
+                _transitionRect.anchoredPosition = new Vector2(
+                    direction * Mathf.Max(Screen.width, 1920f) * reveal * 1.08f,
+                    0f);
+                return;
+            }
+
+            if (profile.Style == StageTransitionStyle.Iris)
+            {
+                _irisGroup.alpha = profile.StartAlpha;
+                ApplyIrisAperture(EaseOutCubic(normalized));
+                return;
+            }
+
+            var hold = profile.Style == StageTransitionStyle.MatchFade ? 0.14f : 0f;
+            var decay = Mathf.Clamp01((normalized - hold) / (1f - hold));
+            var alpha = profile.StartAlpha * (1f - EaseInOutSine(decay));
+            if (profile.AlertPulse)
+            {
+                var pulse = Mathf.Sin(normalized * Mathf.PI * 3f);
+                alpha += pulse * pulse * 0.10f * (1f - normalized);
+            }
+            _transitionGroup.alpha = Mathf.Clamp01(alpha);
+        }
+
+        private void ApplyIrisAperture(float reveal)
+        {
+            if (_irisPanels.Count != 4)
+                return;
+
+            var openX = Mathf.Lerp(0.08f, 1.24f, reveal) * 0.5f;
+            var openY = Mathf.Lerp(0.06f, 1.24f, reveal) * 0.5f;
+            SetAnchors(_irisPanels[0], new Vector2(0f, 0.5f + openY), Vector2.one);
+            SetAnchors(_irisPanels[1], Vector2.zero, new Vector2(1f, 0.5f - openY));
+            SetAnchors(_irisPanels[2], new Vector2(0f, 0.5f - openY), new Vector2(0.5f - openX, 0.5f + openY));
+            SetAnchors(_irisPanels[3], new Vector2(0.5f + openX, 0.5f - openY), new Vector2(1f, 0.5f + openY));
         }
 
         private IEnumerator AnimateScreenEffect(ScreenEffectProfile profile, int generation)
@@ -776,7 +852,8 @@ namespace WhiteRoom.Novel
 
             var cue = data.GetBackgroundCue();
             var isChapter = data.HasChapterKey;
-            if (!cue.HasValue && !isChapter)
+            var hasExplicitStyle = TryResolveTransitionStyle(data, out var style);
+            if (!cue.HasValue && !isChapter && !hasExplicitStyle)
                 return false;
 
             var key = cue.Key ?? string.Empty;
@@ -785,6 +862,8 @@ namespace WhiteRoom.Novel
             var transition = cue.Transition ?? string.Empty;
             var isCut = transition.IndexOf("cut", StringComparison.OrdinalIgnoreCase) >= 0;
             var isFade = transition.IndexOf("fade", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!hasExplicitStyle)
+                style = StageTransitionStyle.Fade;
 
             float duration;
             float alpha;
@@ -813,13 +892,51 @@ namespace WhiteRoom.Novel
                 alpha = mood == StageTransitionMood.Alarm ? 0.44f : 0.38f;
             }
 
+            if (hasExplicitStyle)
+            {
+                var requestedDuration = cue.HasDuration ? cue.Duration : 0f;
+                switch (style)
+                {
+                    case StageTransitionStyle.WipeLeft:
+                    case StageTransitionStyle.WipeRight:
+                        duration = requestedDuration > 0f ? Mathf.Clamp(requestedDuration, 0.42f, 0.90f) : 0.58f;
+                        alpha = 0.96f;
+                        break;
+                    case StageTransitionStyle.Iris:
+                        duration = requestedDuration > 0f ? Mathf.Clamp(requestedDuration, 0.55f, 1.00f) : 0.72f;
+                        alpha = 0.98f;
+                        break;
+                    case StageTransitionStyle.MatchFade:
+                        duration = requestedDuration > 0f ? Mathf.Clamp(requestedDuration, 0.32f, 0.82f) : 0.48f;
+                        alpha = mood == StageTransitionMood.Alarm ? 0.68f : 0.82f;
+                        break;
+                }
+            }
+
             profile = new StageTransitionProfile(
                 mood,
+                style,
                 color,
                 alpha,
                 duration,
                 mood == StageTransitionMood.Alarm);
             return true;
+        }
+
+        public static bool TryResolveTransitionStyle(DialogueData data, out StageTransitionStyle style)
+        {
+            style = StageTransitionStyle.Fade;
+            if (data == null || !data.TryGetExtra(TransitionStyleColumn, out var rawStyle))
+                return false;
+
+            switch ((rawStyle ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "wipe_left": style = StageTransitionStyle.WipeLeft; return true;
+                case "wipe_right": style = StageTransitionStyle.WipeRight; return true;
+                case "iris": style = StageTransitionStyle.Iris; return true;
+                case "match_fade": style = StageTransitionStyle.MatchFade; return true;
+                default: return false;
+            }
         }
 
         private static StageTransitionMood ResolveTransitionMood(string backgroundKey)
@@ -1053,6 +1170,9 @@ namespace WhiteRoom.Novel
         {
             _transitionImage = null;
             _transitionGroup = null;
+            _transitionRect = null;
+            _irisGroup = null;
+            _irisPanels.Clear();
             if (_stageView == null)
                 return;
 
@@ -1082,6 +1202,7 @@ namespace WhiteRoom.Novel
                 rect.localScale = Vector3.one;
                 rect.localRotation = Quaternion.identity;
             }
+            _transitionRect = rect;
 
             _transitionImage = overlayObject.GetComponent<Image>();
             if (_transitionImage == null)
@@ -1094,6 +1215,46 @@ namespace WhiteRoom.Novel
             _transitionGroup.interactable = false;
             _transitionGroup.blocksRaycasts = false;
             overlayObject.transform.SetAsLastSibling();
+
+            var irisRoot = FindDescendant(_stageView.transform, "NovelIrisTransitionOverlay");
+            GameObject irisObject;
+            if (irisRoot != null)
+            {
+                irisObject = irisRoot.gameObject;
+            }
+            else
+            {
+                irisObject = new GameObject(
+                    "NovelIrisTransitionOverlay",
+                    typeof(RectTransform),
+                    typeof(CanvasGroup));
+                irisObject.transform.SetParent(_stageView.transform, false);
+            }
+            var irisRect = irisObject.transform as RectTransform;
+            StretchRect(irisRect);
+            _irisGroup = EnsureCanvasGroup(irisObject);
+            _irisGroup.interactable = false;
+            _irisGroup.blocksRaycasts = false;
+            for (var i = 0; i < 4; i++)
+                _irisPanels.Add(EnsureIrisPanel(irisObject.transform, "IrisPanel" + i));
+            irisObject.transform.SetAsLastSibling();
+            ResetTransitionOverlay();
+        }
+
+        private static RectTransform EnsureIrisPanel(Transform parent, string name)
+        {
+            var existing = parent.Find(name);
+            GameObject panelObject;
+            if (existing != null)
+                panelObject = existing.gameObject;
+            else
+            {
+                panelObject = new GameObject(name, typeof(RectTransform), typeof(Image));
+                panelObject.transform.SetParent(parent, false);
+            }
+            var image = panelObject.GetComponent<Image>();
+            image.raycastTarget = false;
+            return panelObject.transform as RectTransform;
         }
 
         private void EnsureScreenEffectOverlay()
@@ -1233,8 +1394,35 @@ namespace WhiteRoom.Novel
         {
             if (_transitionGroup != null)
                 _transitionGroup.alpha = 0f;
+            if (_transitionRect != null)
+            {
+                _transitionRect.anchoredPosition = Vector2.zero;
+                _transitionRect.localScale = Vector3.one;
+            }
             if (_transitionImage != null)
                 _transitionImage.gameObject.SetActive(false);
+            if (_irisGroup != null)
+            {
+                _irisGroup.alpha = 0f;
+                _irisGroup.gameObject.SetActive(false);
+            }
+        }
+
+        private static void SetAnchors(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            if (rect == null)
+                return;
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+        }
+
+        private static void StretchRect(RectTransform rect)
+        {
+            SetAnchors(rect, Vector2.zero, Vector2.one);
+            rect.localScale = Vector3.one;
+            rect.localRotation = Quaternion.identity;
         }
 
         private void ResetScreenEffect()

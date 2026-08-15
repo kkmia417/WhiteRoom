@@ -140,6 +140,16 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(transitionGroup, Is.Not.Null);
             Assert.That(transitionGroup.blocksRaycasts, Is.False);
             Assert.That(transitionGroup.alpha, Is.GreaterThan(0f));
+            var irisOverlay = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Single(transform => transform.name == "NovelIrisTransitionOverlay");
+            var irisGroup = irisOverlay.GetComponent<CanvasGroup>();
+            Assert.That(irisGroup, Is.Not.Null);
+            Assert.That(irisGroup.blocksRaycasts, Is.False);
+            var irisImages = irisOverlay.GetComponentsInChildren<Image>(true);
+            Assert.That(irisImages, Has.Length.EqualTo(4));
+            Assert.That(irisImages, Is.All.Matches<Image>(image => !image.raycastTarget));
             var screenEffectOverlay = Object.FindObjectsByType<Transform>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -171,9 +181,14 @@ namespace WhiteRoom.Novel.PlayModeTests
             yield return new WaitForSecondsRealtime(0.22f);
             Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
             Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(irisOverlay.gameObject.activeSelf, Is.True);
+            Assert.That(irisGroup.alpha, Is.GreaterThan(0.5f));
             Assert.That(GetMotionProperty<bool>(motion, "IsScreenEffectPlaying"), Is.True);
             Assert.That(GetMotionProperty<string>(motion, "ActiveScreenEffectCue"), Is.EqualTo("zoom_in"));
             Assert.That(GetMotionProperty<float>(motion, "StageEffectScale"), Is.GreaterThan(1.005f));
+            yield return new WaitForSecondsRealtime(0.56f);
+            Assert.That(irisOverlay.gameObject.activeSelf, Is.False);
+            Assert.That(irisGroup.alpha, Is.EqualTo(0f).Within(0.001f));
 
             manager.EndDialogue();
             manager.StartDialogue(1000019);
@@ -318,6 +333,27 @@ namespace WhiteRoom.Novel.PlayModeTests
                 yield return new WaitForSecondsRealtime(0.20f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-screen-effect-zoom.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1000062);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.08f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-iris.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1004397);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.25f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-wipe-left.png"));
+
+                manager.EndDialogue();
+                manager.StartDialogue(1002628);
+                dialogueView.CompleteTyping();
+                yield return new WaitForSecondsRealtime(0.25f);
+                yield return new WaitForEndOfFrame();
+                WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-wipe-right.png"));
             }
         }
 

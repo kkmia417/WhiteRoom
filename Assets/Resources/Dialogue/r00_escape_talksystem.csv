@@ -1,5 +1,5 @@
-Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect
-1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein
+Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoNextSeconds,ChapterKey,RouteKey,EndingKey,Background,Bgm,Se,Voice,Characters,ScreenEffect,TransitionStyle
+1000001,地の文,第一章　答えのない問い,1000002,narration,R00EscapeStart,,,,,chapter_01,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:serious#fadein|PlaceholderRight@right:neutral#fadein,,match_fade
 1000002,地の文,少女には、レイを殺せる機会が三度あった。,1000003,narration,,,,,,,,,,,,,
 1000003,地の文,けれど、引き金は一度も引かなかった。,1000004,narration,,,,,,,,,,,,,
 1000004,地の文,雨音が、壊れた街を満たしている。,1000005,narration,,,,,,,,,,,,,
@@ -61,7 +61,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1000059,少女,――の答えじゃなくて,1000060,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
 1000060,地の文,遠くの塔が光った。一瞬で夜が白くなる。最後の言葉だけが、すぐ耳元で聞こえた。,1000061,narration,,,,,,,,,,,,,
 1000061,レイ,自分で決めて,1000062,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
-1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein,zoom_in
+1000062,地の文,目を開ける。白い天井があった。レイは動かなかった。右手だけを持ち上げる。,1200001,narration,,,,,,,,,lab_room_white#cut,sterile_low#fade:0.5,distant_drone,,*|Rei@center:blank#fadein,zoom_in,iris
 1200001,地の文,血はない。左肩も痛くない。掌には爪の跡が四つ残っていた。枕元の表示が切り替わる。,1000063,narration,,,,,,,,,,,,,
 1000063,地の文,06:00睡眠記録の同期を完了しました。続いて、短い電子音。,1200002,narration,,,,,,,,,,,,,
 1200002,地の文,候補者R-00。起床してください。第一評価室への入室まで、残り十二分です。,1000064,narration,,,,,,,,,,,,,
@@ -2759,7 +2759,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1002626,地の文,扉を閉める。机の上。赤い髪留め。青い破片。そして、明日の偽名。,1200132,narration,,,,,,,,,,,,,
 1200132,地の文,レナ・アルト。レイは紙を手に取った。明日は、初めて自分から政府の施設へ入る。,1002627,narration,,,,,,,,,,,,,
 1002627,地の文,戻るためではない。何のためなのか。その答えは、まだうまく言葉にならなかった。,1002628,narration,,,,,,,,,,,,,
-1002628,地の文,第五章　正しい身分,1002629,narration,,,,,,chapter_05,main,,lab_room_white#fade:1.0,sterile_low#fade:1.0,,,*|Rei@left:blank
+1002628,地の文,第五章　正しい身分,1002629,narration,,,,,,chapter_05,main,,lab_room_white#fade:1.0,sterile_low#fade:1.0,,,*|Rei@left:blank,,wipe_right
 1002629,地の文,鏡の中に、知らない女がいた。,1002630,narration,,,,,,,,,,,,,
 1002630,レイ,誰ですか,1002631,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral
 1002631,職員,レナ・アルトさん,1002632,,,,,,,,,,,,,,*|PlaceholderRight@right:neutral|Rei@left:blank
@@ -4606,7 +4606,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1200210,地の文,それでも。レイはもう一度言った。,1004395,narration,,,,,,,,,,,,,
 1004395,ナギ,分からない,1004396,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1004396,地の文,今度は少しだけ。自分の言葉に聞こえた。,1004397,narration,,,,,,,,,,,,,
-1004397,地の文,第七章　知らない依頼人,1004398,narration,,,,,,chapter_07,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:smile
+1004397,地の文,第七章　知らない依頼人,1004398,narration,,,,,,chapter_07,main,,outside_wall_night#fade:1.0,tense_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:smile,,wipe_left
 1004398,ナギ,動かないで,1004399,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1004399,レイ,動いていません,1004400,,,,,,,,,,,,,,*|Rei@left:blank|Nagi@right:serious
 1004400,ナギ,目,1004401,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
@@ -6799,7 +6799,7 @@ Id,Speaker,Text,NextId,EmotionKey,TriggerKey,ConditionKey,EventKey,Choices,AutoN
 1006515,地の文,レイは答えなかった。机の端。少年から送られた一行だけの記録。,1200283,narration,,,,,,,,,,,,,
 1200283,地の文,旧中央配分設計記録開発責任者記録を含むまだ。それが自分と関係しているとは。,1006516,narration,,,,,,,,,,,,,
 1006516,地の文,レイは少しも知らなかった。,1006517,narration,,,,,,,,,,,,,
-1006517,地の文,第九章　誰が決めている,1006518,narration,,,,,,chapter_09,main,,lab_room_white#fade:1.0,sterile_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:focus
+1006517,地の文,第九章　誰が決めている,1006518,narration,,,,,,chapter_09,main,,lab_room_white#fade:1.0,sterile_low#fade:1.0,,,*|Rei@left:blank|Nagi@right:focus,,wipe_right
 1006518,ナギ,その笑顔、やめた方がいいかも,1006519,,,,,,,,,,,,,,*|Nagi@right:serious|Rei@left:blank
 1006519,地の文,鏡越しにナギが言った。レイは口元を保ったまま、視線だけを向ける。,1006520,narration,,,,,,,,,,,,,
 1006520,レイ,資料には、利用者へ柔らかく対応するようにとあります,1006521,,,,,,,,,,,,,,*|Rei@left:blank|PlaceholderRight@right:neutral

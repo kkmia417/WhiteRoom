@@ -61,7 +61,8 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   coverage checks top-right safe-area placement, ordinal/title separation, normal-window
   suppression, following-line restoration, and restore cancellation. Screen-effect
   coverage checks typed cue resolution, non-blocking overlays, deterministic stage-only
-  shake/zoom, flash limits, and exact baseline restoration after load or cancellation.
+  shake/zoom, flash limits, typed wipe/iris/match-fade resolution, and exact baseline
+  restoration after load or cancellation.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.

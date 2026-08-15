@@ -1,6 +1,6 @@
 # Dialogue presentation motion specification
 
-Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73) and [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)<br>
+Status: Implemented for [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71), extended by [Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73), [Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75), and [Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78)<br>
 Japanese counterpart: [日本語版](dialogue-motion-spec.ja.md)
 
 ## Outcome and ownership
@@ -57,13 +57,19 @@ package API, save field, or route rule is added.
 - White flash is capped at 0.72 alpha / 0.26 seconds and alarm flash at 0.48 alpha /
   0.34 seconds. Both use one rapid attack and one decay; they never strobe, and their
   overscanned overlay does not receive raycasts.
+- The optional custom column `TransitionStyle` selects `wipe_left`, `wipe_right`,
+  `iris`, or `match_fade`. Wipes move one overscanned veil toward the named side over
+  0.58 seconds. Iris opens four synchronized non-blocking panels from a restrained
+  center aperture over 0.72 seconds. Match fade holds its mood color briefly, then
+  decays over 0.48 seconds. Authored background duration is clamped per style; unknown
+  values silently use the existing fade/cut policy.
 
 ## Cancellation and restore
 
 Every new line increments a generation token and stops the prior line coroutine.
 Dialogue end, view disable, destruction, and a completed load restore the baseline
 window, nameplate, choices, stage transform, screen-effect overlay, background,
-transition veil, chapter title, and portrait
+transition veil and iris panels, chapter title, and portrait
 transforms. Load then reapplies the current line's final focus and chapter-title state
 without replaying a durable stage cue or transition.
 
