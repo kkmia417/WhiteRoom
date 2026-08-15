@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using kkmia.TalkSystem;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -106,6 +107,28 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(left, Is.Not.Null);
             Assert.That(right, Is.Not.Null);
 
+            var chapterTitle = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Single(transform => transform.name == "NovelChapterTitleOverlay");
+            var chapterGroup = chapterTitle.GetComponent<CanvasGroup>();
+            var chapterPanel = chapterTitle.Find("SafeArea/ChapterTitlePanel") as RectTransform;
+            var chapterOrdinal = chapterPanel.Find("ChapterOrdinal").GetComponent<TMP_Text>();
+            var chapterName = chapterPanel.Find("ChapterTitle").GetComponent<TMP_Text>();
+            var dialogueWindowImage = dialogueView.GetComponent<Image>();
+            var speakerGroup = dialogueView.transform.Find("SpeakerText").GetComponent<CanvasGroup>();
+            var bodyGroup = dialogueView.transform.Find("BodyText").GetComponent<CanvasGroup>();
+            Assert.That(chapterGroup, Is.Not.Null);
+            Assert.That(chapterGroup.blocksRaycasts, Is.False);
+            Assert.That(chapterPanel.anchorMin, Is.EqualTo(Vector2.one));
+            Assert.That(chapterPanel.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(GetMotionProperty<bool>(motion, "IsChapterTitleActive"), Is.True);
+            Assert.That(chapterOrdinal.text, Is.EqualTo("第一章"));
+            Assert.That(chapterName.text, Is.EqualTo("答えのない問い"));
+            Assert.That(dialogueWindowImage.enabled, Is.False);
+            Assert.That(speakerGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(bodyGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+
             var transitionOverlay = Object.FindObjectsByType<Transform>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -117,10 +140,22 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(transitionGroup, Is.Not.Null);
             Assert.That(transitionGroup.blocksRaycasts, Is.False);
             Assert.That(transitionGroup.alpha, Is.GreaterThan(0f));
-            manager.EndDialogue();
-            Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
-            Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
 
+            dialogueView.CompleteTyping();
+            yield return new WaitForSecondsRealtime(0.65f);
+            Assert.That(chapterTitle.gameObject.activeSelf, Is.True);
+            Assert.That(chapterGroup.alpha, Is.EqualTo(1f).Within(0.001f));
+
+            dialogueView.RequestNext();
+            yield return new WaitForSecondsRealtime(0.25f);
+            Assert.That(manager.CurrentData.Id, Is.EqualTo(1000002));
+            Assert.That(GetMotionProperty<bool>(motion, "IsChapterTitleActive"), Is.False);
+            Assert.That(chapterTitle.gameObject.activeSelf, Is.False);
+            Assert.That(dialogueWindowImage.enabled, Is.True);
+            Assert.That(speakerGroup.alpha, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(bodyGroup.alpha, Is.EqualTo(1f).Within(0.001f));
+
+            manager.EndDialogue();
             manager.StartDialogue(1000062);
             dialogueView.CompleteTyping();
             yield return new WaitForSecondsRealtime(0.22f);
@@ -160,6 +195,8 @@ namespace WhiteRoom.Novel.PlayModeTests
             Assert.That(manager.CurrentData.Id, Is.EqualTo(1000020));
             Assert.That(transitionOverlay.gameObject.activeSelf, Is.False);
             Assert.That(transitionGroup.alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(chapterTitle.gameObject.activeSelf, Is.False);
+            Assert.That(dialogueWindowImage.enabled, Is.True);
 
             manager.EndDialogue();
             manager.StartDialogue(1000077);
@@ -220,14 +257,14 @@ namespace WhiteRoom.Novel.PlayModeTests
                 manager.EndDialogue();
                 manager.StartDialogue(1000001);
                 dialogueView.CompleteTyping();
-                yield return new WaitForSecondsRealtime(0.12f);
+                yield return new WaitForSecondsRealtime(0.42f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-cold-chapter.png"));
 
                 manager.EndDialogue();
                 manager.StartDialogue(1008625);
                 dialogueView.CompleteTyping();
-                yield return new WaitForSecondsRealtime(0.06f);
+                yield return new WaitForSecondsRealtime(0.26f);
                 yield return new WaitForEndOfFrame();
                 WriteCapture(Path.Combine(captureDirectory, "dialogue-transition-alarm-chapter.png"));
             }

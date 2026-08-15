@@ -1,6 +1,6 @@
 # 会話presentation motion仕様
 
-ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装<br>
+ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73) で拡張<br>
 English canonical file: [英語正本](dialogue-motion-spec.md)
 
 ## 成果とownership
@@ -27,23 +27,28 @@ save data、restoreのauthorityはTalk Systemに残す。
 - 背景または章キューでは、stageの上・会話UIの下に入力を妨げないveilを表示する。章fadeは0.72〜1.40秒、
   通常fadeは指定時間を0.25〜1.40秒に収め、cutは0.16秒、章境界のcutは0.48秒とする。夜・屋外は濃紺、
   白い部屋は淡い氷青、警報は抑えた深紅pulseにする。veilはpointerやnavigation inputを遮らない
+- `ChapterKey`を持つ行は、先頭の章番号（例: `第一章`）と残りの章題を分離し、safe area右上の
+  `NovelChapterTitleView`へ表示する。その行では通常window画像、話者名、本文を隠して章題の重複を防ぐ。
+  既存のNext、typewriter完了、Auto、Skip、keyboard、controller経路は維持する。0.10秒待ってから右方向より
+  0.48秒で表示し、0.18秒で退出する。accent色はstage transitionと同じ寒色、無菌、警報、neutral moodに従う。
+  overlay自体はraycastを受け取らない
 - Next表示中だけ、小さな非blocking pulseを行う
 
 ## Cancelとrestore
 
 新しい行ごとにgeneration tokenを更新し、前の行のcoroutineを停止する。会話終了、view disable、destroy、
-load完了時はwindow、nameplate、choice、背景、transition veil、立ち絵transformを基準値へ戻す。load後は
-durable stage cueやtransitionを再生せず、現在行の最終focus状態だけを適用する。
+load完了時はwindow、nameplate、choice、背景、transition veil、章題、立ち絵transformを基準値へ戻す。
+load後はdurable stage cueやtransitionを再生せず、現在行の最終focus・章題状態だけを適用する。
 
 motion完了は会話を進めず、save stateにも書き込まない。全時間計算に`Time.unscaledDeltaTime`を使い、
 AutoやSkipで停止中のtweenを残さない。
 
 ## Validation
 
-- `NovelDialogueMotionControllerTests`はactive slotとtransition mood規則、本番/fallback factory配線、
-  重複追加防止、非blocking overlay設定、pointer/controller choice feedbackの同等性を検証する
+- `NovelDialogueMotionControllerTests`はactive slot、transition mood、章題分離規則、本番/fallback factory配線、
+  重複追加防止、非blocking overlay設定、safe area右上anchor、pointer/controller choice feedbackを検証する
 - `WhiteRoomPlayModeStartupSmokeTests`はレイから少女へのfocus切替、地の文のneutral復帰、placeholder 2体、
-  choice reveal完了、unexpected log 0件を検証する
+  choice reveal完了、章題表示時の通常window抑制と復帰、unexpected log 0件を検証する
 - 実画面captureはレイfocus、少女focus、placeholder 2体、choice、寒色の章切替、警報章切替を対象にする
 
 本実装はADR-0009に従う。将来Timeline、Live2D、Spine、Cinemachine、shader、post-processingを追加する場合は

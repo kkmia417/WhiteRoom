@@ -75,6 +75,32 @@ namespace WhiteRoom.Novel.Editor.Tests
         }
 
         [Test]
+        public void ChapterTitlePolicySeparatesOrdinalAndTitle()
+        {
+            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+
+            NovelDialogueMotionController.ChapterTitleContent opening;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveChapterTitle(rows[1000001], out opening),
+                Is.True);
+            Assert.That(opening.Ordinal, Is.EqualTo("第一章"));
+            Assert.That(opening.Title, Is.EqualTo("答えのない問い"));
+
+            NovelDialogueMotionController.ChapterTitleContent alarm;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveChapterTitle(rows[1008625], out alarm),
+                Is.True);
+            Assert.That(alarm.Ordinal, Is.EqualTo("第十三章"));
+            Assert.That(alarm.Title, Is.EqualTo("正解の外側"));
+
+            NovelDialogueMotionController.ChapterTitleContent unused;
+            Assert.That(
+                NovelDialogueMotionController.TryResolveChapterTitle(rows[1000019], out unused),
+                Is.False);
+        }
+
+        [Test]
         public void MotionFactoryConfiguresProductionPrefabAndRuntimeFallbackOnce()
         {
             var managerObject = new GameObject("MotionTestManager", typeof(DialogueManager));
@@ -95,6 +121,15 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(productionMotion.BoundManager, Is.SameAs(manager));
             Assert.That(repeated, Is.SameAs(productionMotion));
             Assert.That(production.GetComponents<NovelDialogueMotionController>(), Has.Length.EqualTo(1));
+            var chapterOverlays = production.GetComponentInParent<Canvas>(true)
+                .GetComponentsInChildren<NovelChapterTitleView>(true);
+            Assert.That(chapterOverlays, Has.Length.EqualTo(1));
+            Assert.That(productionMotion.ChapterTitleView, Is.SameAs(chapterOverlays[0]));
+            Assert.That(chapterOverlays[0].Group.blocksRaycasts, Is.False);
+            Assert.That(chapterOverlays[0].Group.interactable, Is.False);
+            Assert.That(chapterOverlays[0].PanelRect.anchorMin, Is.EqualTo(Vector2.one));
+            Assert.That(chapterOverlays[0].PanelRect.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(chapterOverlays[0].transform.Find(NovelChapterTitleView.SafeAreaName), Is.Not.Null);
             var overlays = presentation.StageView.GetComponentsInChildren<Transform>(true)
                 .Where(transform => transform.name == "NovelStageTransitionOverlay")
                 .ToArray();
@@ -116,6 +151,7 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(fallbackMotion.IsConfigured, Is.True);
             Assert.That(fallbackMotion.BoundManager, Is.SameAs(manager));
             Assert.That(fallback.GetComponents<NovelDialogueMotionController>(), Has.Length.EqualTo(1));
+            Assert.That(fallbackMotion.ChapterTitleView, Is.SameAs(chapterOverlays[0]));
         }
 
         [Test]

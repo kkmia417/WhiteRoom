@@ -23,6 +23,9 @@ namespace WhiteRoom.Novel
         private const float ListenerScale = 0.985f;
         private const float FocusLift = 8f;
         private const float BackgroundScale = 1.08f;
+        private const float ChapterRevealDelay = 0.10f;
+        private const float ChapterRevealDuration = 0.48f;
+        private const float ChapterExitDuration = 0.18f;
 
         private static readonly Color FocusColor = Color.white;
         private static readonly Color ListenerColor = new Color(0.58f, 0.64f, 0.72f, 1f);
@@ -59,13 +62,29 @@ namespace WhiteRoom.Novel
             public bool AlertPulse { get; }
         }
 
+        public readonly struct ChapterTitleContent
+        {
+            public ChapterTitleContent(string ordinal, string title)
+            {
+                Ordinal = ordinal ?? string.Empty;
+                Title = title ?? string.Empty;
+            }
+
+            public string Ordinal { get; }
+            public string Title { get; }
+        }
+
         private DialogueManager _manager;
         private DialogueView _view;
         private DialogueStageView _stageView;
+        private NovelChapterTitleView _chapterTitleView;
         private RectTransform _windowRect;
         private CanvasGroup _windowGroup;
+        private Image _dialogueWindowImage;
         private RectTransform _speakerRect;
         private CanvasGroup _speakerGroup;
+        private RectTransform _bodyRect;
+        private CanvasGroup _bodyGroup;
         private RectTransform _choicesContainer;
         private RectTransform _nextRect;
         private RectTransform _backgroundRect;
@@ -76,10 +95,12 @@ namespace WhiteRoom.Novel
         private readonly List<ChoiceReveal> _choiceReveals = new List<ChoiceReveal>();
         private Coroutine _lineMotion;
         private Coroutine _transitionMotion;
+        private Coroutine _chapterMotion;
         private int _generation;
         private bool _bound;
         private bool _configured;
         private bool _dialogueActive;
+        private bool _chapterTitleActive;
         private int _observedDialogueId = -1;
         private float _backgroundPhase;
         private Vector2 _windowBasePosition;
@@ -88,6 +109,7 @@ namespace WhiteRoom.Novel
         private Vector3 _nextBaseScale = Vector3.one;
         private Vector2 _backgroundBasePosition;
         private Vector3 _backgroundBaseScale = Vector3.one;
+        private bool _dialogueWindowEnabledAtBaseline = true;
 
         public bool IsConfigured => _configured;
         public DialogueManager BoundManager => _manager;
@@ -95,18 +117,28 @@ namespace WhiteRoom.Novel
         public int AnimationGeneration => _generation;
         public float TransitionOverlayAlpha => _transitionGroup != null ? _transitionGroup.alpha : 0f;
         public bool IsTransitionPlaying => _transitionMotion != null;
+        public bool IsChapterTitleActive => _chapterTitleActive;
+        public NovelChapterTitleView ChapterTitleView => _chapterTitleView;
 
-        public void Configure(DialogueManager manager, DialogueView view, DialogueStageView stageView)
+        public void Configure(
+            DialogueManager manager,
+            DialogueView view,
+            DialogueStageView stageView,
+            NovelChapterTitleView chapterTitleView)
         {
             Unbind();
             _manager = manager;
             _view = view;
             _stageView = stageView;
+            _chapterTitleView = chapterTitleView;
 
             _windowRect = view != null ? view.transform as RectTransform : null;
             _windowGroup = EnsureCanvasGroup(view != null ? view.gameObject : null);
+            _dialogueWindowImage = view != null ? view.GetComponent<Image>() : null;
             _speakerRect = FindDescendant(view != null ? view.transform : null, "SpeakerText") as RectTransform;
             _speakerGroup = EnsureCanvasGroup(_speakerRect != null ? _speakerRect.gameObject : null);
+            _bodyRect = FindDescendant(view != null ? view.transform : null, "BodyText") as RectTransform;
+            _bodyGroup = EnsureCanvasGroup(_bodyRect != null ? _bodyRect.gameObject : null);
             _choicesContainer = FindDescendant(view != null ? view.transform : null, "Choices") as RectTransform;
             _nextRect = FindDescendant(view != null ? view.transform : null, "NextButton") as RectTransform;
             _backgroundRect = FindDescendant(stageView != null ? stageView.transform : null, "Background") as RectTransform;
@@ -120,7 +152,8 @@ namespace WhiteRoom.Novel
             CaptureBaselines();
 
             _configured = _manager != null && _view != null && _stageView != null &&
-                          _windowRect != null && _speakerRect != null && _choicesContainer != null &&
+                          _chapterTitleView != null && _windowRect != null && _speakerRect != null &&
+                          _bodyRect != null && _choicesContainer != null &&
                           _backgroundRect != null && _portraits.Count == 3;
             if (isActiveAndEnabled)
                 Bind();
@@ -140,6 +173,30 @@ namespace WhiteRoom.Novel
             _observedDialogueId = current != null ? current.Id : -1;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
             ApplyPortraitStateImmediate(ActiveSlot);
+            ApplyChapterStateImmediate(current);
+        }
+
+        public static bool TryResolveChapterTitle(DialogueData data, out ChapterTitleContent content)
+        {
+            content = default;
+            if (data == null || !data.HasChapterKey)
+                return false;
+
+            var text = (data.Text ?? string.Empty).Trim();
+            var chapterEnd = text.IndexOf('章');
+            if (chapterEnd >= 0)
+            {
+                var ordinal = text.Substring(0, chapterEnd + 1).Trim();
+                var title = text.Substring(chapterEnd + 1).Trim(' ', '\t', '\r', '\n', '　');
+                content = new ChapterTitleContent(ordinal, title);
+                return true;
+            }
+
+            var fallbackOrdinal = (data.ChapterKey ?? string.Empty)
+                .Replace('_', ' ')
+                .ToUpperInvariant();
+            content = new ChapterTitleContent(fallbackOrdinal, text);
+            return true;
         }
 
         public static string ResolveActiveSlot(DialogueData data)
@@ -200,12 +257,14 @@ namespace WhiteRoom.Novel
             Unbind();
             CancelLineMotion();
             _dialogueActive = false;
+            _chapterTitleActive = false;
             _observedDialogueId = -1;
             ActiveSlot = string.Empty;
             SnapUiToRest();
             ResetChoiceReveals();
             ResetBackground();
             ResetTransitionOverlay();
+            _chapterTitleView?.HideImmediate();
             ApplyPortraitStateImmediate(string.Empty);
         }
 
@@ -253,17 +312,41 @@ namespace WhiteRoom.Novel
             if (!string.IsNullOrEmpty(context.Data.Background))
                 _backgroundPhase = StablePhase(context.Data.Background);
 
+            var leavingChapter = _chapterTitleActive && !context.Data.HasChapterKey;
             CancelLineMotion();
+            SnapUiToRest();
             var generation = _generation;
             StageTransitionProfile transitionProfile;
-            if (TryResolveStageTransition(context.Data, out transitionProfile))
+            var hasTransition = TryResolveStageTransition(context.Data, out transitionProfile);
+            if (hasTransition)
                 _transitionMotion = StartCoroutine(AnimateStageTransition(transitionProfile, generation));
-            _lineMotion = StartCoroutine(AnimateLine(context.Data, generation));
+
+            ChapterTitleContent chapterTitle;
+            _chapterTitleActive = TryResolveChapterTitle(context.Data, out chapterTitle);
+            if (_chapterTitleActive)
+            {
+                SetChapterContentSuppressed(true);
+                ApplyPortraitStateImmediate(string.Empty);
+                var mood = hasTransition ? transitionProfile.Mood : StageTransitionMood.Neutral;
+                _chapterTitleView.Prepare(chapterTitle.Ordinal, chapterTitle.Title, mood);
+                _chapterMotion = StartCoroutine(AnimateChapterTitleReveal(generation));
+            }
+            else
+            {
+                SetChapterContentSuppressed(false);
+                if (leavingChapter)
+                {
+                    _chapterTitleView.BeginExit();
+                    _chapterMotion = StartCoroutine(AnimateChapterTitleExit(generation));
+                }
+                _lineMotion = StartCoroutine(AnimateLine(context.Data, generation));
+            }
         }
 
         private void HandleDialogueEnded(DialogueEventContext context)
         {
             _dialogueActive = false;
+            _chapterTitleActive = false;
             _observedDialogueId = -1;
             ActiveSlot = string.Empty;
             CancelLineMotion();
@@ -271,6 +354,7 @@ namespace WhiteRoom.Novel
             ResetChoiceReveals();
             ResetBackground();
             ResetTransitionOverlay();
+            _chapterTitleView?.HideImmediate();
             ApplyPortraitStateImmediate(string.Empty);
         }
 
@@ -289,6 +373,7 @@ namespace WhiteRoom.Novel
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
             ApplyPortraitStateImmediate(ActiveSlot);
+            ApplyChapterStateImmediate(current);
         }
 
         private IEnumerator AnimateLine(DialogueData data, int generation)
@@ -325,6 +410,84 @@ namespace WhiteRoom.Novel
             ApplyPortraitTween(portraitStarts, 1f, ActiveSlot);
             ApplyChoiceReveal(totalDuration + ChoiceDuration);
             _lineMotion = null;
+        }
+
+        private IEnumerator AnimateChapterTitleReveal(int generation)
+        {
+            if (_chapterTitleView == null)
+                yield break;
+
+            var elapsed = 0f;
+            while (elapsed < ChapterRevealDelay + ChapterRevealDuration)
+            {
+                if (generation != _generation)
+                    yield break;
+
+                elapsed += Time.unscaledDeltaTime;
+                var local = Mathf.Clamp01((elapsed - ChapterRevealDelay) / ChapterRevealDuration);
+                _chapterTitleView.SetReveal(EaseOutCubic(local));
+                yield return null;
+            }
+
+            if (generation == _generation)
+            {
+                _chapterTitleView.SetReveal(1f);
+                _chapterMotion = null;
+            }
+        }
+
+        private IEnumerator AnimateChapterTitleExit(int generation)
+        {
+            if (_chapterTitleView == null)
+                yield break;
+
+            var elapsed = 0f;
+            while (elapsed < ChapterExitDuration)
+            {
+                if (generation != _generation)
+                    yield break;
+
+                elapsed += Time.unscaledDeltaTime;
+                _chapterTitleView.SetExit(EaseOutCubic(elapsed / ChapterExitDuration));
+                yield return null;
+            }
+
+            if (generation == _generation)
+            {
+                _chapterTitleView.HideImmediate();
+                _chapterMotion = null;
+            }
+        }
+
+        private void ApplyChapterStateImmediate(DialogueData data)
+        {
+            ChapterTitleContent content = default;
+            _chapterTitleActive = _dialogueActive && TryResolveChapterTitle(data, out content);
+            if (!_chapterTitleActive)
+            {
+                SetChapterContentSuppressed(false);
+                _chapterTitleView?.HideImmediate();
+                return;
+            }
+
+            SetChapterContentSuppressed(true);
+            StageTransitionProfile profile;
+            var mood = TryResolveStageTransition(data, out profile)
+                ? profile.Mood
+                : StageTransitionMood.Neutral;
+            _chapterTitleView?.ShowImmediate(content.Ordinal, content.Title, mood);
+        }
+
+        private void SetChapterContentSuppressed(bool suppressed)
+        {
+            if (_dialogueWindowImage != null)
+                _dialogueWindowImage.enabled = suppressed ? false : _dialogueWindowEnabledAtBaseline;
+            if (_speakerGroup != null)
+                _speakerGroup.alpha = suppressed ? 0f : 1f;
+            if (_bodyGroup != null)
+                _bodyGroup.alpha = suppressed ? 0f : 1f;
+            if (_windowGroup != null)
+                _windowGroup.alpha = 1f;
         }
 
         private IEnumerator AnimateStageTransition(StageTransitionProfile profile, int generation)
@@ -695,6 +858,8 @@ namespace WhiteRoom.Novel
 
         private void CaptureBaselines()
         {
+            if (_dialogueWindowImage != null)
+                _dialogueWindowEnabledAtBaseline = _dialogueWindowImage.enabled;
             if (_windowRect != null)
             {
                 _windowBasePosition = _windowRect.anchoredPosition;
@@ -726,8 +891,14 @@ namespace WhiteRoom.Novel
                 StopCoroutine(_transitionMotion);
                 _transitionMotion = null;
             }
+            if (_chapterMotion != null)
+            {
+                StopCoroutine(_chapterMotion);
+                _chapterMotion = null;
+            }
             ResetChoiceReveals();
             ResetTransitionOverlay();
+            _chapterTitleView?.HideImmediate();
         }
 
         private void SnapUiToRest()
@@ -743,6 +914,10 @@ namespace WhiteRoom.Novel
                 _speakerRect.localScale = _speakerBaseScale;
             if (_speakerGroup != null)
                 _speakerGroup.alpha = 1f;
+            if (_bodyGroup != null)
+                _bodyGroup.alpha = 1f;
+            if (_dialogueWindowImage != null)
+                _dialogueWindowImage.enabled = _dialogueWindowEnabledAtBaseline;
             if (_nextRect != null)
                 _nextRect.localScale = _nextBaseScale;
         }
