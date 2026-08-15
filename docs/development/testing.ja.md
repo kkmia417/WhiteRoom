@@ -50,6 +50,7 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   通常window抑制、次行での復帰、restore cancelを確認する。screen effectではtyped cue解決、非blocking overlay、
   stageだけのdeterministicな揺れ/zoom、flash上限、typed wipe/iris/match fade、load/cancel後の完全な
   基準値復帰を確認する。depthでは背景/立ち絵singleton layer、逆方向parallax、still reset、style上限を確認する
+  character motionではtyped cue、active slot限定反応、placeholder同等性、1.2%未満のidle呼吸、cancel resetを確認する
 - `WhiteRoomBoundaryNavigationPlayModeTests`はbranch timelineへ到達し、前後のscene/choice復元、
   line eventを再実行しないpresentation/Backlog一貫性、save slotからの到達target再読込を検証する
 - Auto、Skip、Rollback、Backlog、manual/Quick/Auto Save、thumbnail、Config、collection、Ending、

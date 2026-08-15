@@ -28,6 +28,7 @@ namespace WhiteRoom.Novel
         private const string ScreenEffectColumn = "ScreenEffect";
         private const string TransitionStyleColumn = "TransitionStyle";
         private const string DepthStyleColumn = "DepthStyle";
+        private const string CharacterMotionColumn = "CharacterMotion";
 
         private static readonly Color FocusColor = Color.white;
         private static readonly Color ListenerColor = new Color(0.58f, 0.64f, 0.72f, 1f);
@@ -56,6 +57,16 @@ namespace WhiteRoom.Novel
             Drift,
             Tense,
             Intimate
+        }
+
+        public enum CharacterMotionStyle
+        {
+            None,
+            EnterLeft,
+            EnterRight,
+            ReactSoft,
+            ReactSharp,
+            IdleBreathe
         }
 
         public readonly struct DepthProfile
@@ -224,6 +235,9 @@ namespace WhiteRoom.Novel
         private Vector2 _portraitLayerBasePosition;
         private Vector3 _portraitLayerBaseScale = Vector3.one;
         private DepthProfile _depthProfile = CreateDepthProfile(DepthStyle.Drift);
+        private CharacterMotionStyle _characterMotionStyle;
+        private Vector2 _activeCharacterMotionOffset;
+        private float _activeCharacterMotionScale = 1f;
         private string _activeScreenEffectCue = string.Empty;
         private bool _dialogueWindowEnabledAtBaseline = true;
 
@@ -251,6 +265,9 @@ namespace WhiteRoom.Novel
         public Vector2 PortraitDepthOffset => _portraitDepthLayer != null
             ? _portraitDepthLayer.anchoredPosition - _portraitLayerBasePosition
             : Vector2.zero;
+        public CharacterMotionStyle ActiveCharacterMotion => _characterMotionStyle;
+        public Vector2 ActiveCharacterMotionOffset => _activeCharacterMotionOffset;
+        public float ActiveCharacterMotionScale => _activeCharacterMotionScale;
 
         public void Configure(
             DialogueManager manager,
@@ -311,6 +328,7 @@ namespace WhiteRoom.Novel
             _observedDialogueId = current != null ? current.Id : -1;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
             _depthProfile = ResolveDepthProfile(current);
+            _characterMotionStyle = ResolveCharacterMotion(current);
             ApplyPortraitStateImmediate(ActiveSlot);
             ApplyChapterStateImmediate(current);
         }
@@ -441,6 +459,21 @@ namespace WhiteRoom.Novel
                 : CreateDepthProfile(DepthStyle.Drift);
         }
 
+        public static CharacterMotionStyle ResolveCharacterMotion(DialogueData data)
+        {
+            if (data == null || !data.TryGetExtra(CharacterMotionColumn, out var rawMotion))
+                return CharacterMotionStyle.None;
+            switch ((rawMotion ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "enter_left": return CharacterMotionStyle.EnterLeft;
+                case "enter_right": return CharacterMotionStyle.EnterRight;
+                case "react_soft": return CharacterMotionStyle.ReactSoft;
+                case "react_sharp": return CharacterMotionStyle.ReactSharp;
+                case "idle_breathe": return CharacterMotionStyle.IdleBreathe;
+                default: return CharacterMotionStyle.None;
+            }
+        }
+
         private static DepthProfile CreateDepthProfile(DepthStyle style)
         {
             switch (style)
@@ -515,6 +548,7 @@ namespace WhiteRoom.Novel
             CancelLineMotion();
             _dialogueActive = false;
             _chapterTitleActive = false;
+            _characterMotionStyle = CharacterMotionStyle.None;
             _observedDialogueId = -1;
             ActiveSlot = string.Empty;
             SnapUiToRest();
@@ -538,6 +572,7 @@ namespace WhiteRoom.Novel
                 return;
 
             AnimateBackgroundDepth();
+            AnimatePortraitIdle();
             AnimateNextIndicator();
         }
 
@@ -568,6 +603,7 @@ namespace WhiteRoom.Novel
             _observedDialogueId = context.Data.Id;
             ActiveSlot = ResolveActiveSlot(context.Data);
             _depthProfile = ResolveDepthProfile(context.Data);
+            _characterMotionStyle = ResolveCharacterMotion(context.Data);
             if (!string.IsNullOrEmpty(context.Data.Background))
                 _backgroundPhase = StablePhase(context.Data.Background);
 
@@ -610,6 +646,7 @@ namespace WhiteRoom.Novel
         {
             _dialogueActive = false;
             _chapterTitleActive = false;
+            _characterMotionStyle = CharacterMotionStyle.None;
             _observedDialogueId = -1;
             ActiveSlot = string.Empty;
             CancelLineMotion();
@@ -638,6 +675,7 @@ namespace WhiteRoom.Novel
             _dialogueActive = current != null && _view != null && _view.gameObject.activeInHierarchy;
             ActiveSlot = _dialogueActive ? ResolveActiveSlot(current) : string.Empty;
             _depthProfile = ResolveDepthProfile(current);
+            _characterMotionStyle = ResolveCharacterMotion(current);
             ApplyPortraitStateImmediate(ActiveSlot);
             ApplyChapterStateImmediate(current);
         }
@@ -668,12 +706,14 @@ namespace WhiteRoom.Novel
                 var lineT = EaseOutCubic(Mathf.Clamp01(elapsed / LineDuration));
                 ApplyUiEntrance(lineT);
                 ApplyPortraitTween(portraitStarts, lineT, ActiveSlot);
+                ApplyCharacterMotionFrame(_characterMotionStyle, portraitStarts, lineT);
                 ApplyChoiceReveal(elapsed);
                 yield return null;
             }
 
             ApplyUiEntrance(1f);
             ApplyPortraitTween(portraitStarts, 1f, ActiveSlot);
+            ApplyCharacterMotionFrame(_characterMotionStyle, portraitStarts, 1f);
             ApplyChoiceReveal(totalDuration + ChoiceDuration);
             _lineMotion = null;
         }
@@ -1139,6 +1179,8 @@ namespace WhiteRoom.Novel
 
         private void ApplyPortraitStateImmediate(string activeSlot)
         {
+            _activeCharacterMotionOffset = Vector2.zero;
+            _activeCharacterMotionScale = 1f;
             for (var i = 0; i < _portraits.Count; i++)
             {
                 var portrait = _portraits[i];
@@ -1164,6 +1206,75 @@ namespace WhiteRoom.Novel
                     portrait.Rect.localScale = portrait.BaseScale * ListenerScale;
                     portrait.Rect.anchoredPosition = portrait.BasePosition;
                 }
+            }
+        }
+
+        private void ApplyCharacterMotionFrame(
+            CharacterMotionStyle style,
+            PortraitStart[] starts,
+            float t)
+        {
+            _activeCharacterMotionOffset = Vector2.zero;
+            _activeCharacterMotionScale = 1f;
+            if (style == CharacterMotionStyle.None || style == CharacterMotionStyle.IdleBreathe ||
+                string.IsNullOrEmpty(ActiveSlot))
+                return;
+
+            for (var i = 0; i < _portraits.Count && i < starts.Length; i++)
+            {
+                var portrait = _portraits[i];
+                if (!string.Equals(portrait.Slot, ActiveSlot, StringComparison.Ordinal) ||
+                    portrait.Rect == null || portrait.Image == null || !portrait.Image.enabled)
+                    continue;
+
+                if (style == CharacterMotionStyle.EnterLeft || style == CharacterMotionStyle.EnterRight)
+                {
+                    var direction = style == CharacterMotionStyle.EnterLeft ? -1f : 1f;
+                    portrait.Rect.anchoredPosition += new Vector2(
+                        direction * Mathf.Lerp(42f, 0f, EaseOutCubic(t)),
+                        0f);
+                    _activeCharacterMotionOffset = new Vector2(
+                        direction * Mathf.Lerp(42f, 0f, EaseOutCubic(t)), 0f);
+                }
+                else
+                {
+                    var envelope = Mathf.Sin(Mathf.PI * Mathf.Clamp01(t));
+                    if (style == CharacterMotionStyle.ReactSharp)
+                    {
+                        var anticipation = t < 0.18f ? -3f * Mathf.Sin(t / 0.18f * Mathf.PI) : 0f;
+                        portrait.Rect.anchoredPosition += new Vector2(0f, anticipation + 12f * envelope);
+                        portrait.Rect.localScale *= 1f + 0.025f * envelope;
+                        _activeCharacterMotionOffset = new Vector2(0f, anticipation + 12f * envelope);
+                        _activeCharacterMotionScale = 1f + 0.025f * envelope;
+                    }
+                    else
+                    {
+                        portrait.Rect.anchoredPosition += new Vector2(0f, 6f * envelope);
+                        portrait.Rect.localScale *= 1f + 0.012f * envelope;
+                        _activeCharacterMotionOffset = new Vector2(0f, 6f * envelope);
+                        _activeCharacterMotionScale = 1f + 0.012f * envelope;
+                    }
+                }
+                return;
+            }
+        }
+
+        private void AnimatePortraitIdle()
+        {
+            if (_characterMotionStyle != CharacterMotionStyle.IdleBreathe ||
+                string.IsNullOrEmpty(ActiveSlot) || _lineMotion != null)
+                return;
+
+            for (var i = 0; i < _portraits.Count; i++)
+            {
+                var portrait = _portraits[i];
+                if (!string.Equals(portrait.Slot, ActiveSlot, StringComparison.Ordinal) ||
+                    portrait.Rect == null || portrait.Image == null || !portrait.Image.enabled)
+                    continue;
+                var breath = (Mathf.Sin(Time.unscaledTime * 1.8f) * 0.5f + 0.5f) * 0.012f;
+                portrait.Rect.localScale = portrait.BaseScale * FocusScale * (1f + breath);
+                _activeCharacterMotionScale = 1f + breath;
+                return;
             }
         }
 

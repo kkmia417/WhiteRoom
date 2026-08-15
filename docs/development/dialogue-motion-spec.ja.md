@@ -1,6 +1,6 @@
 # 会話presentation motion仕様
 
-ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)、[Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)、[Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78)、[Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80) で拡張<br>
+ステータス: [Issue #71](https://github.com/kkmia417/WhiteRoom/issues/71) として実装、[Issue #73](https://github.com/kkmia417/WhiteRoom/issues/73)、[Issue #75](https://github.com/kkmia417/WhiteRoom/issues/75)、[Issue #78](https://github.com/kkmia417/WhiteRoom/issues/78)、[Issue #80](https://github.com/kkmia417/WhiteRoom/issues/80)、[Issue #82](https://github.com/kkmia417/WhiteRoom/issues/82) で拡張<br>
 English canonical file: [英語正本](dialogue-motion-spec.md)
 
 ## 成果とownership
@@ -49,6 +49,9 @@ save data、restoreのauthorityはTalk Systemに残す。
   背景と全立ち絵を別々のsingleton full-stage layerへ置く。背景は通常5/3 px、tenseで8/5 pxを上限に
   driftし、立ち絵は逆方向へ15〜30%の距離だけ動く。overscanは1.10倍を上限とする。`still`は両layerを
   完全に基準値へ戻し、未指定・未知値はsubtleな`drift`を維持する。会話UIとtransient overlayはlayer外に保つ
+- 任意の`CharacterMotion`列は方向付き`enter_left`/`enter_right`、`react_soft`、`react_sharp`、
+  `idle_breathe`を選択する。反応は解決済みactive portraitだけへ既存0.22秒line entrance内でanticipation、
+  impact、settleを適用し、idle呼吸はscale 1.2%未満にする。地の文・未知cueは通常focusを維持し、cancelで基準値へ戻す
 
 ## Cancelとrestore
 

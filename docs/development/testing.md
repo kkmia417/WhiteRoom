@@ -64,6 +64,8 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
   shake/zoom, flash limits, typed wipe/iris/match-fade resolution, and exact baseline
   restoration after load or cancellation. Depth coverage verifies singleton background/
   portrait layers, opposite-direction parallax, still-state reset, and style clamps.
+  Character-motion coverage checks typed cue resolution, active-slot-only reaction,
+  placeholder parity, sub-1.2-percent idle breathing, and cancellation reset.
 - `WhiteRoomBoundaryNavigationPlayModeTests` reaches a branching timeline, exercises
   previous/next scene and choice restore, verifies presentation and Backlog coherence
   without replaying line events, and reloads reached targets from a save slot.
