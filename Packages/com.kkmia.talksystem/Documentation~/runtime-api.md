@@ -177,6 +177,22 @@ saveSystem.SetMissingDialoguePolicy(DialogueMissingDialoguePolicy.UseFallbackDia
 
 ## Async Loading And Large Projects
 
+For imported `.dialogue` manifests, load a `CompiledDialogueAsset` and pass it to
+`CompiledDialogueRepositoryLoader`. It implements the same `IDialogueRepositoryLoader`
+port, preserving row order and first-match trigger semantics. `CreateRepository()`
+builds ID/trigger indexes without CSV parsing or graph validation. All rows remain
+resident; this is not streaming. Failed imports report errors through the loader.
+The existing TextAsset and composite loaders remain supported.
+
+```csharp
+DialogueManager.Instance.LoadRepository(new CompiledDialogueRepositoryLoader(compiledAsset));
+```
+
+The compiled asset preserves unknown CSV columns, multiline text, choices and
+source row numbers through Unity serialization. `Compile(csvText)` is an authoring
+API that validates before generating records; avoid calling it during player startup.
+See [Editor Tools](editor-tools.md#compiled-dialogue-sources) for the manifest format.
+
 Use `IDialogueRepositoryLoader` when dialogue data is loaded after scene boot, from remote content, or from Addressables.
 
 ```csharp

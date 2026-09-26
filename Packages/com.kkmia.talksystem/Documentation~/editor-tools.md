@@ -1,5 +1,31 @@
 # Editor Tools
 
+## Compiled Dialogue Sources
+
+Create a UTF-8 `.dialogue` JSON asset listing chapter CSV sources in explicit order:
+
+```json
+{"sources":["Assets/Dialogue/chapter01.csv","Assets/Dialogue/chapter02.csv"]}
+```
+
+All sources must share identical headers. The importer uses `DialogueCsvCodec` and
+`DialogueValidator` to validate the combined graph, so cross-file links are legal
+and duplicate IDs are rejected. Source changes trigger automatic reimport. The
+result is a `CompiledDialogueAsset`; generated data lives in Unity's import cache.
+Keep source CSVs outside Resources to avoid shipping unused raw manuscript text.
+Missing sources, invalid graphs and failed imports block repository creation/builds.
+Builds revalidate every `.dialogue` manifest under Assets.
+
+Validation profiles accept **Compiled Dialogues** in addition to **CSV Files**;
+profile validation re-reads manifest sources and validates presentation/localization
+references across the combined rows. Keep CSV Files for independent, complete CSVs.
+
+Select a compiled asset and use `Assets > Talk System > Export Combined CSV for Preview`
+to generate a temporary CSV under `Assets/Editor/DialoguePreview`. Use it with the
+existing preview/graph/validator windows. Export again after editing sources; the
+preview is not an authoring authority. Graph round trips only preserve known schema
+columns, so do not overwrite custom-column sources with Graph Editor output.
+
 Open tools from the Unity menu:
 
 - `Tools/kkmia/Dialogue CSV Editor`

@@ -45,7 +45,9 @@ namespace WhiteRoom.Novel.Editor.Tests
             Assert.That(configuration.CharacterDatabase, Is.Not.Null);
             Assert.That(configuration.AudioDatabase, Is.Not.Null);
             Assert.That(profile, Is.Not.Null);
-            Assert.That(profile.CsvFiles.Count, Is.EqualTo(1));
+            Assert.That(profile.CsvFiles, Is.Empty);
+            Assert.That(profile.CompiledDialogues.Count, Is.EqualTo(1));
+            Assert.That(profile.CompiledDialogues[0], Is.Not.Null);
             Assert.That(profile.BackgroundDatabase, Is.SameAs(configuration.BackgroundDatabase));
             Assert.That(profile.CharacterDatabase, Is.SameAs(configuration.CharacterDatabase));
             Assert.That(profile.AudioDatabase, Is.SameAs(configuration.AudioDatabase));

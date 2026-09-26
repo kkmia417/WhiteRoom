@@ -13,7 +13,7 @@ namespace WhiteRoom.Novel.Editor.Tests
     public sealed class WhiteRoomAudioAssetsTests
     {
         private const string DatabasePath = "Assets/Presentation/Databases/WhiteRoomAudioDatabase.asset";
-        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         private static readonly string[] RequiredBgmKeys =
         {
@@ -131,8 +131,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void ScenarioFadeStopAndRepeatedSeReachIndependentCommands()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll();
             var fade = rows.First(row => row.GetBgmCue().HasValue &&
                                          !row.GetBgmCue().IsClear && row.GetBgmCue().Transition == "fade");
             var stop = rows.First(row => row.GetBgmCue().IsClear);

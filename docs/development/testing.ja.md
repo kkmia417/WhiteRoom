@@ -28,7 +28,7 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario・journey coverage
 
-- `WhiteRoomScenarioContractTests`は公開CSV 10,648行をparseし、ID一意性、全`NextId`/choice target、
+- `WhiteRoomScenarioContractTests`は解析済みの公開シナリオ10,648行を読み、ID一意性、全`NextId`/choice target、
   1 turn 40文字の上限、chapter marker 14件、choice node 2件、condition flag 0件、固有EndingKey 4件を
   検証する。レイ単独chapter境界の立ち絵状態もsimulationし、直前のナギが残らないことを確認する
 - `Assets/Tests/Fixtures/r00_ending_routes.json`をreview対象のroute matrixとする。各entryはdialogue ID 1000001から

@@ -84,13 +84,13 @@ namespace WhiteRoom.Novel.PlayModeTests
                 Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("Main"));
                 AssertSingletonUi();
 
-                var scenario = Resources.Load<TextAsset>("Dialogue/r00_escape_talksystem");
+                var scenario = Resources.Load<CompiledDialogueAsset>("Dialogue/r00_escape_talksystem");
                 Assert.That(scenario, Is.Not.Null);
                 manager.SetView(view);
-                manager.LoadRepository(new TextAssetDialogueRepositoryLoader(scenario));
+                manager.LoadRepository(new CompiledDialogueRepositoryLoader(scenario));
                 yield return null;
                 yield return null;
-                var publishedRows = CsvLoader.Parse<DialogueData>(scenario).Values
+                var publishedRows = scenario.CreateRepository().GetAll()
                     .OrderBy(row => row.RowNumber)
                     .ToArray();
 

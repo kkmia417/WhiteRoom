@@ -12,7 +12,7 @@ namespace WhiteRoom.Novel.Editor.Tests
     public sealed class NovelDialogueMotionControllerTests
     {
         private const string ScenarioPath =
-            "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+            "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         [TearDown]
         public void TearDown()
@@ -28,8 +28,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void ActiveSlotFollowsSpeakerAndNarrationReturnsToNeutral()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             Assert.That(NovelDialogueMotionController.ResolveActiveSlot(rows[1000019]), Is.EqualTo(DialogueStageSlot.Left));
             Assert.That(NovelDialogueMotionController.ResolveActiveSlot(rows[1000020]), Is.EqualTo(DialogueStageSlot.Right));
@@ -41,8 +41,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void StageTransitionPolicyUsesBackgroundSemanticsAndChapterWeight()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             NovelDialogueMotionController.StageTransitionProfile opening;
             Assert.That(
@@ -80,8 +80,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void TransitionStylePolicyResolvesDirectionAndFallsBackSilently()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             NovelDialogueMotionController.StageTransitionStyle style;
             Assert.That(NovelDialogueMotionController.TryResolveTransitionStyle(rows[1004397], out style), Is.True);
@@ -102,8 +102,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void ChapterTitlePolicySeparatesOrdinalAndTitle()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             NovelDialogueMotionController.ChapterTitleContent opening;
             Assert.That(
@@ -128,8 +128,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void ScreenEffectPolicyResolvesTypedClampedCuesAndIgnoresUnknownValues()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             NovelDialogueMotionController.ScreenEffectProfile zoom;
             Assert.That(
@@ -181,8 +181,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void DepthPolicyResolvesClampedMultiLayerProfilesAndDefaultsToDrift()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             var still = NovelDialogueMotionController.ResolveDepthProfile(rows[1000062]);
             Assert.That(still.Style, Is.EqualTo(NovelDialogueMotionController.DepthStyle.Still));
@@ -206,8 +206,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void CharacterMotionPolicyResolvesAuthoredCuesAndUnknownFallsBackToNone()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values.ToDictionary(row => row.Id);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll().ToDictionary(row => row.Id);
 
             Assert.That(
                 NovelDialogueMotionController.ResolveCharacterMotion(rows[1000019]),

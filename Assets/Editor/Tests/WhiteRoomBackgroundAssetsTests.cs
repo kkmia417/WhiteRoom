@@ -13,7 +13,7 @@ namespace WhiteRoom.Novel.Editor.Tests
         private const string DatabasePath =
             "Assets/Presentation/Databases/WhiteRoomBackgroundDatabase.asset";
         private const string ScenarioPath =
-            "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+            "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         private static readonly string[] RequiredKeys =
         {
@@ -96,8 +96,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         public void ScenarioFadeAndCutCuesResolveAndReachStageDirector()
         {
             var database = AssetDatabase.LoadAssetAtPath<BackgroundDatabase>(DatabasePath);
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll();
             var fadeRow = rows.First(row => row.GetBackgroundCue().Transition == "fade");
             var cutRow = rows.First(row => row.GetBackgroundCue().Transition == "cut");
             var view = new RecordingStageView();

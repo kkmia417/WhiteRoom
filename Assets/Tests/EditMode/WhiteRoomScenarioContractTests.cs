@@ -11,7 +11,7 @@ namespace WhiteRoom.Novel.EditModeTests
 {
     public sealed class WhiteRoomScenarioContractTests
     {
-        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
         private const string RouteMatrixPath = "Assets/Tests/Fixtures/r00_ending_routes.json";
         private const int PublishedRowCount = 10648;
         private const int MaximumTurnCharacters = 40;
@@ -33,19 +33,18 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void ScenarioStructureMatchesThePublishedBaseline()
         {
-            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var csv = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
             Assert.That(csv, Is.Not.Null, ScenarioPath);
-            var repository = new DialogueRepository(csv);
+            var repository = csv.CreateRepository();
             var rows = repository.GetAll().ToArray();
-            var physicalRows = csv.text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length - 1;
-
-            Assert.That(physicalRows, Is.EqualTo(PublishedRowCount), "The full manuscript CSV row baseline changed.");
-            Assert.That(rows.Length, Is.EqualTo(physicalRows), "Duplicate IDs can be hidden by dictionary parsing.");
+            Assert.That(csv.Count, Is.EqualTo(PublishedRowCount), "The full manuscript row baseline changed.");
+            Assert.That(rows.Length, Is.EqualTo(csv.Count));
             Assert.That(rows.Select(row => row.Id).Distinct().Count(), Is.EqualTo(rows.Length));
             Assert.That(rows.All(row => (row.Text ?? string.Empty).Length <= MaximumTurnCharacters), Is.True,
                 $"Every dialogue turn must fit within {MaximumTurnCharacters} characters.");
-            Assert.That(repository.ValidationReport.HasErrors, Is.False,
-                string.Join("\n", repository.ValidationReport.Messages.Select(message => message.ToString())));
+            var report = DialogueValidator.ValidateData(rows);
+            Assert.That(report.HasErrors, Is.False,
+                string.Join("\n", report.Messages.Select(message => message.ToString())));
 
             var byId = rows.ToDictionary(row => row.Id);
             var choiceRows = rows.Where(row => row.GetChoices().Count > 0).ToArray();
@@ -75,9 +74,9 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void ChapterAndEndingBoundariesResetPortraitState()
         {
-            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var csv = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
             Assert.That(csv, Is.Not.Null, ScenarioPath);
-            var rows = new DialogueRepository(csv).GetAll().ToArray();
+            var rows = csv.CreateRepository().GetAll().ToArray();
             var chapterRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.ChapterKey)).ToArray();
             var endingRows = rows.Where(row => !string.IsNullOrWhiteSpace(row.EndingKey)).ToArray();
 
@@ -114,8 +113,8 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void ReviewedOpeningDialogueKeepsSpeakerAndTextTogether()
         {
-            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = new DialogueRepository(csv).GetAll().ToDictionary(row => row.Id);
+            var csv = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = csv.CreateRepository().GetAll().ToDictionary(row => row.Id);
             var expected = new Dictionary<int, (string Speaker, string Text)>
             {
                 { 1000024, ("少女", "即答なんだ") },
@@ -146,11 +145,11 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void EveryPublishedEndingRouteResolvesDeterministically()
         {
-            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var csv = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
             var matrixAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(RouteMatrixPath);
             Assert.That(csv, Is.Not.Null, ScenarioPath);
             Assert.That(matrixAsset, Is.Not.Null, RouteMatrixPath);
-            var repository = new DialogueRepository(csv);
+            var repository = csv.CreateRepository();
             var matrix = JsonUtility.FromJson<RouteMatrixDocument>(matrixAsset.text);
             Assert.That(matrix, Is.Not.Null);
             Assert.That(matrix.routes, Is.Not.Null);
@@ -172,7 +171,7 @@ namespace WhiteRoom.Novel.EditModeTests
         [Test]
         public void ProductResolversProgressConditionsAndFallbackSaveTitlesRemainStable()
         {
-            var row = new DialogueRepository(AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath))
+            var row = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath).CreateRepository()
                 .GetAll()
                 .OrderBy(item => item.RowNumber)
                 .First();
@@ -225,7 +224,7 @@ namespace WhiteRoom.Novel.EditModeTests
             }
         }
 
-        private static void AssertRoute(DialogueRepository repository, int startId, EndingRoute route)
+        private static void AssertRoute(IDialogueRepository repository, int startId, EndingRoute route)
         {
             Assert.That(route, Is.Not.Null);
             Assert.That(route.endingKey, Is.Not.Empty);
@@ -265,7 +264,7 @@ namespace WhiteRoom.Novel.EditModeTests
             Assert.Fail(route.endingKey + ": route exceeded the scenario-sized guard.");
         }
 
-        private static int CountRowsThroughEnding(DialogueRepository repository, int startId)
+        private static int CountRowsThroughEnding(IDialogueRepository repository, int startId)
         {
             var count = 0;
             var visited = new HashSet<int>();

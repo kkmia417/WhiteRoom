@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 053e6ca7bcb4478399af1675ea79eefa, type: 3}
   m_Name: WhiteRoomDialogueValidationProfile
   m_EditorClassIdentifier: kkmia.TalkSystem.Runtime::kkmia.TalkSystem.DialogueValidationProfile
-  csvFiles:
-  - {fileID: 4900000, guid: 390b8466758e8f34499a9987c9558477, type: 3}
+  csvFiles: []
+  compiledDialogues:
+  - {fileID: 2757037704936936944, guid: 8b611fa4bd65ced438c1911d9688491a, type: 3}
   characterDatabase: {fileID: 11400000, guid: ff2fc39ac2e8f544394883dc912f5791, type: 2}
   backgroundDatabase: {fileID: 11400000, guid: 618b1de99b80f9f48b1d16a4f576431a, type: 2}
   audioDatabase: {fileID: 11400000, guid: af6c7504f5aa7cb44b65013553ccbcd9, type: 2}

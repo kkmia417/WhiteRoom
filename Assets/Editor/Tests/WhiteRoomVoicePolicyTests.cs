@@ -10,7 +10,7 @@ namespace WhiteRoom.Novel.Editor.Tests
 {
     public sealed class WhiteRoomVoicePolicyTests
     {
-        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
         private const string DatabasePath = "Assets/Presentation/Databases/WhiteRoomAudioDatabase.asset";
 
         private sealed class RecordingAudioPlayer : IDialogueAudioPlayer
@@ -98,8 +98,8 @@ namespace WhiteRoom.Novel.Editor.Tests
 
         private static List<DialogueData> LoadRows()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            return CsvLoader.Parse<DialogueData>(scenario).Values.OrderBy(row => row.RowNumber).ToList();
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            return scenario.CreateRepository().GetAll().OrderBy(row => row.RowNumber).ToList();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace WhiteRoom.Novel.Editor.Tests
         private const string DatabasePath =
             "Assets/Presentation/Databases/WhiteRoomCharacterExpressionDatabase.asset";
         private const string ScenarioPath =
-            "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+            "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         private static readonly Dictionary<string, string[]> RequiredStageExpressions =
             new Dictionary<string, string[]>
@@ -120,8 +120,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         public void ScenarioStageDirectivesResolveAndReachAllSlotsFadeAndClear()
         {
             var database = AssetDatabase.LoadAssetAtPath<CharacterExpressionDatabase>(DatabasePath);
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll();
 
             foreach (var directive in rows.SelectMany(row => row.GetStageDirectives())
                          .Where(directive => !directive.IsClearAll && !directive.IsExit))
@@ -152,8 +152,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void OpeningConversationKeepsReiAndSubstituteSpeakerSideBySide()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll();
 
             foreach (var id in new[] { 1000019, 1000020 })
             {
@@ -173,8 +173,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void MissingAssetConversationKeepsTwoDistinctSubstitutesVisible()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var rows = CsvLoader.Parse<DialogueData>(scenario).Values;
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var rows = scenario.CreateRepository().GetAll();
             var row = rows.Single(item => item.Id == 1000077);
             var directives = row.GetStageDirectives().ToArray();
             var visible = directives.Where(item => !item.IsClearAll && !item.IsExit).ToArray();
@@ -198,8 +198,8 @@ namespace WhiteRoom.Novel.Editor.Tests
         [Test]
         public void OpeningChapterDoesNotRevealNagi()
         {
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var row = CsvLoader.Parse<DialogueData>(scenario).Values.Single(item => item.Id == 1000001);
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var row = scenario.CreateRepository().GetAll().Single(item => item.Id == 1000001);
             var visible = row.GetStageDirectives()
                 .Where(item => !item.IsClearAll && !item.IsExit)
                 .ToArray();

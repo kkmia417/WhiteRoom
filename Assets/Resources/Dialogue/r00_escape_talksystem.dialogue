@@ -1,0 +1,18 @@
+{
+  "sources": [
+    "Assets/Dialogue/Chapters/chapter_01.csv",
+    "Assets/Dialogue/Chapters/chapter_02.csv",
+    "Assets/Dialogue/Chapters/chapter_03.csv",
+    "Assets/Dialogue/Chapters/chapter_04.csv",
+    "Assets/Dialogue/Chapters/chapter_05.csv",
+    "Assets/Dialogue/Chapters/chapter_06.csv",
+    "Assets/Dialogue/Chapters/chapter_07.csv",
+    "Assets/Dialogue/Chapters/chapter_08.csv",
+    "Assets/Dialogue/Chapters/chapter_09.csv",
+    "Assets/Dialogue/Chapters/chapter_10.csv",
+    "Assets/Dialogue/Chapters/chapter_11.csv",
+    "Assets/Dialogue/Chapters/chapter_12.csv",
+    "Assets/Dialogue/Chapters/chapter_13.csv",
+    "Assets/Dialogue/Chapters/chapter_14.csv"
+  ]
+}

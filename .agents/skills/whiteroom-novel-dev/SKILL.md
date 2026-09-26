@@ -26,7 +26,7 @@ API is missing, explain the gap before adding project-side code.
    - docs, validation, or authoring workflow
 2. Inspect the relevant source before editing:
    - `Assets/Scripts/NovelGameBootstrap.cs`
-   - `Assets/Resources/Dialogue/*.csv`
+   - `Assets/Dialogue/Chapters/*.csv` and `Assets/Resources/Dialogue/*.dialogue`
    - `Assets/Scenes/Title.unity` and `Assets/Scenes/Main.unity` when scene behavior can change
    - `Packages/com.kkmia.talksystem/Documentation~/csv-schema.md`
    - `Packages/com.kkmia.talksystem/Documentation~/runtime-api.md`
