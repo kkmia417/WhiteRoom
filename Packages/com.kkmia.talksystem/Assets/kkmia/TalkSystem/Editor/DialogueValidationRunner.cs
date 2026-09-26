@@ -74,7 +74,7 @@ namespace kkmia.TalkSystem.Editor
                 return report;
             }
 
-            if (profile.CsvFiles.Count == 0)
+            if (profile.CsvFiles.Count == 0 && profile.CompiledDialogues.Count == 0)
                 report.Add(DialogueValidationSeverity.Warning, 0, string.Empty, "Dialogue validation profile has no CSV files.");
 
             var rows = new List<DialogueData>();
@@ -88,6 +88,26 @@ namespace kkmia.TalkSystem.Editor
 
                 report.AddRange(DialogueValidator.ValidateCsv(csvFile.text).Messages);
                 rows.AddRange(CsvLoader.ParseText<DialogueData>(csvFile.text).Values);
+            }
+
+            foreach (var compiled in profile.CompiledDialogues)
+            {
+                if (compiled == null)
+                {
+                    report.Add(DialogueValidationSeverity.Error, 0, string.Empty, "Missing compiled dialogue reference.");
+                    continue;
+                }
+                try
+                {
+                    // Re-read sources so a failed or pending reimport cannot validate stale data.
+                    var csv = DialogueSourceImporter.ReadSourceCsv(AssetDatabase.GetAssetPath(compiled));
+                    report.AddRange(DialogueValidator.ValidateCsv(csv).Messages);
+                    rows.AddRange(CsvLoader.ParseText<DialogueData>(csv).Values);
+                }
+                catch (Exception exception)
+                {
+                    report.Add(DialogueValidationSeverity.Error, 0, string.Empty, exception.Message);
+                }
             }
 
             report.AddRange(DialogueValidator.ValidateAssets(rows, profile).Messages);

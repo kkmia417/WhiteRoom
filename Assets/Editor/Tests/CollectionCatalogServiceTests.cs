@@ -12,15 +12,15 @@ namespace WhiteRoom.Novel.Editor.Tests
     public sealed class CollectionCatalogServiceTests
     {
         private const string CatalogPath = "Assets/Resources/WhiteRoom/collection_catalog.csv";
-        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         [Test]
         public void CatalogContainsExactlyTheFourUniqueScenarioEndingsInStableOrder()
         {
             var result = LoadCatalog();
             var endings = result.Catalog.List(CollectionItemKind.Ending);
-            var scenario = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
-            var scenarioKeys = CsvLoader.Parse<DialogueData>(scenario).Values
+            var scenario = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
+            var scenarioKeys = scenario.CreateRepository().GetAll()
                 .Where(row => !string.IsNullOrWhiteSpace(row.EndingKey))
                 .Select(row => row.EndingKey)
                 .Distinct()

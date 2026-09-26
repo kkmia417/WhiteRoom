@@ -27,6 +27,7 @@ The concrete classes of the current runtime slice are diagrammed in
 | Cues, async presentation, cancellation, and restore | [ADR-0009](../adr/0009-deterministic-presentation-runtime.md) ([日本語](../adr/0009-deterministic-presentation-runtime.ja.md)) |
 | Test evidence, releases, platforms, and observability | [ADR-0010](../adr/0010-release-quality-platform-boundary.md) ([日本語](../adr/0010-release-quality-platform-boundary.ja.md)) |
 | Reached scene/choice navigation and checkpoint restore | [ADR-0011](../adr/0011-reached-boundary-navigation.md) ([日本語](../adr/0011-reached-boundary-navigation.ja.md)) |
+| Chapter CSV authoring and compiled runtime dialogue | [ADR-0012](../adr/0012-compiled-dialogue-authoring.md) ([日本語](../adr/0012-compiled-dialogue-authoring.ja.md)) |
 
 ## Target dependency map
 

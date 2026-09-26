@@ -19,13 +19,13 @@ Project-side code should integrate with this package instead of duplicating it.
 ## Project Map
 
 - Runtime bootstrap: `Assets/Scripts/NovelGameBootstrap.cs`
-- Scenario data: `Assets/Resources/Dialogue/*.csv`
+- Scenario data: `Assets/Dialogue/Chapters/*.csv` (ordered by `Assets/Resources/Dialogue/r00_escape_talksystem.dialogue`)
 - Current scenario resource path: `Dialogue/r00_escape_talksystem`
 - Current default start trigger: `R00EscapeStart`
 - Main scenes: `Assets/Scenes/Title.unity`, `Assets/Scenes/Main.unity`
 
 `NovelGameBootstrap` currently creates or finds a `DialogueManager`, creates a
-runtime `DialogueView` if none exists, loads the scenario CSV from Resources,
+runtime `DialogueView` if none exists, loads the compiled scenario from Resources through `NovelDialogueLoaderFactory`,
 sets variable and condition resolvers, and routes `EventKey` values such as
 scene transitions.
 
@@ -33,7 +33,7 @@ scene transitions.
 
 - Start dialogue through `DialogueManager.StartDialogue(id)` or
   `DialogueManager.StartDialogueForState(triggerKey)`.
-- Load CSV through `TextAssetDialogueRepositoryLoader` or another
+- Load compiled scenarios through `CompiledDialogueRepositoryLoader`; load custom CSV through `TextAssetDialogueRepositoryLoader` or another
   `IDialogueRepositoryLoader`.
 - Resolve `{variables}` with `IDialogueVariableResolver`.
 - Gate rows and choices with `IDialogueConditionEvaluator`.

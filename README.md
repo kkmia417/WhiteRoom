@@ -10,6 +10,7 @@ Issue. Read these documents before making a non-trivial change:
 
 - [Contributing guide](CONTRIBUTING.md)
 - [Issue-driven development](docs/development/issue-driven-development.md)
+- [章別シナリオCSVの編集・検証](docs/development/dialogue-authoring.md)
 - [Architecture](docs/architecture/README.md)
 - [Architecture Decision Records](docs/adr/README.md)
   ([日本語](docs/adr/README.ja.md))

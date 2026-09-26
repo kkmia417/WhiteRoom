@@ -7,7 +7,7 @@ Japanese counterpart: [日本語版](story-condition-spec.ja.md)
 ## Outcome and scope
 
 The shipped Talk System scenario is
-`Assets/Resources/Dialogue/r00_escape_talksystem.csv`. It contains the complete
+`Assets/Resources/Dialogue/r00_escape_talksystem.dialogue`. It contains the complete
 fourteen-chapter manuscript adapted into visual-novel turns. The importer preserves
 the two decisions and four endings while placing attributed speech in `Speaker` and
 its quote-free contents in `Text`.

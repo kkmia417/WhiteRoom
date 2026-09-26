@@ -30,7 +30,7 @@ python -m unittest discover -s .\scripts\tests -p "test_*.py"
 
 ## Scenario and journey coverage
 
-- `WhiteRoomScenarioContractTests` parses all 10,648 published CSV rows and verifies
+- `WhiteRoomScenarioContractTests` loads all 10,648 published compiled dialogue rows and verifies
   unique IDs, every `NextId` and choice target, the 40-character turn ceiling,
   fourteen chapter markers, two choice nodes, zero condition flags, and four unique
   ending keys. It also simulates portrait state at Rei-only chapter boundaries so a

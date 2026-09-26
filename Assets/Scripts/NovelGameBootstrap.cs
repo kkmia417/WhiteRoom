@@ -607,21 +607,24 @@ namespace WhiteRoom.Novel
             _manager.SetTypewriterSpeed(typewriterInterval);
             _manager.SetEventDispatcher(new DelegateDialogueEventDispatcher(HandleDialogueEvent));
 
-            var csv = Resources.Load<TextAsset>(dialogueResourcePath);
-            if (csv == null)
+            var loader = NovelDialogueLoaderFactory.Create(dialogueResourcePath);
+            if (loader == null)
             {
-                Debug.LogError($"NovelGameBootstrap: dialogue CSV was not found at Resources/{dialogueResourcePath}.");
+                Debug.LogError($"NovelGameBootstrap: dialogue asset was not found at Resources/{dialogueResourcePath}.");
                 return;
             }
 
-            StartCoroutine(LoadDialogueAndStart(csv));
+            StartCoroutine(LoadDialogueAndStart(loader));
         }
 
-        private IEnumerator LoadDialogueAndStart(TextAsset csv)
+        private IEnumerator LoadDialogueAndStart(IDialogueRepositoryLoader loader)
         {
-            _manager.LoadRepository(new TextAssetDialogueRepositoryLoader(csv));
-            yield return null;
-            yield return null;
+            bool completed = false;
+            string error = null;
+            _manager.LoadRepository(new CompletionDialogueLoader(loader,
+                () => completed = true, message => { error = message; completed = true; }));
+            while (!completed) yield return null;
+            if (error != null) yield break;
 
             _boundaryNavigation?.Dispose();
             _boundaryNavigation = new DialogueBoundaryNavigationService(

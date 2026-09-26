@@ -7,7 +7,7 @@ English canonical file: [英語正本](story-condition-spec.md)
 ## 成果とスコープ
 
 公開中のTalk Systemシナリオは
-`Assets/Resources/Dialogue/r00_escape_talksystem.csv`である。全十四章の原稿を
+`Assets/Resources/Dialogue/r00_escape_talksystem.dialogue`である。全十四章の原稿を
 ノベルゲーム向けのturnへ変換し、二つの選択と四つのEndingを維持する。発話は話者を`Speaker`、
 かぎ括弧を除いた本文を`Text`へ格納する。
 

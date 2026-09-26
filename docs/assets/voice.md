@@ -15,7 +15,7 @@ consistently deliver.
 
 ## Enforced current-release contract
 
-- Every row of `r00_escape_talksystem.csv` has an empty `Voice` field.
+- Every row of the chapter CSVs in `Assets/Dialogue/Chapters/` has an empty `Voice` field.
 - `WhiteRoomAudioDatabase.voice` has zero entries.
 - Empty Voice fields are intentional and do not produce validation or runtime
   missing-asset warnings.

@@ -7,6 +7,7 @@ namespace kkmia.TalkSystem
     public sealed class DialogueValidationProfile : ScriptableObject
     {
         [SerializeField] private List<TextAsset> csvFiles = new List<TextAsset>();
+        [SerializeField] private List<CompiledDialogueAsset> compiledDialogues = new List<CompiledDialogueAsset>();
         [SerializeField] private CharacterExpressionDatabase characterDatabase;
         [SerializeField] private BackgroundDatabase backgroundDatabase;
         [SerializeField] private AudioDatabase audioDatabase;
@@ -28,6 +29,8 @@ namespace kkmia.TalkSystem
         {
             get { return csvFiles; }
         }
+
+        public IReadOnlyList<CompiledDialogueAsset> CompiledDialogues => compiledDialogues;
 
         public CharacterExpressionDatabase CharacterDatabase
         {

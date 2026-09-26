@@ -1,7 +1,7 @@
 # Audio assets
 
 Issue #14 registers every BGM and sound-effect key referenced by
-`r00_escape_talksystem.csv`.
+the chapter CSVs in `Assets/Dialogue/Chapters/`.
 
 ## Provenance and permission
 

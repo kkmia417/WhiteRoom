@@ -11,7 +11,7 @@ namespace WhiteRoom.Novel.Editor.Tests
 {
     public sealed class EndingFlowServiceTests
     {
-        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.csv";
+        private const string ScenarioPath = "Assets/Resources/Dialogue/r00_escape_talksystem.dialogue";
 
         [Test]
         public void ScenarioContainsFourUniqueEndingKeysWithDisplayableResults()
@@ -105,9 +105,9 @@ namespace WhiteRoom.Novel.Editor.Tests
 
         private static DialogueData[] LoadEndingRows()
         {
-            var csv = AssetDatabase.LoadAssetAtPath<TextAsset>(ScenarioPath);
+            var csv = AssetDatabase.LoadAssetAtPath<CompiledDialogueAsset>(ScenarioPath);
             Assert.That(csv, Is.Not.Null);
-            return CsvLoader.Parse<DialogueData>(csv).Values
+            return csv.CreateRepository().GetAll()
                 .Where(row => !string.IsNullOrWhiteSpace(row.EndingKey))
                 .ToArray();
         }

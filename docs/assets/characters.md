@@ -1,7 +1,7 @@
 # Character sprite assets
 
 Issue #13 adds the production-ready static character sprites used by the
-`Characters` column in `r00_escape_talksystem.csv`.
+`Characters` column in the chapter CSVs in `Assets/Dialogue/Chapters/`.
 
 ## Provenance and permission
 

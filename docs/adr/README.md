@@ -25,6 +25,7 @@ date, related work, and meaning.
 | ADR-0009 | [Drive presentation through a deterministic, cancellable cue runtime](0009-deterministic-presentation-runtime.md) | [Deterministicかつcancel可能なcue runtimeでpresentationを駆動する](0009-deterministic-presentation-runtime.ja.md) | Accepted | 2026-07-18 |
 | ADR-0010 | [Gate releases with automated quality evidence and platform adapters](0010-release-quality-platform-boundary.md) | [自動品質evidenceとplatform adapterでreleaseをgateする](0010-release-quality-platform-boundary.ja.md) | Accepted | 2026-07-18 |
 | ADR-0011 | [Navigate dialogue through reached boundary snapshots](0011-reached-boundary-navigation.md) | [到達済み境界snapshotでdialogueを移動する](0011-reached-boundary-navigation.ja.md) | Accepted | 2026-07-30 |
+| ADR-0012 | [Compile ordered chapter CSV sources](0012-compiled-dialogue-authoring.md) | [章別CSVをインポート時にコンパイルする](0012-compiled-dialogue-authoring.ja.md) | Accepted | 2026-09-26 |
 
 `0000-template.md` and `0000-template.ja.md` are copyable templates, not
 decisions.
